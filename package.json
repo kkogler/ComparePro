@@ -1,0 +1,16 @@
+   {
+     "name": "rest-express",
+     "version": "1.0.0",
+     "type": "module",
+     "license": "MIT",
+     "scripts": {
+       "dev": "NODE_ENV=development tsx server/index.ts",
+       "dev:cursor": "NODE_ENV=development PORT=3001 tsx server/index.ts",
+       "dev:clean": "./scripts/clean-start.sh",
+       "kill": "pkill -f 'tsx server/index.ts' && pkill -f 'node.*server'",
+       "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+       "start": "NODE_ENV=production node dist/index.js",
+       "check": "tsc",
+       "db:push": "drizzle-kit push"
+     }
+   }
