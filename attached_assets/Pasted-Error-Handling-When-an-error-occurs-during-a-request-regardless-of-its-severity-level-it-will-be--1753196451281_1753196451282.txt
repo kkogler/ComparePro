@@ -1,0 +1,45 @@
+Error Handling
+When an error occurs during a request, regardless of its severity level, it will be returned as a JSON structure. When implementing the API within your application, you should check for the existance of the error_code property and handle it accordingly. The various error messages you might come across are detailed below.
+
+Additionally, depending on the error type, you may also receive an array of error structures. These structures provide sub-codes and extra details about the error.
+
+Example Error Request
+GET /items?item_ids=thisVeryLongItemIDIsTooLong
+Example Error Response
+{
+    "error_code": 9000,
+    "errors": [
+        {
+            "message": "The maximum length of an Item ID is 24 characters.",
+            "property": "item_ids",
+            "subcode": 9004
+        }
+    ],
+    "message": "Data validation failed."
+}
+Resource	Error Code	Severity	HTTP Status Code	Short Name	Message	Resolution Notes
+All	4001	Fatal	401	Bad Authorization	Invalid authorization details provided.	-
+All	4003	Fatal	403	Forbidden	Permission denied.	-
+All	5000	Fatal	500	Internal Server Error	There was an internal server error. Our tech team has been notified.	-
+All	8000	Information	404	Record Not Found	The record specified could not be found.	-
+All	9000	Fatal	422	Invalid Data	Data validation failed.	-
+ 	9001	 	 	Unexpected Data	This property is not valid for this operation.	-
+ 	9002	 	 	No Post Body	The request requires a POST body.	-
+ 	9003	 	 	Required	This is a required property.	-
+ 	9004	 	 	Size	The data entered has an incorrect length and/or scale.	-
+ 	9005	 	 	Format	The data entered is not formatted properly.	-
+ 	9006	 	 	Range	The value entered is outside the allowed range.	-
+Varies	60001	Information	404	Record Not Found	There were no items found. Try modifying your filters and try again.	-
+Order	60101	Fatal	 	Order Item Cannot be Shipped	Order failed. Item(s) that cannot be shipped to specified address: [comma separated list of ineligible items]	Item restrictions are sometimes dependent on destination or ship options. If this error occurs on a drop ship order with a requested ship method, the items may be allowed to ship via other ship options, or locale restriction waiver may not be signed.
+Order	60102	Fatal	 	Serialized Order Item	Order failed. Order contains serialized item(s) that cannot be shipped: [comma separated list of ineligible items]	-
+Order	60103	Fatal	 	Previously Used Purchase Order Number	Purchase Order Number cannot be used across multiple days. Purchase Order Number restriction resets nightly at 12:00 AM ET.	-
+Order	60104	Fatal	 	Too Much Powder	Order contains more than 100 pounds of powder.	-
+Order	60105	Fatal	 	Duplicate Order	Order failed. Duplicate order detected. Please verify and resubmit in [1-30] seconds.	An order with the same PO, address, and items was detected within a 30 second time frame. If the duplicate order is legitimate, wait the number of seconds given in the error message and try again.
+Order	60106	Fatal	 	Drop Ship Authorization Failed	Drop Ship Authorization failed.	Contact your sales representative to gain authorization for drop shipping.
+Order	60107	Fatal	 	Drop Ship State Unavailable	Drop Ship only available for 48 contiguous states.	-
+Order	60108	Fatal	 	Drop Ship Mixed Order Unavailable	Drop Ship orders with FFL and non-FFL items must be placed separately.	-
+Order	60109	Fatal	 	FFL Drop Ship Unavailable.	FFL Owner has opted out of drop ship orders.	-
+Order Item	60201	Fatal	 	Missing Order Item	Order failed. Item(s) that cannot be found: [comma separated list of ineligible items]	-
+Order Item	60202	Fatal	 	Insufficient Inventory	Order failed. Item(s) that have insufficient inventory: [comma separated list of ineligible items].	-
+Order Item	60203	Fatal	 	Unable to Drop Ship	Order failed. Item(s) that cannot be drop shipped: [comma separated list of ineligible items].	-
+Order Item	60204	Fatal	 	Order Includes Allocated Items	Order failed. Allocated item(s) that must be ordered through your sales rep: [comma separated list of ineligible items].

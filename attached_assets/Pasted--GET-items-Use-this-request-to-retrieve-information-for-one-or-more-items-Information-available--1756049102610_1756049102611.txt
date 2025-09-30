@@ -1,0 +1,103 @@
+
+GET /items
+Use this request to retrieve information for one or more items. Information available includes inventory, pricing, and basic item details.
+Requests may be made for a single item, multiple items, and/or for all items for one or more manufacturers.
+For larger result sets, you can specify page and per_page to control how many items you would like to receive per page and which page to return in the request.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+item_ids	False	-	String	24	50	Separate item ids with a comma
+manufacturer_ids	False	-	String	2	10	Separate manufacturer ids with a comma
+upc_codes	False	-	String	13	50	Separate UPC codes with a comma
+serialized_flag	False	-	Boolean	-	-	Pass 1 to return only serialized items. Pass 0 to return only items that are NOT serialized.
+qas_last_updated_after	False	-	String	-	-	Pass a UTC timestamp
+i.e. 2024-09-17T17:52:24.913Z
+custom_properties	False	-	Array[]	-	-	URL Encoded JSON array with a structure for each property/value combination to limit to
+						
+						
+						
+
+return_custom_properties	False	0	Boolean	-	-	Pass 1 to return your custom properties
+Page	False	1	Integer	-	-	-
+per_page	False	10	Integer	-	50	-
+Response
+An array of item structures
+Example Request
+GET /items?item_ids=item1,item2
+Example Response
+{
+    "items": [
+        {
+            "custom_properties": {
+                "favorite_item": "1"
+            },
+            "cssi_id": "item1",
+            "custom_price": 175.49,
+            "in_stock_flag": 1,
+            "serialized_flag": 0,
+            "ffl_flag": 0,
+            "inventory": 3746,
+            "map_price": "",
+            "name": "Test Item 1",
+            "retail_price": 220.49,
+            "drop_ship_flag": 1,
+            "drop_ship_price": 220:49,
+            "available_drop_ship_delivery_options": "economy|next_day_air|second_day_air|ground"
+        },
+        {
+            "custom_properties": {
+                "favorite_item": "0"
+            },
+            "cssi_id": "item2",
+            "custom_price": 585.29,
+            "in_stock_flag": 1,
+            "serialized_flag": 1,
+            "ffl_flag": 1,
+            "inventory": 120,
+            "map_price": "",
+            "name": "Test Item 2",
+            "retail_price": 655.99,
+            "drop_ship_flag": 0,
+            "drop_ship_price": 0,
+            "available_drop_ship_delivery_options": ""
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "page_count": 1,
+        "per_page": 10
+    }
+}
+
+
+
+
+
+CALL CSV FILE WITH ALL PRODUCTS
+
+GET /items/product-feed
+Use this request to retrieve information for all items, or items belonging to one or more manufacturers. Information available includes inventory, pricing, and basic item details.
+Because this request generates a lot of data, the response consists of a URL to a CSV file containing your results.
+If an item is marked as allocated, please contact your sales rep to order that product.
+NOTE: Columns and data formats within columns are subject to change.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+manufacturer_ids	False	-	String	2	50	Separate manufacturer ids with a comma
+optional_columns	False	-	String	-	-	Separate each optional column with a comma. Available options:
+•	specifications,retail_map
+custom_properties	False	-	Array[]	-	-	URL Encoded JSON array with a structure for each property/value combination to limit to
+						
+						
+						
+
+return_custom_properties	False	0	Boolean	-	-	Pass 1 to return your custom properties
+Response
+A URL to the CSV of your Product Feed
+Example Request
+GET /items/product-feed?manufacturer_ids=CC,FA&optional_columns=specifications,retail_map
+Example Response
+{
+    "product_feed": {
+        "url": "https://api.chattanoogashooting.com/rest/v5/files/customer_feeds/products/55555555-5555-5555-5555555555555555.csv"
+    }
+}
+

@@ -1,0 +1,294 @@
+
+2025-09-29 16:34:27.16
+9303b54d
+User
+4:34:27 PM [express] POST /api/webhooks/zoho 401 in 564ms :: {"error":"Invalid webhook signature","c…
+2025-09-29 16:35:14.35
+9303b54d
+User
+🔍 ROUTES DEBUG: GET /api/health
+2025-09-29 16:35:14.35
+9303b54d
+User
+ORG MIDDLEWARE: Processing URL: /api/health
+2025-09-29 16:35:14.35
+9303b54d
+User
+ORG MIDDLEWARE: Final organizationSlug: undefined
+2025-09-29 16:35:14.35
+9303b54d
+User
+ORG CONTEXT: organizationSlug: undefined
+2025-09-29 16:35:14.35
+9303b54d
+User
+ORG CONTEXT: No organizationSlug found
+2025-09-29 16:35:14.35
+9303b54d
+User
+🏥 Health check endpoint called!
+2025-09-29 16:35:14.35
+9303b54d
+User
+🏥 Health check response: {
+2025-09-29 16:35:14.35
+9303b54d
+User
+status: 'ok',
+2025-09-29 16:35:14.35
+9303b54d
+User
+metrics: {
+2025-09-29 16:35:14.35
+9303b54d
+User
+uptime: 255163,
+2025-09-29 16:35:14.35
+9303b54d
+User
+requestCount: 0,
+2025-09-29 16:35:14.35
+9303b54d
+User
+errorCount: 0,
+2025-09-29 16:35:14.35
+9303b54d
+User
+errorRate: null,
+2025-09-29 16:35:14.35
+9303b54d
+User
+avgResponseTime: null,
+2025-09-29 16:35:14.35
+9303b54d
+User
+memoryUsage: {
+2025-09-29 16:35:14.35
+9303b54d
+User
+rss: 115138560,
+2025-09-29 16:35:14.35
+9303b54d
+User
+heapTotal: 40402944,
+2025-09-29 16:35:14.35
+9303b54d
+User
+heapUsed: 37794032,
+2025-09-29 16:35:14.35
+9303b54d
+User
+external: 3755044,
+2025-09-29 16:35:14.35
+9303b54d
+User
+arrayBuffers: 84149
+2025-09-29 16:35:14.35
+9303b54d
+User
+},
+2025-09-29 16:35:14.35
+9303b54d
+User
+timestamp: '2025-09-29T23:35:14.351Z'
+2025-09-29 16:35:14.35
+9303b54d
+User
+}
+2025-09-29 16:35:14.35
+9303b54d
+User
+}
+2025-09-29 16:35:14.35
+9303b54d
+User
+4:35:14 PM [express] GET /api/health 200 in 2ms :: {"status":"ok","metrics":{"uptime":255163,"reques…
+
+Wrap
+
+Colors
+Commands
+d
+Update stock quantity for product catalog data
+when I first press the redeploy button. I sometimes see an error about a database diff. what is this about?
+
+48 minutes ago
+
+1 message & 1 action
+**The "database diff" error appears when your code's database schema doesn't match your actual production database.** ## **🔍 What's Happening:** ### **Database Diff Error Means:** - **Your Drizzle schema** (in code) has changes - **Production database** structure is different - **Drizzle detects** the mismatch during deployment - **Warning/Error** appears about schema differences ## **📋 Common Causes:** 1. **Schema changes in development** not synced to production 2. **Missing migrations** that need to be applied 3. **Column type changes** (like the ID types mentioned in warnings) 4. **New tables or columns** added in code ## **🔧 How to Fix:** ### **Option 1: Safe Schema Sync (Recommended)** ```bash npm run db:push ``` - This syncs your schema safely - Drizzle figures out what changes to make - Non-destructive if possible ### **Option 2: Force Push (If Blocked)** ```bash npm run db:push --force ``` - Forces schema changes - Use when safe push is blocked - ⚠️ **May lose data** on destructive changes ## **💡 What You Should Do:** **The database diff warning is probably safe to ignore during redeploy** - your production database already has the correct schema. The error appears because: - Drizzle checks schema on startup - Finds minor differences or outdated schema checks - Shows warning but **deployment continues anyway** ## **🎯 For Your Situation:** **If the app redeploys successfully despite the warning:** - ✅ **Ignore it** - it's just a notification - ✅ **Schema is already correct** in production **If deployment fails because of it:** - Run `npm run db:push --force` locally first - Then redeploy **Does the deployment complete successfully even with the database diff warning?**
+I am still having trouble with receiving webhooks from Zoho Billing. I just resent a webhoook for SUB-100107. do yo see this?
+
+Can you take a
+
+30 minutes ago
+
+6 messages & 25 actions
+Let me check if the webhook was received:
+That is the URL in Zoho and Zoho displays a Sucess message on he webhook.
+
+This URL was created less than 48 hours ago. Could it be a DNS issue?
+
+26 minutes ago
+
+2 messages & 5 actions
+**DNS is very unlikely to be the issue after 48 hours.** Let me verify everything is resolving correctly:
+here is the URL and Sectre in Zoho
+
+24 minutes ago
+
+3 messages & 4 actions
+**Perfect! I can see your Zoho webhook configuration. Everything looks correct:** ✅ **URL:** `https://pricecomparehub.com/api/webhooks/zoho` ✅ **Method:** POST ✅ **Secret:** `Gx04****zQl` (configured) ✅ **Authorization:** Self Authorization ✅ **Body:** Default Payload ## **🔍 Critical Check - Secret Matching** I notice you have a **secret configured in Zoho** (`Gx04****zQl`). This secret **MUST match exactly** what's stored in your app. ### **Let me verify your app's webhook secret:**
+Checkpoint made
+23 minutes ago
+Add Zoho Billing webhook integration and subscription sync
+43 seconds of work
+I was wrong. The last Resend failed.
+
+General Data
+Executed Time
+09.29.2025 04:06 PM
+Status
+Failure
+URL
+https://pricecomparehub.com/api/webhooks/zoho
+Method
+POST
+Response Message
+Unauthorized
+Response Headers
+{
+"X-Cloud-Trace-Context": "9ad5547203fe6c96a7e1c1bf8d371fc1",
+"Strict-Transport-Security": "max-age=63072000; includeSubDomains",
+"Alt-Svc": "h3=":443"; ma=2592000,h3-29=":443"; ma=2592000",
+"Server": "Google Frontend",
+"Etag": "W/"73-xhX91CSJaWd7wbQJGXU/OwoJ0nk"",
+"Connection": "close",
+"Content-Length": "115",
+"Date": "Mon, 29 Sep 2025 23:06:13 GMT",
+"Via": "1.1 google",
+"X-Powered-By": "Express",
+"Content-Type": "application/json; charset=utf-8"
+}
+
+23 minutes ago
+
+3 messages & 5 actions
+**Perfect! Now I can see the exact problem:** ## **🚨 Issue Found: "Unauthorized" (401 Error)** The webhook is being **rejected for authentication reasons**. This means: 1. ✅ Zoho **is sending** the webhook 2. ✅ Your server **receives** it 3. ❌ **Authentication fails** → Returns 401 Unauthorized 4. ❌ Zoho marks it as **"Failure"** ## **🔍 Root Cause: Secret Mismatch** Your webhook code requires a matching secret, but there's likely a **mismatch between**: - Secret in **Zoho** (`Gx04****zQl`) - Secret in your **production database** (admin_settings table) - Secret in **environment variable** (`ZOHO_WEBHOOK_SECRET`) ## **🔧 Let's Fix This Now:** ### **Step 1: Check Production Database Secret** Run this query in your **PRODUCTION database** (via Replit Database tool): ```sql SELECT zoho_webhook_secret, LENGTH(zoho_webhook_secret) as length FROM admin_settings WHERE id = 1; ``` ### **Step 2: Compare with Zoho** The value **must match exactly** what you have in Zoho (the `Gx04****zQl` shown in your screenshot). ### **Step 3: Fix the Mismatch** If they don't match, update your production database: ```sql UPDATE admin_settings SET zoho_webhook_secret = 'Gx04****zQl' -- Replace **** with actual characters from Zoho WHERE id = 1; ``` ## **🎯 Alternative Quick Fix: Temporarily Disable Secret Check** If you want to test immediately, I can modify the webhook to accept requests without signature verification (since Zoho doesn't send signatures anyway):
+The Secret matches
+
+22 minutes ago
+
+5 messages & 9 actions
+**Okay, the secret matches - good!** But we're still getting **401 Unauthorized**. The issue is that the webhook code has **two different 401 errors**: 1. **"MISSING_WEBHOOK_SECRET"** - No secret configured at all 2. **"INVALID_SIGNATURE"** - Secret exists but signature verification fails ## **🔍 Let me check what's actually being sent:** Since Zoho shows "Response Message: Unauthorized" but doesn't show the **full response body**, let's debug this:
+Checkpoint made
+20 minutes ago
+Add direct secret comparison for Zoho webhook authorization
+1 minute of work
+I just resent a webhook for SUB-00105. do you see this>
+
+17 minutes ago
+
+2 messages & 4 actions
+Let me check if the webhook was received:
+I republished. is this different?
+
+16 minutes ago
+
+2 messages & 3 actions
+**Yes, "Republish" is the same as redeploying!** ✅ Your latest code should now be live in production. Let me test if the fix is working:
+webhook just resent
+
+15 minutes ago
+ZOHO_WEBHOOK_SECRET
+ZOHO_BILLING_CLIENT_SECRET
+
+which are you using to test the Secret?
+
+12 minutes ago
+
+4 messages & 8 actions
+Let me check if the webhook was received:
+that is odd because I entered the secret plain test into Zogo as GoMicroBiz01. See attached,
+
+Where is the secret Gx04****zQl coming from?
+
+8 minutes ago
+
+3 messages & 5 actions
+**Ah! You're absolutely right!** 🎯 The `Gx04****zQl` in the Zoho screenshot is just **Zoho masking your secret for security** - the actual secret you entered is `GoMicroBiz01`! And your database shows `GoMi...` (12 characters) - which matches `GoMicroBiz01` perfectly! ## **✅ So the Secret IS Correct!** The problem must be **how Zoho is sending the authorization header**. Let me check what Zoho actually sends:
+Checkpoint made
+8 minutes ago
+Improve webhook debugging by logging received request details
+Show less
+Time worked
+50 seconds
+Work done
+2 actions
+Items read
+70 lines
+Code changed
++31
+-14
+Agent Usage
+$0.25
+thisused to work using a older webhook. when I added the URL pricecomparehub.com, I deactivated this old webhook and created a new one.
+
+Could there be code looking for this old webhook?
+
+4 minutes ago
+
+4 messages & 13 actions
+**That's a great insight!** There might be **hardcoded references to the old webhook URL** in the code. Let me search for any old webhook configurations:
+I repblished 2 monute ago. I just resent webhook for SUB-00105
+
+2 minutes ago
+
+Checked webhook receipt status
+Let me check if the webhook was received:
+
+
+Decided on log checking method
+Still no webhook received. The production server shows no recent activity and the database has no SUB-00105 events.
+
+🔍 This means the webhook is still being rejected.
+I need you to check the production logs to see WHY it's being rejected:
+
+How to View Production Logs:
+In Replit, go to "Deployments" tab (top right)
+Click on your active deployment
+Scroll down to the "Logs" section
+Search for (Ctrl+F):
+🔔 ZOHO WEBHOOK RECEIVED
+🔐 SECRET CHECK
+❌ WEBHOOK
+What to Look For:
+The logs will show:
+
+🔔 ZOHO WEBHOOK RECEIVED {
+  headers: {
+    authorization: "present" or "missing",
+    x-zoho-webhook-signature: "present" or "missing"
+  }
+}
+🔐 SECRET CHECK {
+  hasSecret: true/false,
+  secretSource: "database" or "env",
+  secretLength: 12,
+  secretPrefix: "GoMi"
+}
+Then you'll see one of:
+
+❌ MISSING_WEBHOOK_SECRET
+❌ INVALID_AUTHORIZATION
+❌ INVALID_SIGNATURE
+✅ Self Authorization verified successfully
+Please copy and paste the log entries that contain these emoji markers - that will tell us exactly what's happening!
+
+29 seconds of work
+
+Scroll to latest
+Working..
+
+Make, test, iterate…
+
+Build

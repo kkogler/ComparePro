@@ -1,0 +1,24 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+downloads# Large files and backups that shouldn't be deployed
+*.tar.gz
+*.zip
+backup_*
+.backups/
+downloads/*.csv
+# Keep downloads folder structure but not large CSV files
+
+# Cache files - vendor catalogs (too large for git)
+chattanooga-cache/
+catalog-cache/
+bill-hicks-cache/
+server/cache/
+*.csv
+
+# Attached assets
+attached_assets/*.csv
+uploads/*.csv

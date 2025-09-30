@@ -1,0 +1,869 @@
+Resource - Item
+GET /items
+Use this request to retrieve information for one or more items. Information available includes inventory, pricing, and basic item details.
+Requests may be made for a single item, multiple items, and/or for all items for one or more manufacturers.
+For larger result sets, you can specify page and per_page to control how many items you would like to receive per page and which page to return in the request.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+item_ids	False	-	String	24	50	Separate item ids with a comma
+manufacturer_ids	False	-	String	2	10	Separate manufacturer ids with a comma
+upc_codes	False	-	String	13	50	Separate UPC codes with a comma
+serialized_flag	False	-	Boolean	-	-	Pass 1 to return only serialized items. Pass 0 to return only items that are NOT serialized.
+qas_last_updated_after	False	-	String	-	-	Pass a UTC timestamp
+i.e. 2024-09-17T17:52:24.913Z
+custom_properties	False	-	Array[]	-	-	URL Encoded JSON array with a structure for each property/value combination to limit to
+						
+						
+						
+
+return_custom_properties	False	0	Boolean	-	-	Pass 1 to return your custom properties
+page	False	1	Integer	-	-	-
+per_page	False	10	Integer	-	50	-
+Response
+An array of item structures
+Example Request
+GET /items?item_ids=item1,item2
+Example Response
+{
+    "items": [
+        {
+            "custom_properties": {
+                "favorite_item": "1"
+            },
+            "cssi_id": "item1",
+            "custom_price": 175.49,
+            "in_stock_flag": 1,
+            "serialized_flag": 0,
+            "ffl_flag": 0,
+            "inventory": 3746,
+            "map_price": "",
+            "name": "Test Item 1",
+            "retail_price": 220.49,
+            "drop_ship_flag": 1,
+            "drop_ship_price": 220:49,
+            "available_drop_ship_delivery_options": "economy|next_day_air|second_day_air|ground"
+        },
+        {
+            "custom_properties": {
+                "favorite_item": "0"
+            },
+            "cssi_id": "item2",
+            "custom_price": 585.29,
+            "in_stock_flag": 1,
+            "serialized_flag": 1,
+            "ffl_flag": 1,
+            "inventory": 120,
+            "map_price": "",
+            "name": "Test Item 2",
+            "retail_price": 655.99,
+            "drop_ship_flag": 0,
+            "drop_ship_price": 0,
+            "available_drop_ship_delivery_options": ""
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "page_count": 1,
+        "per_page": 10
+    }
+}
+GET /items/product-feed
+Use this request to retrieve information for all items, or items belonging to one or more manufacturers. Information available includes inventory, pricing, and basic item details.
+Because this request generates a lot of data, the response consists of a URL to a CSV file containing your results.
+If an item is marked as allocated, please contact your sales rep to order that product.
+NOTE: Columns and data formats within columns are subject to change.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+manufacturer_ids	False	-	String	2	50	Separate manufacturer ids with a comma
+optional_columns	False	-	String	-	-	Separate each optional column with a comma. Available options:
+•	specifications,retail_map
+custom_properties	False	-	Array[]	-	-	URL Encoded JSON array with a structure for each property/value combination to limit to
+						
+						
+						
+
+return_custom_properties	False	0	Boolean	-	-	Pass 1 to return your custom properties
+Response
+A URL to the CSV of your Product Feed
+Example Request
+GET /items/product-feed?manufacturer_ids=CC,FA&optional_columns=specifications,retail_map
+Example Response
+{
+    "product_feed": {
+        "url": "https://api.chattanoogashooting.com/rest/v5/files/customer_feeds/products/55555555-5555-5555-5555555555555555.csv"
+    }
+}
+Resource - Item Property
+GET /item-properties
+Use this request to retrieve information for any custom properties that you have set up.
+Response
+An array of item property structures
+Example Request
+GET /item-properties
+Example Response
+{
+    "item-properties": [
+        {
+            "id": "favorite-item-flag",
+            "name": "Favorite Item Flag",
+            "data_type": "boolean"
+        },
+        {
+            "id": "wishlist-name",
+            "name": "Wishlist Name",
+            "data_type": "varchar"
+        }
+    ]
+}
+POST /item-properties
+Use this request to create new custom properties.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+name	True	-	String	36	-	-
+data_type	True	-	String	-	-	Must be "boolean", "integer", or "varchar".
+Response
+A structure with the newly created property's information
+Example Request
+POST /item-properties
+
+{
+    "name": "Favorite Item",
+    "data_type": "boolean"
+}
+Example Response
+{
+    "item-property": {
+        "id": "favorite-item",
+        "data_type": "boolean",
+        "name": "Favorite Item"
+    }
+}
+DELETE /item-properties/[property_id]
+Use this request to delete a custom property.
+NOTE: This action cannot be undone and will remove all product values associated with this property.
+Response
+A structure with the deleted property's ID and a success flag
+Example Request
+DELETE /item-properties/favorite-item
+Example Response
+{
+    "item-property": {
+        "id": "favorite-item",
+        "deleted": "true"
+    }
+}
+POST /item-properties/[property_id]/items
+Use this request to assign custom property values to products.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+items	True	-	Array[]	-	1000	-
+						
+						
+						
+
+Response
+>A structure with a success flag and, if applicable, an array of warnings with any records that were unable to be processed.
+Example Request
+POST /item-properties/favorite-item/items
+
+{
+    "items": [
+        {
+            "item_number": "CC3509",
+            "value": 1
+        },
+        {
+            "item_number": "CC3505",
+            "value": 0
+        }
+    ]
+}
+Example Response
+{
+    "item-property-items": {
+        "success": "true",
+    },
+    "warnings": [
+        {
+            "message": "The following item number is invalid: CC3505123.",
+            "property": "items.item_number",
+            "subcode": 9000
+        },
+        {
+            "message": "The value for the following item number is invalid: CC3509.",
+            "property": "items.value",
+            "subcode": 9000
+        },
+        {
+            "message": "There is 1 duplicate item number in your dataset: CC3505",
+            "property": "items.item_number",
+            "subcode": 9000
+        }
+    ]
+}
+DELETE /item-properties/[property_id]/items
+Use this request to remove custom property values from products.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+items	False	-	Array[]	-	1000	An array of item numbers. Not passing items will remove the property value for this property from all items.
+Response
+A structure with a success flag
+Example Request
+DELETE /item-properties/favorite-item/items
+
+{
+    "items": [
+        "CC3505",
+        "CC3509"
+    ]
+}
+Example Response
+{
+    "item-property-items": {
+        "success": "true"
+    }
+}
+
+
+
+
+
+
+Resource - Order
+GET /orders
+Use this request to retrieve information for one or more orders. Information available includes order status, address, and item information.
+Requests may be made for a single order, multiple orders, and/or for all orders for one purchase order.
+For larger result sets, you can specify page and per_page to control how many orders you would like to receive per page and which page to return in the request.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+order_numbers	False	-	Integer	-	20	Separate order numbers with a comma
+purchase_order_number	False	-	String	24	-	Used to group orders for a day into a single invoice
+page	False	1	Integer	-	-	-
+per_page	False	10	Integer	-	20	-
+Response
+An array of order structures
+Example Request
+GET /orders?order_numbers=1,2&purchase_order_number=20180115
+Example Response
+{
+    "orders": [
+        {
+            "order_number": 1,
+            "purchase_order_number": "20180115",
+            "shipping_amount": 0.00,
+            "status": "new",
+            "total_amount": 300.00,
+            "ship_to_address": {
+                "name": "Big Bird",
+                "line_1": "123 Sesame St",
+                "line_2": "Apt 123",
+                "city": "New York",
+                "state_code": "NY",
+                "zip": 10023
+            },
+            "order_items": [
+                {
+                    "item_number": "Item1",
+                    "order_quantity": 1,
+                    "price": 200.00,
+                    "ship_quantity": ""
+                },
+                {
+                    "item_number": "Item2",
+                    "order_quantity": 2,
+                    "price": 50.00,
+                    "ship_quantity": ""
+                }
+            ]
+        },
+        {
+            "order_number": 2,
+            "purchase_order_number": "20180115",
+            "shipping_amount": 0.00,
+            "status": "canceled",
+            "total_amount": 400.00,
+            "ship_to_address": {
+                "name": "Jed Clampett",
+                "line_1": "518 Crestview Drive",
+                "line_2": "",
+                "city": "Beverly Hills",
+                "state_code": "CA",
+                "zip": 90210
+            },
+            "order_items": [
+                {
+                    "item_number": "Item1",
+                    "order_quantity": 2,
+                    "price": 200.00,
+                    "ship_quantity": ""
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "page_count": 1,
+        "per_page": 10
+    }
+}
+POST /orders
+Use this request to place an order, providing all necessary information (items, address, and purchase order number if desired)
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+purchase_order_number	False	-	String	24	-	Used to group orders for a day into a single invoice
+drop_ship_flag	False	0	Boolean	-	-	Only available when drop shipping is authorized by your Chattanooga Shooting sales rep. Pass 1 when requesting the order be shipped directly to your customer - not to your place of business.
+customer	False	-	String	60	-	Required when drop_ship_flag = 1. Not applicable and invalid when drop_ship_flag = 0. Value will display on printed packing slip with shipment under the label - Customer:
+delivery_option	False	-	String	14	-	Required when drop_ship_flag = 1. Not applicable and invalid when drop_ship_flag = 0. See Shipping Policy for details. Available options:
+•	best
+•	fastest
+•	economy
+•	ground
+•	next_day_air
+•	second_day_air
+insurance_flag	False	0	Boolean	-	-	Not applicable and invalid when drop_ship_flag = 0.
+adult_signature_flag	False	0	Boolean	-	-	Not applicable and invalid when drop_ship_flag = 0. Not available for economy. Set to 1 automatically for all FFL drop ship orders.
+federal_firearms_license_number	False	-	String	15	-	Hyphens must be removed. Required when drop_ship_flag = 1 and firearms or muzzleloaders are on the order. Not applicable and invalid otherwise. Not available to all customers. Contact your Sales Rep for details. Please use the GET /federal-firearms-licenses/[ffl_number] API request to ensure Chattanooga Shooting already has the document on file before submitting the order.
+ship_to_address	True	-	Structure{}	-	-	Complex Object: Structure representing the order's Ship To Address
+						
+						
+						
+						
+						
+						
+						
+
+order_items	True	-	Array[]	-	250	Complex Object: Array of Structures. Each entry in the array represents one order item. Minimum one order item is required per order.
+						
+						
+						
+						
+
+Response
+The created order's structure
+Example Request
+POST /orders
+
+{
+    "purchase_order_number": "20180115",
+    "ship_to_address": {
+        "name": "Big Bird",
+        "line_1": "123 Sesame St",
+        "line_2": "Apt 123",
+        "city": "New York",
+        "state_code": "NY",
+        "zip": 10023
+    },
+    "order_items": [
+        {
+            "item_number": "Item1",
+            "order_quantity": 1,
+            "customer_reference": "AB123"
+        },
+        {
+            "item_number": "Item2",
+            "order_quantity": 2,
+            "customer_reference": "CD456"
+        }
+    ]
+}
+Example Response
+{
+    "orders": [
+        {
+            "order_number": 1,
+            "purchase_order_number": "20180115",
+            "shipping_amount": 0.00,
+            "status": "new",
+            "total_amount": 300.00,
+            "ship_to_address": {
+                "name": "Big Bird",
+                "line_1": "123 Sesame St",
+                "line_2": "Apt 123",
+                "city": "New York",
+                "state_code": "NY",
+                "zip": 10023
+            },
+            "order_items": [
+                {
+                    "item_number": "Item1",
+                    "order_quantity": 1,
+                    "price": 200.00,
+                    "ship_quantity": "",
+                    "customer_reference": "AB123"
+                },
+                {
+                    "item_number": "Item2",
+                    "order_quantity": 2,
+                    "price": 50.00,
+                    "ship_quantity": "",
+                    "customer_reference": "CD456"
+                }
+            ]
+        }
+    ]
+}
+GET /orders/[order_number]
+Use this request to retrieve information for a particular order using the order number
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+order_number	True	-	Integer	-	-	-
+Response
+The created order's structure
+Example Request
+GET /orders/1
+Example Response
+{
+    "orders": [
+        {
+            "order_number": 1,
+            "purchase_order_number": "20180115",
+            "shipping_amount": 15.0,
+            "status": "new",
+            "total_amount": 300.00,
+            "ship_to_address": {
+                "name": "Big Bird",
+                "line_1": "123 Sesame St",
+                "line_2": "Apt 123",
+                "city": "New York",
+                "state_code": "NY",
+                "zip": 10023
+            },
+            "order_items": [
+                {
+                    "item_number": "Item1",
+                    "order_quantity": 1,
+                    "price": 200.00,
+                    "ship_quantity": ""
+                },
+                {
+                    "item_number": "Item2",
+                    "order_quantity": 2,
+                    "price": 50.00,
+                    "ship_quantity": ""
+                }
+            ]
+        }
+    ]
+}
+GET /orders/[order_number]/shipments
+Use this request to retrieve shipment information for a particular order using the order number
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+order_number	True	-	Integer	-	-	-
+Response
+The order's shipment structure
+Example Request
+GET /orders/1/shipments
+Example Response
+{
+    "order_shipments":[
+        {
+            "order_number":1,
+            "shipments":[
+                {
+                    "tracking_number":"1Z3192300371479427",
+                    "ship_date":"2010-03-25 00:00:00",
+                    "ship_method":"UPS Ground Com",
+                    "carrier":"UPS"
+                },
+                {
+                    "tracking_number":"1Z3192300371862815",
+                    "ship_date":"2010-03-25 00:00:00",
+                    "ship_method":"UPS Ground Com",
+                    "carrier":"UPS"
+                }
+            ]
+        }
+    ]
+}
+POST /orders/request-cancellation
+Use this request to request the cancellation of an order using the order number or PO number.
+You must pass either an order number or a purchase order number, but not both.
+NOTE: This does not automatically cancel an order. Your sales rep will be alerted to your request and will reach out to you with a resolution.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+order_number	False	-	Integer	-	-	-
+purchase_order_number	False	-	String	-	-	-
+Response
+The order's cancellation request structure
+Example Request
+POST /orders/request-cancellation
+
+{
+    "purchase_order_number": "20180115"
+}
+Example Response
+{
+    "order_cancellation_request": {
+        "success": true,
+        "reference_number": "20180115"
+    }
+}
+
+
+
+
+
+Resource - Shipment
+GET /shipments/by-order
+Use this request to retrieve information for one or more orders. Information available includes order number, items, and package information.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+order_numbers	False	-	String	-	25	Separate order numbers with a comma
+drop_ship_flag	False	-	Boolean	-	-	Returns only drop ship orders when set to 1 and standard orders when set to 0. Returns all orders when not passed.
+only_return_unreceived_shipments	False	0	Boolean	-	-	Only includes orders that you have not marked as received
+page	False	1	Integer	-	-	-
+per_page	False	10	Integer	-	25	-
+Response
+An array of shipment structures
+Example Request
+GET /shipments/by-order?order_numbers=123,456&drop_ship_flag=1&only_return_unreceived_shipments=1
+Example Response
+{
+    "shipments": [
+        {
+            "order_number": 123,
+            "purchase_order_number": "ABC123",
+            "marked_as_received_flag": 1,
+            "items": [
+                {
+                    "ship_quantity": 1,
+                    "order_quantity": 1,
+                    "item_number": "Item1",
+                    "customer_reference": "AB123"
+                }
+            ],
+            "packages": [
+                {
+                    "carrier_name": "FedEx",
+                    "tracking_number": "TrackingNumber1"
+                }
+            ]
+        },
+        {
+            "order_number": 456,
+            "purchase_order_number": "ABC123",
+            "marked_as_received_flag": 1,
+            "items": [
+                {
+                    "ship_quantity": 2,
+                    "order_quantity": 2,
+                    "item_number": "Item2",
+                    "customer_reference": "CD456"
+                }
+            ],
+            "packages": [
+                {
+                    "carrier_name": "FedEx",
+                    "tracking_number": "TrackingNumber2"
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "per_page": 25,
+        "page_count": 1,
+        "page": 1
+    }
+}
+GET /shipments/by-purchase-order
+Use this request to retrieve information for one or more purchase orders. Information available includes order, items, and package information.
+All orders for a given purchase order have to be shipped before they will be returned by this endpoint.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+purchase_order_numbers	False	-	String	-	25	Separate purchase order numbers with a comma
+drop_ship_flag	False	-	Boolean	-	-	Returns only drop ship orders when set to 1 and standard orders when set to 0. Returns all orders when not passed.
+only_return_unreceived_shipments	False	0	Boolean	-	-	Only includes orders that you have not marked as received
+page	False	1	Integer	-	-	-
+per_page	False	10	Integer	-	25	-
+Response
+An array of shipment structures
+Example Request
+GET /shipments/by-purchase-order?purchase_order_numbers=123ABC,ABC123&drop_ship_flag=1&only_return_unreceived_shipments=1
+Example Response
+{
+    "shipments": [
+        {
+            "purchase_order_number": "123ABC",
+            "orders": [
+                {
+                    "order_number": 1,
+                    "marked_as_received_flag": 1,
+                    "items": [
+                        {
+                            "ship_quantity": 1,
+                            "order_quantity": 1,
+                            "item_number": "Item1",
+                            "customer_reference": "AB123"
+                        }
+                    ],
+                    "packages": [
+                        {
+                            "carrier_name": "FedEx",
+                            "tracking_number": "TrackingNumber1"
+                        }
+                    ]
+                },
+                {
+                    "order_number": 2,
+                    "marked_as_received_flag": 1,
+                    "items": [
+                        {
+                            "ship_quantity": 1,
+                            "order_quantity": 1,
+                            "item_number": "Item2",
+                            "customer_reference": "CD456"
+                        }
+                    ],
+                    "packages": [
+                        {
+                            "carrier_name": "FedEx",
+                            "tracking_number": "TrackingNumber2"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "purchase_order_number": "ABC123",
+            "orders": [
+                {
+                    "order_number": 3,
+                    "marked_as_received_flag": 0,
+                    "items": [
+                        {
+                            "ship_quantity": 2,
+                            "order_quantity": 2,
+                            "item_number": "Item3",
+                            "customer_reference": "EF789"
+                        }
+                    ],
+                    "packages": [
+                        {
+                            "carrier_name": "FedEx",
+                            "tracking_number": "TrackingNumber3"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "per_page": 25,
+        "page_count": 1,
+        "page": 1
+    }
+}
+POST /shipments/mark-as-received
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+order_numbers	True	-	Array[]	-	100	An array of order numbers
+Response
+A structure with a success flag
+Example Request
+POST /shipments/mark-as-received
+Example Response
+{
+    "shipments": {
+        "success": "true"
+    }
+}
+
+
+Resource - Invoice
+GET /invoices/by-order
+Use this request to retrieve invoice information for one or more orders. Information available includes order number, items, and billing information.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+order_numbers	False	-	String	-	25	Separate order numbers with a comma
+only_return_unreceived_invoices	False	0	Boolean	-	-	Only includes invoices for orders that you have not marked as received
+page	False	1	Integer	-	-	-
+per_page	False	10	Integer	-	25	-
+Response
+An array of invoice structures
+Example Request
+GET /invoices/by-order?order_numbers=123,456&only_return_unreceived_invoices=1
+Example Response
+{
+    "shipments": [
+        {
+            "order_number": 123,
+            "items": [
+                {
+                    "ship_quantity": 1,
+                    "order_quantity": 1,
+                    "item_number": "Item1"
+                }
+            ],
+            "packages": [
+                {
+                    "carrier_name": "FedEx",
+                    "tracking_number": "TrackingNumber1"
+                }
+            ]
+        },
+        {
+            "order_number": 456,
+            "items": [
+                {
+                    "ship_quantity": 2,
+                    "order_quantity": 2,
+                    "item_number": "Item2"
+                }
+            ],
+            "packages": [
+                {
+                    "carrier_name": "FedEx",
+                    "tracking_number": "TrackingNumber2"
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "per_page": 25,
+        "page_count": 1,
+        "page": 1
+    }
+}
+GET /invoices/by-purchase-order
+Use this request to retrieve invoice information for one or more purchase orders. Information available includes order, items, and billing information.
+All orders for a given purchase order have to be shipped before they will be returned by this endpoint.
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+purchase_order_numbers	False	-	String	-	25	Separate purchase order numbers with a comma
+only_return_unreceived_invoices	False	0	Boolean	-	-	Only includes invoices for orders that you have not marked as received
+page	False	1	Integer	-	-	-
+per_page	False	10	Integer	-	25	-
+Response
+An array of invoice structures
+Example Request
+GET /invoices/by-purchase-order?purchase_order_numbers=123ABC,ABC123&only_return_unreceived_invoices=1
+Example Response
+{
+    "shipments": [
+        {
+            "purchase_order_number": "123ABC",
+            "orders": [
+                {
+                    "order_number": 1,
+                    "items": [
+                        {
+                            "ship_quantity": 1,
+                            "order_quantity": 1,
+                            "item_number": "Item1"
+                        }
+                    ],
+                    "packages": [
+                        {
+                            "carrier_name": "FedEx",
+                            "tracking_number": "TrackingNumber1"
+                        }
+                    ]
+                },
+                {
+                    "order_number": 2,
+                    "items": [
+                        {
+                            "ship_quantity": 1,
+                            "order_quantity": 1,
+                            "item_number": "Item2"
+                        }
+                    ],
+                    "packages": [
+                        {
+                            "carrier_name": "FedEx",
+                            "tracking_number": "TrackingNumber2"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "purchase_order_number": "ABC123",
+            "orders": [
+                {
+                    "order_number": 3,
+                    "items": [
+                        {
+                            "ship_quantity": 2,
+                            "order_quantity": 2,
+                            "item_number": "Item3"
+                        }
+                    ],
+                    "packages": [
+                        {
+                            "carrier_name": "FedEx",
+                            "tracking_number": "TrackingNumber3"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "per_page": 25,
+        "page_count": 1,
+        "page": 1
+    }
+}
+POST /invoices/mark-as-received
+Inputs
+Argument	Required	Default	Type	Length	Limit	Note
+order_numbers	True	-	Array[]	-	100	An array of order numbers
+Response
+A structure with a success flag
+Example Request
+POST /invoices/mark-as-received
+Example Response
+{
+    "invoices": {
+        "success": "true"
+    }
+}
+
+
+
+Error Handling
+When an error occurs during a request, regardless of its severity level, it will be returned as a JSON structure. When implementing the API within your application, you should check for the existance of the error_code property and handle it accordingly. The various error messages you might come across are detailed below.
+Additionally, depending on the error type, you may also receive an array of error structures. These structures provide sub-codes and extra details about the error.
+Example Error Request
+GET /items?item_ids=thisVeryLongItemIDIsTooLong
+Example Error Response
+{
+    "error_code": 9000,
+    "errors": [
+        {
+            "message": "The maximum length of an Item ID is 24 characters.",
+            "property": "item_ids",
+            "subcode": 9004
+        }
+    ],
+    "message": "Data validation failed."
+}
+Resource	Error Code	Severity	HTTP Status Code	Short Name	Message	Resolution Notes
+All	4001	Fatal	401	Bad Authorization	Invalid authorization details provided.	-
+All	4003	Fatal	403	Forbidden	Permission denied.	-
+All	5000	Fatal	500	Internal Server Error	There was an internal server error. Our tech team has been notified.	-
+All	8000	Information	404	Record Not Found	The record specified could not be found.	-
+All	9000	Fatal	422	Invalid Data	Data validation failed.	-
+ 	9001	 	 	Unexpected Data	This property is not valid for this operation.	-
+ 	9002	 	 	No Post Body	The request requires a POST body.	-
+ 	9003	 	 	Required	This is a required property.	-
+ 	9004	 	 	Size	The data entered has an incorrect length and/or scale.	-
+ 	9005	 	 	Format	The data entered is not formatted properly.	-
+ 	9006	 	 	Range	The value entered is outside the allowed range.	-
+Varies	60001	Information	404	Record Not Found	There were no items found. Try modifying your filters and try again.	-
+Order	60101	Fatal	 	Order Item Cannot be Shipped	Order failed. Item(s) that cannot be shipped to specified address: [comma separated list of ineligible items]	Item restrictions are sometimes dependent on destination or ship options. If this error occurs on a drop ship order with a requested ship method, the items may be allowed to ship via other ship options, or locale restriction waiver may not be signed.
+Order	60102	Fatal	 	Serialized Order Item	Order failed. Order contains serialized item(s) that cannot be shipped: [comma separated list of ineligible items]	-
+Order	60103	Fatal	 	Previously Used Purchase Order Number	Purchase Order Number cannot be used across multiple days. Purchase Order Number restriction resets nightly at 12:00 AM ET.	-
+Order	60104	Fatal	 	Too Much Powder	Order contains more than 100 pounds of powder.	-
+Order	60105	Fatal	 	Duplicate Order	Order failed. Duplicate order detected. Please verify and resubmit in [1-30] seconds.	An order with the same PO, address, and items was detected within a 30 second time frame. If the duplicate order is legitimate, wait the number of seconds given in the error message and try again.
+Order	60106	Fatal	 	Drop Ship Authorization Failed	Drop Ship Authorization failed.	Contact your sales representative to gain authorization for drop shipping.
+Order	60107	Fatal	 	Drop Ship State Unavailable	Drop Ship only available for 48 contiguous states.	-
+Order	60108	Fatal	 	Drop Ship Mixed Order Unavailable	Drop Ship orders with FFL and non-FFL items must be placed separately.	-
+Order	60109	Fatal	 	FFL Drop Ship Unavailable.	FFL Owner has opted out of drop ship orders.	-
+Order Item	60201	Fatal	 	Missing Order Item	Order failed. Item(s) that cannot be found: [comma separated list of ineligible items]	-
+Order Item	60202	Fatal	 	Insufficient Inventory	Order failed. Item(s) that have insufficient inventory: [comma separated list of ineligible items].	-
+Order Item	60203	Fatal	 	Unable to Drop Ship	Order failed. Item(s) that cannot be drop shipped: [comma separated list of ineligible items].	-
+Order Item	60204	Fatal	 	Order Includes Allocated Items	Order failed. Allocated item(s) that must be ordered through your sales rep: [comma separated list of ineligible items].	-
+

@@ -1,0 +1,16 @@
+I would like to update the existing code that managed the Bill Hicks Inventory feed.
+As a refresher:
+Bill Hicks will make a catalog feed available for each of the Store Customers in PriceCompare.  This feed contains all the information on the products (IDs, descriptions, prices) but does not contain stock numbers.  Each feed will have its own unique name based on the Store.  Each Store will need to maintain separate store credentials in Store>Supported Vendors>Bill Hicks, giving the Store access to its catalog feed.   The catalog feed will contain pricing that is specific to the Store.
+The catalog feed is updated daily – so that each Bill Hicks account in the Admin Panel should have settings to download the latest catalog feed automatically at most once per day.  PriceCompare will have to log in to a FTP server made available by Bill Hicks and download a separate catalog feed for each Store that has its own Bill Hicks login credentials.  Price Compare will need to update the vendor specific tables that contain the MSRP, MAP and vendor cost data for each store.
+Bill Hicks will also provide access to a separate file named MicroBiz_Hourly_Inventory.csv via its FTP server with product availability and vendor stock levels.  These stock levels are not store-specific so we can share the Inventory feed across all customers with a Bill Hicks account.  This inventory feed will be accessed using the Admin credentials for Bill Hicks stored at Admin>Supported Vendors> Bill Hicks.
+The Inventory feed is updated hourly by Bill Hicks.  So, the Admin>Supported Vendors>Bill Hicks account credential will be used to log in and download the inventory feed based on the settings in Admin>Supported Vendors> Bill Hicks.  This will be initially set to download hourly during US business hours.
+Bill Hicks provided access to their FTP Server.  Here is the path to the feeds.  For now, lets just focus on the inventory feed.
+
+Username: kevin.kogler@microbiz.com
+Password: LasVega$01
+Path: https://billhicksco.hostedftp.com/files/path/MicroBiz/Feeds
+Inventory Feed File Name: MicroBiz_Hourly_Inventory.csv
+Attached is CSV export of a feed downloaded from the site.
+
+
+Please set up the Admin Settings to download the Inventory fees and update the existing table set up in the system with this data.

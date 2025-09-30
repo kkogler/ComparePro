@@ -1,0 +1,73 @@
+<ItemUpdate>
+<Input>
+<param name="CustomerNumber" maxlength="5" type="xs:numeric-string">Customer Number</param>
+<param name="UserName" maxlength="50" type="xs:string">User Name</param>
+<param name="Password" maxlength="15" type="xs:string">Password</param>
+<param name="LastUpdate" maxlength="10" type="xs:date">Date of Last Update</param>
+<param name="LastItem" maxlength="5" type="xs:string">Last Item Retrieved (-1 to return all. To page results by 1000 records, start with 1.)</param>
+<param name="Source" maxlength="8" type="xs:string">Description of source using service</param>
+</Input>
+<Output>
+<DataSet xmlns="http://webservices.theshootingwarehouse.com/smart/inventory">
+<xs:schema xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="NewDataSet">
+<xs:element name="NewDataSet" msdata:IsDataSet="true">
+<xs:element name="Table">
+<xs:element name="ITEMNO" type="xs:decimal" minOccurs="0" MaxLength="5" Description="Item Number"/>
+<xs:element name="IDESC" type="xs:string" minOccurs="0" MaxLength="38" Description="Item Description"/>
+<xs:element name="IMFSEQ" type="xs:decimal" minOccurs="0" MaxLength="4" Description="Manufacturer Sequence"/>
+<xs:element name="IMFGNO" type="xs:decimal" minOccurs="0" MaxLength="3" Description="Manufacturer Number"/>
+<xs:element name="CSEQ" type="xs:decimal" minOccurs="0" MaxLength="4" Description="Catalog Sequence for ordering rows from multiple mfg's"/>
+<xs:element name="ITYPE" type="xs:decimal" minOccurs="0" MaxLength="1" Description="Item Type (1-handgun,2-longgun,3-Accessory,4-Ammo,5-Optics,6-Archery,7-Reloading"/>
+<xs:element name="SHDESC" type="xs:string" minOccurs="0" MaxLength="80" Description="Short English Description"/>
+<xs:element name="UOM" type="xs:string" minOccurs="0" MaxLength="3" Description="Unit of measure"/>
+<xs:element name="PRC1" type="xs:decimal" minOccurs="0" MaxLength="5,2" Description="Catalog Price"/>
+<xs:element name="CPRC" type="xs:decimal" minOccurs="0" MaxLength="5,2" Description="Customer Price"/>
+<xs:element name="QTYOH" type="xs:decimal" minOccurs="0" MaxLength="4" Description="Quantity on hand"/>
+<xs:element name="WTPBX" type="xs:decimal" minOccurs="0" MaxLength="5,3" Description="Weight per box"/>
+<xs:element name="ITUPC" type="xs:decimal" minOccurs="0" MaxLength="12" Description="UPC"/>
+<xs:element name="MFGINO" type="xs:string" minOccurs="0" MaxLength="12" Description="Mfg Item Number"/>
+<xs:element name="SCNAM1" type="xs:string" minOccurs="0" MaxLength="7" Description="Scan Name1 (usually manufacturer specific)"/>
+<xs:element name="SCNAM2" type="xs:string" minOccurs="0" MaxLength="7" Description="Scan Name2 (groups like items across mfg lines)"/>
+<xs:element name="CATCD" type="xs:string" minOccurs="0" MaxLength="1" Description="Catalog code (S-Special,C-Closeout,F-Flyer,B-Buyers Special,N-Net Price)"/>
+<xs:element name="MFPRTYP" type="xs:string" minOccurs="0" MaxLength="1" Description="Mapp Price Code (M, U, N, T, or 3). Contact Support for Details"/>
+<xs:element name="MFPRC" type="xs:decimal" minOccurs="0" MaxLength="5,2" Description="Mapp Price"/>
+<xs:element name="CATID" type="xs:decimal" minOccurs="0" MaxLength="5" Description="Category ID"/>
+<xs:element name="TXTREF" type="xs:decimal" minOccurs="0" MaxLength="5" Description="Text reference number (used for grouping like items to same text)"/>
+<xs:element name="PICREF" type="xs:decimal" minOccurs="0" MaxLength="5" Description="Picture reference number (used for grouping like items to same picture"/>
+<xs:element name="ITBRDNO" type="xs:decimal" minOccurs="0" MaxLength="5,0" Description="Brand Id"/>
+<xs:element name="IMODEL" type="xs:string" minOccurs="0" MaxLength="50" Description="Item Model Number"/>
+<xs:element name="IPURPOSE" type="xs:string" minOccurs="0" MaxLength="50" Description="Item Purpose"/>
+<xs:element name="ITATR1" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 1 value"/>
+<xs:element name="ITATR2" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 2 value"/>
+<xs:element name="ITATR3" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 3 value"/>
+<xs:element name="ITATR4" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 4 value"/>
+<xs:element name="ITATR5" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 5 value"/>
+<xs:element name="ITATR6" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 6 value"/>
+<xs:element name="ITATR7" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 7 value"/>
+<xs:element name="ITATR8" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 8 value"/>
+<xs:element name="ITATR9" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 9 value"/>
+<xs:element name="ITATR0" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 10 value"/>
+<xs:element name="ITATR11" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 11 value"/>
+<xs:element name="ITATR12" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 12 value"/>
+<xs:element name="ITATR13" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 13 value"/>
+<xs:element name="ITATR14" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 14 value"/>
+<xs:element name="ITATR15" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 15 value"/>
+<xs:element name="ITATR16" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 16 value"/>
+<xs:element name="ITATR17" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 17 value"/>
+<xs:element name="ITATR18" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 18 value"/>
+<xs:element name="ITATR19" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 19 value"/>
+<xs:element name="ITATR20" type="xs:string" minOccurs="0" MaxLength="50" Description="Attribute 20 value"/>
+<xs:element name="SERIES" type="xs:string" minOccurs="0" MaxLength="200" Description="Series description"/>
+<xs:element name="LENGTH" type="xs:decimal" minOccurs="0" MaxLength="7" Description="Item Length"/>
+<xs:element name="HEIGHT" type="xs:decimal" minOccurs="0" MaxLength="7" Description="Item Height"/>
+<xs:element name="WIDTH" type="xs:decimal" minOccurs="0" MaxLength="7" Description="Item Width"/>
+<xs:element name="HAZAIR" type="xs:string" minOccurs="0" MaxLength="1" Description="Item Ships Hazmat Air"/>
+<xs:element name="HAZGRND" type="xs:string" minOccurs="0" MaxLength="1" Description="Item Ships Hazmat Ground"/>
+<xs:element name="CHGDTE" type="xs:datetime" minOccurs="0" MaxLength="20" Description="Date of last change"/>
+<xs:element name="CHGDTE" type="xs:datetime" minOccurs="0" MaxLength="20" Description="Date Added"/>
+</xs:element>
+</xs:element>
+</xs:schema>
+</DataSet>
+</Output>
+</ItemUpdate>

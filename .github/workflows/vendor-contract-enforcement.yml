@@ -1,0 +1,112 @@
+name: Vendor Contract Enforcement
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  enforce-vendor-contracts:
+    runs-on: ubuntu-latest
+    name: Enforce Vendor Field Mapping Contracts
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Check for Direct Vendor Field Access Violations
+      run: |
+        echo "🔍 Scanning for unauthorized direct vendor field access..."
+        
+        # Flag any direct CSV row field access in importers (excluding allowed patterns)
+        VIOLATIONS=$(grep -r "row\[.*\]" server/ --include="*-importer.ts" --include="*-csv-*.ts" | \
+          grep -v "GenericCSVMapper\|parseCategoryHierarchy\|parsePrice\|parseWeight\|// ALLOWED\|console\.log" || true)
+        
+        if [ ! -z "$VIOLATIONS" ]; then
+          echo "❌ SECURITY VIOLATION: Direct vendor field access detected in importers!"
+          echo "All vendor field access must go through approved GenericCSVMapper contracts."
+          echo ""
+          echo "Violations found:"
+          echo "$VIOLATIONS"
+          echo ""
+          echo "Fix: Use GenericCSVMapper.mapCSVRowToProduct() instead of direct row[field] access"
+          exit 1
+        fi
+        
+        # Flag hardcoded field mappings in importers
+        HARDCODED=$(grep -r "\.trim()\|manufacturerPartNumber.*=\|model.*=" server/ --include="*-importer.ts" | \
+          grep -v "GenericCSVMapper\|mappedData\|// ALLOWED" || true)
+        
+        if [ ! -z "$HARDCODED" ]; then
+          echo "❌ SECURITY VIOLATION: Hardcoded field mappings detected!"
+          echo "All field mappings must use database vendor_field_mappings table."
+          echo ""
+          echo "Violations found:"
+          echo "$HARDCODED"
+          echo ""
+          echo "Fix: Remove hardcoded mappings and use approved vendor field mapping contracts"
+          exit 1
+        fi
+        
+        # Check that all importers require approved/active mappings
+        UNAPPROVED=$(grep -r "getVendorFieldMapping\|createVendorFieldMapping" server/ --include="*-importer.ts" | \
+          grep -v "approved\|active\|status.*=" || true)
+          
+        if [ ! -z "$UNAPPROVED" ]; then
+          echo "⚠️  WARNING: Importers should validate mapping status is 'approved' or 'active'"
+          echo "$UNAPPROVED"
+        fi
+        
+        echo "✅ Vendor contract enforcement checks passed!"
+    
+    - name: Verify GenericCSVMapper Usage
+      run: |
+        echo "🔍 Verifying all importers use GenericCSVMapper..."
+        
+        # Find all importer files
+        IMPORTERS=$(find server/ -name "*-importer.ts" -o -name "*-csv-*.ts" | grep -v node_modules)
+        
+        for file in $IMPORTERS; do
+          if [ -f "$file" ]; then
+            # Check if importer imports GenericCSVMapper
+            if ! grep -q "GenericCSVMapper" "$file"; then
+              echo "❌ VIOLATION: $file does not import GenericCSVMapper"
+              echo "All vendor importers must use GenericCSVMapper for field mapping"
+              exit 1
+            fi
+            
+            # Check if importer calls mapCSVRowToProduct
+            if ! grep -q "mapCSVRowToProduct\|GenericCSVMapper\.map" "$file"; then
+              echo "❌ VIOLATION: $file does not use GenericCSVMapper.mapCSVRowToProduct()"
+              echo "All vendor imports must use the generic mapping engine"
+              exit 1
+            fi
+          fi
+        done
+        
+        echo "✅ All importers properly use GenericCSVMapper!"
+    
+    - name: Lint Check for Contract Compliance
+      run: |
+        echo "🔍 Running contract compliance lint checks..."
+        
+        # Check for auto-creation of vendor mappings (security violation)
+        AUTO_CREATE=$(grep -r "createVendorFieldMapping\|ensureVendorFieldMapping" server/ --include="*-importer.ts" | \
+          grep -v "// SECURITY: Manual approval required" || true)
+        
+        if [ ! -z "$AUTO_CREATE" ]; then
+          echo "❌ SECURITY VIOLATION: Auto-creation of vendor field mappings detected!"
+          echo "Vendor field mappings require manual approval - no auto-creation allowed in importers."
+          echo ""
+          echo "Violations:"
+          echo "$AUTO_CREATE"
+          exit 1
+        fi
+        
+        # Verify security violation handling
+        if ! grep -r "SECURITY VIOLATION" server/generic-csv-mapper.ts > /dev/null; then
+          echo "❌ MISSING: GenericCSVMapper should throw 'SECURITY VIOLATION' errors for unapproved mappings"
+          exit 1
+        fi
+        
+        echo "✅ Contract compliance lint checks passed!"

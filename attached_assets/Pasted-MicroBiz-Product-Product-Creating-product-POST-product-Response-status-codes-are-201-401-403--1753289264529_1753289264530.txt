@@ -1,0 +1,363 @@
+MicroBiz Product
+Product
+Creating product POST /product
+Response status codes are 201, 401, 403, 405, 409, 415, 422, 500, 503
+
+Request body:
+
+{
+  "product_name": "Product name",
+  "base_sku": "Product base sku",
+  "product_tax_class_id": "Canonical id for tax class",
+  "product_type": "{configurable|simple}",
+  "style": "Product style",
+  "track_inventory": "{yes|no}",
+  "short_description": "Product short description",
+  "brand_id": "Canonical id for brand",
+  "main_vendor_id": "Canonical id for vendor",
+  "main_category_id": "Canonical id for main category",
+  "sub_category_id": "Canonical id for sub category",
+  "class_id": "Canonical id for class",
+  "sub_class_id": "Canonical id for sub class",
+  "discontinued": "{yes|no}",
+  "allow_discounts": "{yes|no}",
+  "allow_returns": "{yes|no}",
+  "allow_decimals": "{yes|no}",
+  "prompt_for_price": "{yes|no}",
+  "min_order_quantity": "Product min order quantity",
+  "prompt_for_description": "{yes|no}",
+  "image": "Product image file",
+  "image_url": "Allow to upload product image by url",
+  "retail_price": "product default retail price",
+  "replacement_cost": "product default replacement cost",
+  "promo_price": "product default special price",
+  "promo_begin_date": "product default promo begin date",
+  "promo_end_date": "product default promo end date",
+  "promo_allow_discounts": "{yes|no}",
+  "reorder_level": "Product default reorder level",
+  "reorder_quantity": "Product default reorder quantity",
+  "bin_location": "Product default bin location",
+  "storage_location": "Default storage location",
+  "manufacturer_suggested_retail_price": "Manufacturer suggested retail price",
+  "min_advertised_price": "Min advertised price",
+  "configurable_attributes": {
+    "color_attribute_id": "Color attribute id",
+    "size_attribute_id": "Size attribute id",
+    "subsize_attribute_id": "Sub Size attribute id",
+    "other1_attribute_id": "Other 1 attribute id",
+    "other2_attribute_id": "Other 2 attribute id",
+    "other3_attribute_id": "Other 3 attribute id",
+    "other4_attribute_id": "Other 4 attribute id"
+  },
+  "product_sku": [
+    {
+      "variant_identifier": "identifier for current sku",
+      "sku": "Simpe product sku, if by setting set autosku on, this field is not required",
+      "upc": "Simple sku UPS",
+      "item_number": "Simple sku number",
+      "alternate_sku": "Simple sku alternate sku",
+      "vendor_product_code": "Vendor product id",
+      "weight": "Product weight",
+      "weight_uom": "Product weight uom",
+      "attributes": {
+        "color_attribute_option_id": "color option id",
+        "size_attribute_option_id": "size option id",
+        "subsize_attribute_option_id": "sub size option id",
+        "other1_attribute_option_id": "other option 1 id",
+        "other2_attribute_option_id": "other option 2 id",
+        "other3_attribute_option_id": "other option 3 id",
+        "other4_attribute_option_id": "other option 4 id"
+      },
+      "store_price": [
+        {
+          "store_id": "canonical store id",
+          "replacement_cost": "decimal value 17,4 standard",
+          "retail_price": "decimal value 17,4 standard",
+          "promo_price": "decimal value 17,4 standard",
+          "promo_begin_date": "date (Y-m-d) format ",
+          "promo_end_date": "ate (Y-m-d) format, must be more then promo_begin_date",
+          "promo_allow_discounts": "{yes|no}"
+        }
+      ],
+      "customer_pricing": [
+        {
+          "pricing_group_id": "Canonical id for customer pricing group id",
+          "customer_price": "Price for current pricing group"
+        }
+      ],
+      "tier_pricing": [
+        {
+          "tier_quantity": "Tier quantity for current sku",
+          "unit_price": "decimal value 17,4 standard"
+        }
+      ],
+      "store_stock": [
+        {
+          "store_id": "Canonical store id",
+          "current_average_cost": "Sku average cost 15,6",
+          "reorder_level": "Sku reorder level",
+          "reorder_quantity": "Sku reorder quantity",
+          "bin_location": "Sku bin location",
+          "storage_location": "Sku storage location"
+        }
+      ],
+      "store_edit": [
+        {
+          "store_id": "Canonical store id",
+          "new_open_stock": "Sku new open stock value"
+        }
+      ],
+      "vendor_stock": [
+        {
+          "vendor_id": "Canonical vendor id",
+          "min_order_quantity": "Min order quantity",
+          "discontinued": "yes, no",
+          "manufacturer_suggested_retail_price": "Manufacturer suggested retail price",
+          "min_advertised_price": "Min advertised_ price",
+          "available_stock": "Available stock",
+          "future_stock_date": "Future stock date",
+          "future_stock": "Future stock",
+          "replacement_cost": "Replacement cost"
+        }
+      ],
+      "current_average_cost": "Current average cost",
+      "front_key": "Front key",
+      "replacement_cost": "Replacement cost",
+      "retail_price": "product default retail price",
+      "promo_price": "product default special price",
+      "promo_begin_date": "product default promo begin date",
+      "promo_end_date": "product default promo end date",
+      "promo_allow_discounts": "{yes|no}"
+    }
+  ],
+  "search_category": [
+    {
+      "category_id": "category canonical id (int)"
+    }
+  ],
+  "vendor_stock": [
+    {
+      "vendor_id": "Canonical vendor id",
+      "min_order_quantity": "Min order quantity",
+      "discontinued": "yes, no",
+      "manufacturer_suggested_retail_price": "Manufacturer suggested retail price",
+      "min_advertised_price": "Min advertised_ price",
+      "available_stock": "Available stock",
+      "future_stock_date": "Future stock date",
+      "future_stock": "Future stock"
+    }
+  ],
+  "sku_auto_counter": "Sku auto counter {yes, no}",
+  "product_settings": {
+    "product_serial_number": "Product serial number, {optional, no_tracking, sales_required, all_transactions_required}"
+  },
+  "is_firearm": "Is firearm {yes, no}"
+}
+Response body (Status code 201):
+
+{
+  "product_id": "Product id",
+  "base_sku_id": "Simple product sku id",
+  "product_name": "Product name",
+  "base_sku": "Product base sku",
+  "product_tax_class_id": "Canonical id for tax class",
+  "product_type": "{configurable|simple}",
+  "style": "Product style",
+  "track_inventory": "{yes|no}",
+  "short_description": "Product short description",
+  "brand_id": "Canonical id for brand",
+  "main_vendor_id": "Canonical id for vendor",
+  "main_category_id": "Canonical id for main category",
+  "sub_category_id": "Canonical id for sub category",
+  "class_id": "Canonical id for class",
+  "sub_class_id": "Canonical id for sub class",
+  "discontinued": "{yes|no}",
+  "allow_discounts": "{yes|no}",
+  "allow_returns": "{yes|no}",
+  "allow_decimals": "{yes|no}",
+  "prompt_for_price": "{yes|no}",
+  "min_order_quantity": "Product min order quantity",
+  "manufacturer_suggested_retail_price": "Manufacturer suggested retail price",
+  "min_advertised_price": "Min advertised price",
+  "prompt_for_description": "{yes|no}",
+  "retail_price": "product default retail price",
+  "replacement_cost": "Replacement cost",
+  "promo_price": "product default special price",
+  "promo_begin_date": "product default promo begin date",
+  "promo_end_date": "product default promo end date",
+  "reorder_level": "Product default reorder level",
+  "reorder_quantity": "Product default reorder quantity",
+  "image_url": "image url",
+  "status": "Status {enabled, disabled}",
+  "product_sku": [
+    {
+      "base_sku_id": "Base sku id",
+      "sku": "Simpe product sku, if by setting set autosku on, this field is not required",
+      "upc": "Simple sku UPS",
+      "item_number": "Simple sku number",
+      "alternate_sku": "Simple sku alternate sku",
+      "vendor_product_code": "Vendor product id",
+      "weight": "Product weight",
+      "weight_uom": "Product weight uom",
+      "attributes": {
+        "color_attribute_option_id": "color option id",
+        "size_attribute_option_id": "size option id",
+        "subsize_attribute_option_id": "sub size option id",
+        "other1_attribute_option_id": "other option 1 id",
+        "other2_attribute_option_id": "other option 2 id",
+        "other3_attribute_option_id": "other option 3 id",
+        "other4_attribute_option_id": "other option 4 id"
+      },
+      "store_price": [
+        {
+          "product_id": "product id",
+          "store_short_name": "store short name",
+          "store_id": "canonical store id",
+          "store_status": "store status",
+          "replacement_cost": "decimal value 17,4 standard",
+          "retail_price": "decimal value 17,4 standard",
+          "promo_price": "decimal value 17,4 standard",
+          "promo_begin_date": "date (Y-m-d) format ",
+          "promo_end_date": "ate (Y-m-d) format, must be more then promo_begin_date",
+          "promo_allow_discounts": "{yes|no}",
+          "updated_by": "updated by"
+        }
+      ],
+      "customer_pricing": [
+        {
+          "pricing_group_id": "Canonical id for customer pricing group id",
+          "customer_price": "Price for current pricing group"
+        }
+      ],
+      "tier_pricing": [
+        {
+          "tier_quantity": "Tier quantity for current sku",
+          "unit_price": "decimal value 17,4 standard",
+          "tier_id": "tier id"
+        }
+      ],
+      "store_stock": [
+        {
+          "product_id": "product id",
+          "store_short_name": "store short name",
+          "store_id": "Canonical store id",
+          "store_status": "store_status",
+          "current_average_cost": "Sku average cost 15,6",
+          "reorder_level": "Sku reorder level",
+          "reorder_quantity": "Sku reorder quantity",
+          "bin_location": "Sku bin location",
+          "storage_location": "Sku storage location",
+          "updated_by": "updated by"
+        }
+      ],
+      "store_edit": [
+        {
+          "store_id": "Canonical store id",
+          "new_open_stock": "Sku new open stock value"
+        }
+      ],
+      "vendor_stock": {
+          "vendor_id": "Canonical vendor id",
+          "min_order_quantity": "Min order quantity",
+          "discontinued": "yes, no",
+          "manufacturer_suggested_retail_price": "Manufacturer suggested retail price",
+          "min_advertised_price": "Min advertised_ price",
+          "available_stock": "Available stock",
+          "future_stock_date": "Future stock date",
+          "future_stock": "Future stock",
+          "replacement_cost": "Replacement cost"
+      },
+      "current_average_cost": "Current average cost",
+      "front_key": "Front key",
+      "replacement_cost": "Replacement cost",
+      "retail_price": "product default retail price",
+      "promo_price": "product default special price",
+      "promo_begin_date": "product default promo begin date",
+      "promo_end_date": "product default promo end date",
+      "stock_edit": [
+          {
+            "store_id": "Canonical store id",
+            "new_open_stock": "Sku new open stock value"
+          }
+      ]
+    }
+  ],
+  "search_category": [
+    {
+      "category_id": "category canonical id (int)"
+    }
+  ],
+  "vendor_stock": {
+      "vendor_id": "Canonical vendor id",
+      "min_order_quantity": "Min order quantity",
+      "discontinued": "yes, no",
+      "manufacturer_suggested_retail_price": "Manufacturer suggested retail price",
+      "min_advertised_price": "Min advertised_ price",
+      "available_stock": "Available stock",
+      "future_stock_date": "Future stock date",
+      "future_stock": "Future stock"
+  },
+  "product_settings": {
+    "product_serial_number": "Product serial number, {optional, no_tracking, sales_required, all_transactions_required}"
+  },
+  "is_firearm": "Is firearm {yes, no}",
+  "image": {
+    "image_id": "Image id",
+    "original_filename": "Image original name",
+    "format": "Image format",
+    "image_path": "Image path",
+    "version": "Image version",
+    "updated_time": "Image updated time",
+    "height_px": "Image height px",
+    "width_px": "Image width px"
+  },
+  "_links": {
+    "self": {
+      "href": "/product/{product_id}"
+    }
+  }
+}
+Request Parameters
+
+Parameter	Required	Type	Description
+product_name	true	string	Product Name
+base_sku	true	string	Product sku, supporting Latin characters, numbers and all symbols except %
+retail_price	true	number	is required unless prompt for price = yes
+track_inventory	false	enum	Enum yes/no, no only allowed on simple products
+prompt_for_price	false	enum	Enum yes/no default no, yes is allowed only on Track Inventory = no
+prompt_for_description	false	enum	Enum field yes/no, default no
+allow_returns	false	enum	Enum yes/no default yes, whether returns or exchanges are allowed at the register
+allow_decimals	false	enum	Enum yes/no default no, whether the item is sold in fractional quantities
+allow_discounts	false	enum	Enum field yes/no, default yes
+style	false	string	User model name (optional)
+short_description	false	string	Product short description
+product_tax_class_id	false	number	Id of product tax classes, default value is settings default product tax cl
+brand_id	false	number	Canonical ID for Brand
+main_vendor_id	false	number	Canonical ID for Vendor
+main_category_id	false	number	Canonical ID for main Category
+sub_category_id	false	number	Canonical ID for sub Category
+class_id	false	number	Canonical ID for class
+sub_class_id	false	number	Canonical ID for sub class
+min_order_quantity	false	number	Minimum quantity allowed to order for this SKU
+replacement_cost	false	number	Sets all store replacement cost to this value
+promo_price	false	number	Sets all store special prices to this value(promo price)
+promo_begin_date	false	date	Sets all store special price begin date to this value, if not su
+promo_end_date	false	date	Sets all store special price end date to this value, if not supplied when supplying a special price is set to 2099-12-31
+promo_allow_discounts	false	enum	{yes
+discontinue	false	enum	Enum field yes/no, default no
+product_type	false	enum	Product type is enum value simple/configurable default is simple.
+image	false	file	Product image file
+image_url	false	url	Allow to upload product image by url
+reorder_level	false	number	Product default reorder level
+reorder_quantity	false	number	Product default reorder quantity
+bin_location	false	string	Product default bin location
+storage_location	false	string	Default storage location
+configurable_attributes	false	object	
+product_sku	false	array	
+search_category	false	array	
+vendor_stock	false	array	
+sku_auto_counter	false	string	Sku auto counter {yes, no}
+manufacturer_suggested_retail_price	false	number	Manufacturer suggested retail price
+min_advertised_price	false	number	min_advertised_price
+product_settings	false	array	Product serial number, {optional, no_tracking, sales_required, all_transactions_required
+is_firearm	false	string	Is firearm {yes, no}

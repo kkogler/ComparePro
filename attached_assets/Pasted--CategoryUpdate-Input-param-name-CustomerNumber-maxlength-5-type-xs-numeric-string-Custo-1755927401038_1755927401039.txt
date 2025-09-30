@@ -1,0 +1,42 @@
+<CategoryUpdate>
+<Input>
+<param name="CustomerNumber" maxlength="5" type="xs:numeric-string">Customer Number</param>
+<param name="UserName" maxlength="50" type="xs:string">User Name</param>
+<param name="Password" maxlength="15" type="xs:string">Password</param>
+<param name="Source" maxlength="8" type="xs:string">Description of source using service</param>
+</Input>
+<Output>
+<DataSet xmlns="http://webservices.theshootingwarehouse.com/smart/inventory">
+<xs:schema xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="NewDataSet">
+<xs:element name="NewDataSet" msdata:IsDataSet="true">
+<xs:element name="Table">
+<xs:element name="CATID" type="xs:decimal" minOccurs="0" MaxLength="5" description="Category Id"/>
+<xs:element name="CATDES" type="xs:string" minOccurs="0" MaxLength="30" description="Category description"/>
+<xs:element name="ATTR1" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 1 heading name"/>
+<xs:element name="ATTR2" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 2 heading name"/>
+<xs:element name="ATTR3" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 3 heading name"/>
+<xs:element name="ATTR4" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 4 heading name"/>
+<xs:element name="ATTR5" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 5 heading name"/>
+<xs:element name="ATTR6" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 6 heading name"/>
+<xs:element name="ATTR7" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 7 heading name"/>
+<xs:element name="ATTR8" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 8 heading name"/>
+<xs:element name="ATTR9" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 9 heading name"/>
+<xs:element name="ATTR0" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 10 heading name"/>
+<xs:element name="ATTR11" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 11 heading name"/>
+<xs:element name="ATTR12" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 12 heading name"/>
+<xs:element name="ATTR13" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 13 heading name"/>
+<xs:element name="ATTR14" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 14 heading name"/>
+<xs:element name="ATTR15" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 15 heading name"/>
+<xs:element name="ATTR16" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 16 heading name"/>
+<xs:element name="ATTR17" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 17 heading name"/>
+<xs:element name="ATTR18" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 18 heading name"/>
+<xs:element name="ATTR19" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 19 heading name"/>
+<xs:element name="ATTR20" type="xs:string" minOccurs="0" MaxLength="20" description="Attribute 20 heading name"/>
+<xs:element name="DEPID" type="xs:decimal" minOccurs="0" MaxLength="5" description="Department Id"/>
+<xs:element name="DEP" type="xs:string" minOccurs="0" MaxLength="30" description="Department description"/>
+</xs:element>
+</xs:element>
+</xs:schema>
+</DataSet>
+</Output>
+</CategoryUpdate>

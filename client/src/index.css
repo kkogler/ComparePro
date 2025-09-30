@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom orange action button */
+.btn-orange-action {
+  @apply bg-[#f58e1f] hover:bg-[#e67d0f] text-white;
+}
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Orange action button styling */
+.btn-orange-action {
+  background-color: #f58e1f;
+  color: white;
+  border: 1px solid #f58e1f;
+}
+
+.btn-orange-action:hover {
+  background-color: #e67d0f;
+  border-color: #e67d0f;
+  color: white;
+}
+
+/* Blue action button styling */
+.btn-blue-action {
+  background-color: #2f80c2;
+  color: white;
+  border: 1px solid #2f80c2;
+}
+
+.btn-blue-action:hover {
+  background-color: #256ba8;
+  border-color: #256ba8;
+  color: white;
+}
+
+/* Custom utility classes for the PriceCompare Pro application */
+.status-indicator {
+  @apply w-2 h-2 rounded-full mr-2;
+}
+
+.status-draft {
+  @apply bg-orange-500;
+}
+
+.status-open {
+  @apply bg-green-500;
+}
+
+.status-complete {
+  @apply bg-blue-500;
+}
+
+.vendor-icon {
+  @apply w-8 h-8 rounded-lg flex items-center justify-center;
+}
+
+.vendor-icon-sportssouth {
+  @apply bg-blue-100 text-blue-600;
+}
+
+.vendor-icon-lipseys {
+  @apply bg-purple-100 text-purple-600;
+}
+
+.vendor-icon-davidsons {
+  @apply bg-red-100 text-red-600;
+}
+
+.vendor-icon-zanders {
+  @apply bg-green-100 text-green-600;
+}
+
+.availability-badge {
+  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.availability-in-stock {
+  @apply bg-green-100 text-green-800;
+}
+
+.availability-low-stock {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.availability-out-of-stock {
+  @apply bg-red-100 text-red-800;
+}
+
+.connection-status {
+  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.connection-online {
+  @apply bg-green-100 text-green-800;
+}
+
+.connection-syncing {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.connection-error {
+  @apply bg-red-100 text-red-800;
+}
+
+.connection-offline {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.pricing-display {
+  @apply text-lg font-bold text-gray-900;
+}
+
+.pricing-msrp {
+  @apply text-sm text-gray-500;
+}
+
+.pricing-margin {
+  @apply text-sm text-gray-400 italic;
+}
+
+.sidebar-active {
+  @apply bg-gray-700 text-white;
+}
+
+.sidebar-inactive {
+  @apply text-gray-200 hover:bg-gray-600 hover:text-white;
+}
+
+.table-hover {
+  @apply hover:bg-gray-50 cursor-pointer;
+}
+
+.order-button {
+  @apply bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors;
+}
+
+.order-button-disabled {
+  @apply bg-gray-300 text-gray-500 px-4 py-2 rounded-md text-sm font-medium cursor-not-allowed;
+}
