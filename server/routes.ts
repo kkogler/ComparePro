@@ -380,18 +380,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Frontend route handler for root organization path (with and without trailing slash)
   app.get('/org/:slug/', async (req, res, next) => {
     console.log(`🎯 ROOT ORG HANDLER: Processing /org/${req.params.slug}/`);
-    // Let Vite handle the frontend routing
-    return next();
+    
+    // Serve index.html directly for frontend routes
+    const isDev = process.env.NODE_ENV !== 'production';
+    const htmlPath = isDev 
+      ? path.resolve(__dirname, '..', 'client', 'index.html')
+      : path.resolve(__dirname, 'public', 'index.html');
+    
+    try {
+      res.sendFile(htmlPath);
+    } catch (error) {
+      console.error('Error serving index.html:', error);
+      next();
+    }
   });
   
   app.get('/org/:slug', async (req, res, next) => {
     console.log(`🎯 ROOT ORG HANDLER: Processing /org/${req.params.slug}`);
-    // Let Vite handle the frontend routing
-    return next();
+    
+    // Serve index.html directly for frontend routes
+    const isDev = process.env.NODE_ENV !== 'production';
+    const htmlPath = isDev 
+      ? path.resolve(__dirname, '..', 'client', 'index.html')
+      : path.resolve(__dirname, 'public', 'index.html');
+    
+    try {
+      res.sendFile(htmlPath);
+    } catch (error) {
+      console.error('Error serving index.html:', error);
+      next();
+    }
   });
 
   // Frontend route handler for organization pages (activate, auth, reset, etc.)
-  // Delegate to Vite middleware so plugin-react preamble is injected
+  // Serve index.html directly instead of delegating to Vite (since vite.ts skips /org/ routes)
   app.get('/org/:slug/*', async (req, res, next) => {
     const url = req.originalUrl;
     console.log(`🎯 FRONTEND ROUTE HANDLER: Processing ${url}`);
@@ -405,8 +427,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     console.log(`🎯 FRONTEND ROUTE HANDLER: Serving HTML for: ${url}`);
     
-    // In dev, let Vite middleware handle HTML transform (preamble, HMR, etc.)
-    return next();
+    // Serve index.html directly for frontend routes
+    const isDev = process.env.NODE_ENV !== 'production';
+    const htmlPath = isDev 
+      ? path.resolve(__dirname, '..', 'client', 'index.html')
+      : path.resolve(__dirname, 'public', 'index.html');
+    
+    try {
+      res.sendFile(htmlPath);
+    } catch (error) {
+      console.error('Error serving index.html:', error);
+      next();
+    }
   });
 
   // Company-specific routes (tenant-aware)
