@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Key, CheckCircle, XCircle, AlertTriangle, Plus, Settings, Eye, EyeOff } from 'lucide-react';
+import { Shield, Key, CheckCircle, XCircle, AlertTriangle, Plus, Settings, Eye, EyeOff, Clock } from 'lucide-react';
 // import { apiRequest } from '@/lib/api';
 
 // Temporary API request function until we find the correct import
@@ -172,6 +172,8 @@ function CredentialOverview({
     switch (status) {
       case 'online':
         return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Online</Badge>;
+      case 'pending_test':
+        return <Badge className="bg-blue-100 text-blue-800"><Clock className="w-3 h-3 mr-1" />Pending Test</Badge>;
       case 'error':
         return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Error</Badge>;
       case 'not_configured':
@@ -405,6 +407,8 @@ function VendorCredentialCard({
     switch (status) {
       case 'online':
         return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'pending_test':
+        return <Clock className="w-5 h-5 text-blue-600" />;
       case 'error':
         return <XCircle className="w-5 h-5 text-red-600" />;
       default:

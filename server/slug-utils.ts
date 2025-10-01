@@ -90,9 +90,10 @@ export const LEGACY_VENDOR_SLUG_MAP: Record<string, string> = {
   'chattanooga': 'chattanooga',
   'sports south': 'sports_south',
   'sports_south': 'sports_south',
-  'bill hicks & co.': 'bill_hicks',
-  'bill hicks': 'bill_hicks',
-  'bill_hicks': 'bill_hicks',
+  'bill hicks & co.': 'bill-hicks',
+  'bill hicks': 'bill-hicks',
+  'bill_hicks': 'bill-hicks',
+  'bill-hicks': 'bill-hicks',
   'lipsey\'s inc.': 'lipseys',
   'lipsey\'s': 'lipseys',
   'lipseys': 'lipseys'

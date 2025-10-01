@@ -27,7 +27,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -37,7 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Copy, Trash2, Building2, Users, ExternalLink, Search, ExternalLink as LinkIcon } from 'lucide-react';
+import { Copy, Trash2, Building2, Users, Search, ExternalLink as LinkIcon } from 'lucide-react';
 import { getStatusColor, getPlanColor, getUniquePlans, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUSES } from "@shared/subscription-config";
 import { Link } from 'wouter';
 
@@ -59,7 +58,6 @@ interface Organization {
 
 export default function AdminDashboard() {
   const { toast } = useToast();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('active-paused');
 
@@ -71,19 +69,6 @@ export default function AdminDashboard() {
 
   // Remove top stats cards per requirements
 
-  // Create organization mutation
-  const createOrgMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/admin/organizations', 'POST', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
-      setIsCreateModalOpen(false);
-      toast({
-        title: 'Success',
-        description: 'Organization created successfully',
-      });
-    },
-  });
 
   // Update organization mutation
   const updateOrgMutation = useMutation({
@@ -167,42 +152,6 @@ export default function AdminDashboard() {
   };
 
 
-  // Handle access store - impersonate admin to organization
-  const handleAccessStore = async (organization: Organization) => {
-    if (!organization.slug) {
-      toast({
-        title: "Error",
-        description: "Organization slug not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Set up admin impersonation
-      const response = await apiRequest(`/api/admin/impersonate/${organization.slug}`, 'POST');
-      
-      if (response.ok) {
-        console.log(`Admin impersonating organization: ${organization.name} (${organization.slug})`);
-        // Navigate to organization with impersonation active
-        window.location.href = `/org/${organization.slug}/`;
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Access Error",
-          description: error.message || "Failed to access organization",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error('Admin impersonation error:', error);
-      toast({
-        title: "Access Error", 
-        description: "Failed to access organization",
-        variant: "destructive",
-      });
-    }
-  };
 
   // Using centralized configuration instead of hardcoded values
 
@@ -243,22 +192,6 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Subscriptions</h1>
           <p className="text-muted-foreground">Manage subscriptions and billing</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-            <DialogTrigger asChild>
-              <Button className="btn-orange-action">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Subscription
-              </Button>
-            </DialogTrigger>
-            {isCreateModalOpen && (
-              <CreateSubscriptionModal 
-                onSubmit={(data: any) => createOrgMutation.mutate(data)}
-                isLoading={createOrgMutation.isPending}
-              />
-            )}
-          </Dialog>
         </div>
       </div>
 
@@ -416,15 +349,6 @@ export default function AdminDashboard() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleAccessStore(org)}
-                        title="Access Store"
-                        data-testid={`button-access-store-${org.id}`}
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
                         onClick={() => copyOrganization(org)}
                         title="Copy Subscription"
                       >
@@ -450,98 +374,6 @@ export default function AdminDashboard() {
 
 
     </div>
-  );
-}
-
-function CreateSubscriptionModal({ onSubmit, isLoading }: {
-  onSubmit: (data: any) => void;
-  isLoading: boolean;
-}): JSX.Element {
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    plan: Object.keys(SUBSCRIPTION_PLANS)[1], // Default to basic plan
-    billingProvider: '',
-    adminEmail: '',
-    adminPassword: '',
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  return (
-    <DialogContent className="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle>Create Subscription</DialogTitle>
-        <DialogDescription>
-          Create a new customer subscription with admin user
-        </DialogDescription>
-      </DialogHeader>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="name">Subscription Name</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="Acme Gun Store"
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="slug">URL Slug</Label>
-          <Input
-            id="slug"
-            value={formData.slug}
-            onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-            placeholder="acme-gun-store"
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="plan">Plan</Label>
-          <Select value={formData.plan} onValueChange={(value) => setFormData(prev => ({ ...prev, plan: value }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.values(SUBSCRIPTION_PLANS).map(plan => (
-                <SelectItem key={plan.id} value={plan.id}>{plan.displayName}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="adminEmail">Admin Email</Label>
-          <Input
-            id="adminEmail"
-            type="email"
-            value={formData.adminEmail}
-            onChange={(e) => setFormData(prev => ({ ...prev, adminEmail: e.target.value }))}
-            placeholder="admin@acmegunstore.com"
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="adminPassword">Admin Password</Label>
-          <Input
-            id="adminPassword"
-            type="password"
-            value={formData.adminPassword}
-            onChange={(e) => setFormData(prev => ({ ...prev, adminPassword: e.target.value }))}
-            placeholder="Temporary password"
-            required
-          />
-        </div>
-        <DialogFooter>
-          <Button type="submit" disabled={isLoading} className="btn-orange-action">
-            {isLoading ? 'Creating...' : 'Create Subscription'}
-          </Button>
-        </DialogFooter>
-      </form>
-    </DialogContent>
   );
 }
 

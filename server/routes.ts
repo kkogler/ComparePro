@@ -374,6 +374,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add middleware for organization-scoped routes
   app.use('/org/:slug/*', organizationMiddleware, getOrganizationContext);
+  app.use('/org/:slug/', organizationMiddleware, getOrganizationContext);
+  app.use('/org/:slug', organizationMiddleware, getOrganizationContext);
+
+  // Frontend route handler for root organization path (with and without trailing slash)
+  app.get('/org/:slug/', async (req, res, next) => {
+    console.log(`🎯 ROOT ORG HANDLER: Processing /org/${req.params.slug}/`);
+    // Let Vite handle the frontend routing
+    return next();
+  });
+  
+  app.get('/org/:slug', async (req, res, next) => {
+    console.log(`🎯 ROOT ORG HANDLER: Processing /org/${req.params.slug}`);
+    // Let Vite handle the frontend routing
+    return next();
+  });
 
   // Frontend route handler for organization pages (activate, auth, reset, etc.)
   // Delegate to Vite middleware so plugin-react preamble is injected
@@ -2783,7 +2798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             apiMessage: `Sports South API error for item ${itemNo}: ${apiError.message}`
           });
         }
-      } else if (handler.vendorId === 'bill_hicks') {
+      } else if (handler.vendorId === 'bill-hicks') {
         const { BillHicksAPI } = await import('./bill-hicks-api');
         
         const billHicksAPI = new BillHicksAPI();

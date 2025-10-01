@@ -1,3 +1,35 @@
+/**
+ * ============================================================================
+ * VENDOR CREDENTIAL VAULT SERVICE
+ * ============================================================================
+ * 
+ * ⚠️  CRITICAL POLICY: NO ENCRYPTION - PLAIN TEXT STORAGE ONLY ⚠️
+ * 
+ * All vendor credentials (passwords, API keys, tokens) are stored as PLAIN TEXT
+ * in the database. NO ENCRYPTION is used or should be added.
+ * 
+ * WHY PLAIN TEXT?
+ * - Prevents password corruption from lost/changed encryption keys
+ * - Ensures consistent, reliable credential storage across deployments
+ * - Simplifies debugging and verification
+ * - Avoids multi-tenant encryption key management complexity
+ * 
+ * SECURITY:
+ * - Database access should be properly restricted
+ * - Use database-level encryption at rest if required
+ * - Network-level security (VPN, private networks)
+ * - API access controlled with proper authentication
+ * 
+ * DO NOT:
+ * ❌ Add encryption logic to this file
+ * ❌ Set CREDENTIAL_ENCRYPTION_KEY environment variable
+ * ❌ Use crypto.createCipheriv() or similar encryption
+ * ❌ Use bcrypt/scrypt for vendor passwords (those are for user passwords only)
+ * 
+ * SEE: VENDOR_PASSWORD_POLICY.md for complete documentation
+ * ============================================================================
+ */
+
 import crypto from 'crypto';
 import { storage } from './storage';
 

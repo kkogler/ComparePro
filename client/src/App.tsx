@@ -21,6 +21,7 @@ import SupportedVendorsAdmin from "@/pages/SupportedVendorsAdmin";
 import AdminRetailVerticals from "@/pages/AdminRetailVerticals";
 import AdminPlanSettings from "@/pages/AdminPlanSettings";
 import AdminSettings from "@/pages/AdminSettings";
+import AdminIntegrations from "@/pages/AdminIntegrations";
 
 import MasterProductCatalog from "@/pages/MasterProductCatalog";
 import MasterCatalogImport from "@/pages/MasterCatalogImport";
@@ -64,6 +65,7 @@ function Router() {
       <ProtectedRoute path="/admin/" component={() => <Layout><AdminDashboard /></Layout>} />
       <ProtectedRoute path="/admin/subscriptions" component={() => <Layout><AdminDashboard /></Layout>} />
       <ProtectedRoute path="/admin/administrators" component={() => <Layout><AdminUsers /></Layout>} />
+      <ProtectedRoute path="/admin/integrations" component={() => <Layout><AdminIntegrations /></Layout>} />
       <ProtectedRoute path="/admin/supported-vendors" component={() => <Layout><SupportedVendorsAdmin /></Layout>} />
       <ProtectedRoute path="/admin/retail-verticals" component={() => <Layout><AdminRetailVerticals /></Layout>} />
       <ProtectedRoute path="/admin/master-catalog" component={() => <Layout><MasterProductCatalog /></Layout>} />

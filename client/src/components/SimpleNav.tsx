@@ -11,6 +11,7 @@ export function SimpleNav() {
   const adminLinks = [
     { path: "/admin/", label: "Subscriptions" },
     { path: "/admin/administrators", label: "Administrators" },
+    { path: "/admin/integrations", label: "Integrations" },
     { path: "/admin/supported-vendors", label: "Vendors" },
     { path: "/admin/retail-verticals", label: "Retail Verticals" },
     { path: "/admin/master-catalog", label: "Master Catalog" },

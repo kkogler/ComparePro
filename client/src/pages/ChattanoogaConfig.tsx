@@ -144,7 +144,7 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Chattanooga Shooting Supplies Connection Settings</DialogTitle>
+          <DialogTitle>Chattanooga Shooting Admin Credentials</DialogTitle>
           <DialogDescription>
             SID and Token are required for real-time API access during Vendor Price Comparison. Other fields are not needed.
           </DialogDescription>

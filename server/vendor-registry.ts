@@ -208,7 +208,7 @@ export class VendorRegistry {
 
       // Bill Hicks (FTP)
       this.register({
-        vendorId: 'bill_hicks',
+        vendorId: 'bill-hicks',
         vendorName: 'Bill Hicks & Co.',
         apiType: 'ftp',
         testConnection: async (creds) => {

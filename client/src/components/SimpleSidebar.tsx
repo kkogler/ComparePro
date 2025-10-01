@@ -33,6 +33,7 @@ export function SimpleSidebar() {
   const adminNavItems = [
     { path: "/admin/", icon: Shield, label: "Subscriptions" },
     { path: "/admin/administrators", icon: Users, label: "Administrators" },
+    { path: "/admin/integrations", icon: Settings, label: "Integrations" },
     { path: "/admin/supported-vendors", icon: Handshake, label: "Vendors" },
     { path: "/admin/retail-verticals", icon: Tag, label: "Retail Verticals" },
     { path: "/admin/master-catalog", icon: Database, label: "Master Catalog" },

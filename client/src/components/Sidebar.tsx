@@ -126,6 +126,11 @@ export function Sidebar() {
       label: "Administrators" 
     },
     { 
+      path: "/admin/integrations", 
+      icon: Settings, 
+      label: "Integrations" 
+    },
+    { 
       path: "/admin/settings", 
       icon: Settings, 
       label: "Admin Settings" 

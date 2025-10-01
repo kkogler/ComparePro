@@ -451,6 +451,55 @@ export default function SupportedVendorsAdmin() {
     }
   };
 
+  const getVendorFeatureBadges = (vendorName: string) => {
+    const badges: JSX.Element[] = [];
+    
+    switch (vendorName) {
+      case "Lipsey's Inc.":
+      case "Lipsey's":
+        badges.push(
+          <Badge key="pricing" variant="outline" className="text-xs">Real-time Pricing</Badge>,
+          <Badge key="stock" variant="outline" className="text-xs">Vendor Stock</Badge>,
+          <Badge key="ordering" variant="outline" className="text-xs">Electronic Ordering</Badge>
+        );
+        break;
+      case "Chattanooga Shooting Supplies Inc.":
+      case "Chattanooga Shooting Supplies":
+        badges.push(
+          <Badge key="pricing" variant="outline" className="text-xs">Real-time Pricing</Badge>,
+          <Badge key="stock" variant="outline" className="text-xs">Vendor Stock</Badge>,
+          <Badge key="ordering" variant="outline" className="text-xs">Electronic Ordering</Badge>
+        );
+        break;
+      case "GunBroker.com LLC":
+      case "GunBroker":
+        badges.push(
+          <Badge key="pricing" variant="outline" className="text-xs">Real-time Pricing</Badge>,
+          <Badge key="stock" variant="outline" className="text-xs">Vendor Stock</Badge>
+        );
+        break;
+      case "Sports South":
+        badges.push(
+          <Badge key="pricing" variant="outline" className="text-xs">Real-time Pricing</Badge>,
+          <Badge key="stock" variant="outline" className="text-xs">Vendor Stock</Badge>,
+          <Badge key="ordering" variant="outline" className="text-xs">Electronic Ordering</Badge>
+        );
+        break;
+      case "Bill Hicks & Co.":
+        badges.push(
+          <Badge key="pricing" variant="outline" className="text-xs">Real-time Pricing</Badge>,
+          <Badge key="stock" variant="outline" className="text-xs">Vendor Stock</Badge>,
+          <Badge key="ordering" variant="outline" className="text-xs">Electronic Ordering</Badge>
+        );
+        break;
+      default:
+        // For any other vendors, show no badges or generic message
+        badges.push(<span key="none" className="text-gray-400 text-xs">Not configured</span>);
+    }
+    
+    return badges;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -563,10 +612,7 @@ export default function SupportedVendorsAdmin() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {vendor.features.electronicOrdering && <Badge variant="outline" className="text-xs">Electronic Orders</Badge>}
-                      {vendor.features.realTimePricing && <Badge variant="outline" className="text-xs">Real-time Pricing</Badge>}
-                      {vendor.features.inventorySync && <Badge variant="outline" className="text-xs">Inventory Sync</Badge>}
-                      {vendor.features.productCatalog && <Badge variant="outline" className="text-xs">Product Catalog</Badge>}
+                      {getVendorFeatureBadges(vendor.name)}
                     </div>
                   </TableCell>
                   {/* Priority Cell */}
@@ -660,11 +706,14 @@ export default function SupportedVendorsAdmin() {
                     <div className="space-y-1">
                       <span 
                         className={
-                          vendor.adminConnectionStatus === 'online' ? 'text-green-700 font-medium' : 'text-red-700 font-medium'
+                          vendor.adminConnectionStatus === 'online' ? 'text-green-700 font-medium' : 
+                          vendor.adminConnectionStatus === 'pending_test' ? 'text-blue-700 font-medium' :
+                          'text-red-700 font-medium'
                         }
                       >
                         {vendor.adminConnectionStatus === 'not_configured' ? 'Not Set' : 
                          vendor.adminConnectionStatus === 'online' ? 'Connected' :
+                         vendor.adminConnectionStatus === 'pending_test' ? 'Pending Test' :
                          vendor.adminConnectionStatus === 'offline' ? 'Offline' : 'Error'}
                       </span>
                       <div>
@@ -1389,7 +1438,12 @@ function AdminCredentialsModal({
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Configure Admin Credentials</DialogTitle>
+          <DialogTitle>
+            {vendor.name.includes('Bill Hicks') ? 'Bill Hicks Admin Credentials' : 
+             vendor.name.includes('Sports South') ? 'Sports South Admin Credentials' :
+             vendor.name.includes('GunBroker') ? 'GunBroker Admin Credentials' :
+             'Configure Admin Credentials'}
+          </DialogTitle>
           <DialogDescription>
             Enter system-level admin credentials for {vendor.name} to enable Master Product Catalog synchronization.
             These credentials are separate from organization credentials used for pricing/availability.
@@ -1400,14 +1454,29 @@ function AdminCredentialsModal({
           {vendor.credentialFields.map((field) => (
             <div key={field.name}>
               <Label htmlFor={field.name}>{field.label}</Label>
-              <Input
-                id={field.name}
-                type={field.type}
-                value={credentials[field.name] || ''}
-                onChange={(e) => handleCredentialChange(field.name, e.target.value)}
-                placeholder={field.placeholder}
-                required={field.required}
-              />
+              {field.name === 'environment' ? (
+                <Select
+                  value={credentials[field.name] || 'sandbox'}
+                  onValueChange={(value) => handleCredentialChange(field.name, value)}
+                >
+                  <SelectTrigger id={field.name}>
+                    <SelectValue placeholder="Select environment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sandbox">Sandbox</SelectItem>
+                    <SelectItem value="production">Production</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id={field.name}
+                  type={field.type}
+                  value={credentials[field.name] || ''}
+                  onChange={(e) => handleCredentialChange(field.name, e.target.value)}
+                  placeholder={field.placeholder}
+                  required={field.required}
+                />
+              )}
               {field.description && (
                 <p className="text-xs text-gray-500 mt-1">{field.description}</p>
               )}
