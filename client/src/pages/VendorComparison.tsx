@@ -74,6 +74,26 @@ export default function VendorComparison() {
     staleTime: 300000, // 5 minutes
   });
   
+  // Get organization settings to check if category is required
+  const { data: organization } = useQuery({
+    queryKey: [`/org/${orgSlug}/api/organization`],
+    queryFn: async () => {
+      const response = await fetch(`/org/${orgSlug}/api/organization`, { 
+        credentials: "include" 
+      });
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    enabled: !!orgSlug,
+    staleTime: 60000, // 1 minute
+  });
+
+  const requireCategory = organization?.settings?.requireCategoryOnVendorOrders ?? true;
+  
+  console.log('🔍 VENDOR COMPARISON: requireCategory =', requireCategory, ', organization.settings =', organization?.settings);
+  
   
 
   const { data: vendorComparison, isLoading, error } = useQuery({
@@ -352,7 +372,9 @@ export default function VendorComparison() {
     });
     setOrderQuantity(quantity);
     // Set initial category from product data
-    setSelectedCategory(vendorComparison.product?.category || '');
+    const initialCategory = vendorComparison.product?.category || '';
+    console.log('🔍 MODAL OPENING: Setting initial category to:', initialCategory, ', requireCategory:', requireCategory);
+    setSelectedCategory(initialCategory);
     setSelectedOrderId("new"); // Reset to new order
     setSelectedStoreId(getDefaultStoreId()); // Set smart default for store selection
     setManualPriceMode(false); // Reset to automatic pricing
@@ -364,7 +386,7 @@ export default function VendorComparison() {
       console.error('No order details available');
       return;
     }
-    
+
     if (!orgSlug) {
       console.error('No organization slug available');
       toast({
@@ -375,16 +397,28 @@ export default function VendorComparison() {
       return;
     }
 
-    // Category selection is required for all orders
-    const effectiveCategory = selectedCategory || orderDetails.product.category || '';
-    if (!effectiveCategory.trim()) {
+    // Validate category requirement based on company settings
+    // Use selectedCategory directly - do NOT fall back to product.category for validation
+    const effectiveCategory = selectedCategory || '';
+    console.log('🔍 CATEGORY VALIDATION:');
+    console.log('  - requireCategory:', requireCategory);
+    console.log('  - selectedCategory:', selectedCategory);
+    console.log('  - orderDetails.product.category:', orderDetails.product.category);
+    console.log('  - effectiveCategory:', effectiveCategory);
+    console.log('  - effectiveCategory.trim():', effectiveCategory.trim());
+    console.log('  - Validation check (requireCategory && !effectiveCategory.trim()):', requireCategory && !effectiveCategory.trim());
+    
+    if (requireCategory && !effectiveCategory.trim()) {
+      console.log('❌ CATEGORY REQUIRED - Blocking save');
       toast({
         title: "Category Required",
-        description: "Please select a category for this product",
-        variant: "destructive",
+        description: "Please select a product category before adding to order. This requirement can be changed in Company Settings.",
+        variant: "destructive"
       });
       return;
     }
+    
+    console.log('✅ CATEGORY VALIDATION PASSED - Proceeding with save');
 
     // Store selection is required for all orders (new and existing)
     if (!selectedStoreId) {
@@ -1024,13 +1058,15 @@ export default function VendorComparison() {
 
                 {/* Category Tile */}
                 <div className="border rounded-lg p-4 bg-gray-50">
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Category</Label>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Category{requireCategory && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
                   <Select
-                    value={selectedCategory || orderDetails.product.category || ''}
+                    value={selectedCategory}
                     onValueChange={setSelectedCategory}
                   >
-                    <SelectTrigger className="w-full" data-testid="select-category">
-                      <SelectValue placeholder="Select category..." />
+                    <SelectTrigger className={`w-full ${requireCategory && !selectedCategory ? 'border-red-500' : ''}`} data-testid="select-category">
+                      <SelectValue placeholder={requireCategory ? "Category required - Select one..." : "Select category..."} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="firearms">Firearms</SelectItem>
@@ -1043,6 +1079,13 @@ export default function VendorComparison() {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {/* Display product's category from Master Catalog as reference */}
+                  {orderDetails.product.category && (
+                    <p className="text-xs text-gray-600 mt-1 italic">
+                      Vendor Category: <span className="font-medium">{orderDetails.product.category}</span>
+                    </p>
+                  )}
                 </div>
                 
                 {/* Price Section */}
@@ -1574,21 +1617,28 @@ export default function VendorComparison() {
             </div>
             </>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsOrderModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveOrder} 
-              disabled={
-                addItemToOrderMutation.isPending || 
-                !orgSlug || 
-                (selectedOrderId === "new" && !selectedStoreId)
-              }
-              className="btn-orange-action"
-            >
-              {addItemToOrderMutation.isPending ? 'Adding...' : 'Add to Order'}
-            </Button>
+          <DialogFooter className="flex-col items-start gap-3">
+            {requireCategory && (
+              <p className="text-xs text-gray-500 w-full">
+                * Category required. See Company Settings to change.
+              </p>
+            )}
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setIsOrderModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveOrder} 
+                disabled={
+                  addItemToOrderMutation.isPending || 
+                  !orgSlug || 
+                  (selectedOrderId === "new" && !selectedStoreId)
+                }
+                className="btn-orange-action"
+              >
+                {addItemToOrderMutation.isPending ? 'Adding...' : 'Add to Order'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

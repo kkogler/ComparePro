@@ -25,7 +25,7 @@ export const companies = pgTable("companies", {
   maxVendors: integer("max_vendors").default(5),
   maxOrders: integer("max_orders").default(500),
   features: json("features").$type<{ advancedAnalytics: boolean; apiAccess: boolean }>(),
-  settings: json("settings").$type<{ timezone: string; currency: string }>(),
+  settings: json("settings").$type<{ timezone: string; currency: string; requireCategoryOnVendorOrders?: boolean }>(),
   retailVerticalId: integer("retail_vertical_id").references(() => retailVerticals.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

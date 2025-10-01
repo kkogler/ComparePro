@@ -250,6 +250,16 @@ export function registerCredentialManagementRoutes(app: Express): void {
         console.log('  - User ID:', userId);
       }
 
+      // Enhanced debugging for Bill Hicks credentials
+      if (stringVendorId.toLowerCase().includes('bill') && stringVendorId.toLowerCase().includes('hicks')) {
+        console.log('🔍 BILL HICKS CREDENTIAL SAVE DEBUG:');
+        console.log('  - Raw request body:', JSON.stringify(req.body, null, 2));
+        console.log('  - Extracted credentials:', JSON.stringify(credentials, null, 2));
+        console.log('  - ftp_base_path value:', credentials.ftp_base_path);
+        console.log('  - Company ID:', companyId);
+        console.log('  - User ID:', userId);
+      }
+
       // Field name validation and mapping for Sports South
       if (stringVendorId.toLowerCase().includes('sports') && stringVendorId.toLowerCase().includes('south')) {
         console.log('🔧 SPORTS SOUTH: Applying field name validation');

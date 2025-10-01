@@ -55,6 +55,7 @@ const companySchema = z.object({
   storeZipCode: z.string().optional(),
   defaultTimezone: z.string().min(1, "Timezone is required"),
   currency: z.string().min(1, "Currency is required"),
+  requireCategoryOnVendorOrders: z.boolean().optional(),
 });
 
 const integrationsSchema = z.object({
@@ -158,6 +159,7 @@ export default function Company() {
       storeZipCode: "",
       defaultTimezone: "America/New_York",
       currency: "USD",
+      requireCategoryOnVendorOrders: true,
     },
   });
 
@@ -198,6 +200,7 @@ export default function Company() {
         storeZipCode: settings?.storeZipCode || "",
         defaultTimezone: organization.settings?.timezone || "America/New_York",
         currency: organization.settings?.currency || "USD",
+        requireCategoryOnVendorOrders: organization.settings?.requireCategoryOnVendorOrders ?? true,
       };
       console.log('Form data being set:', formData);
       form.reset(formData);
@@ -245,6 +248,7 @@ export default function Company() {
         settings: {
           timezone: data.defaultTimezone,
           currency: data.currency,
+          requireCategoryOnVendorOrders: data.requireCategoryOnVendorOrders ?? true,
         },
       };
 
@@ -786,6 +790,34 @@ export default function Company() {
                         )}
                       />
                     </div>
+
+                  {/* Vendor Order Settings */}
+                  <div className="pt-6 border-t">
+                    <h3 className="text-lg font-semibold mb-4">Vendor Order Settings</h3>
+                    <FormField
+                      control={form.control}
+                      name="requireCategoryOnVendorOrders"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              Require Category Selection on Vendor Orders
+                            </FormLabel>
+                            <FormDescription>
+                              When enabled, users must select a product category before adding items to vendor orders.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="switch-require-category"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <div className="flex justify-end pt-6 border-t">
                     <Button 

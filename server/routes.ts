@@ -2960,7 +2960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ftpUsername: billHicksCredentials.ftpUsername,
               ftpPassword: billHicksCredentials.ftpPassword, // Include password for B2B automation
               ftpPort: billHicksCredentials.ftpPort?.toString() || '21',
-              storeName: 'Demo Gun Store',
+              ftpBasePath: billHicksCredentials.ftpBasePath || '/MicroBiz/Feeds',
               enablePriceComparison: billHicksCredentials.catalogSyncEnabled || false,
               enableAutomaticSync: billHicksCredentials.inventorySyncEnabled || false,
               lastCatalogSync: billHicksCredentials.lastCatalogSync,
@@ -3093,8 +3093,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bill Hicks store-specific pricing sync endpoint - REMOVED
-  // Use unified credential management system instead: /org/:slug/api/vendors/:vendorId/credentials
+  // Bill Hicks store-specific pricing sync endpoint
+  // This pulls pricing/availability from the store's FTP folder for vendor price comparison
+  app.post('/org/:slug/api/vendor-credentials/bill-hicks/sync', requireOrganizationAccess, async (req, res) => {
+    try {
+      const organizationId = (req as any).organizationId;
+      console.log(`🔄 BILL HICKS STORE SYNC: Starting store-specific pricing sync for organization ${organizationId}`);
+      
+      // Trigger store-specific pricing sync (uses store's FTP credentials and folder)
+      const { syncStoreSpecificBillHicksPricing } = await import('./bill-hicks-store-pricing-sync');
+      const result = await syncStoreSpecificBillHicksPricing(organizationId);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message || 'Bill Hicks store pricing sync completed successfully',
+          stats: result.stats
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: result.message || result.error || 'Failed to sync store pricing'
+        });
+      }
+      
+    } catch (error: any) {
+      console.error('Bill Hicks store pricing sync error:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to sync store pricing: ${error.message}`
+      });
+    }
+  });
 
   // Webhook testing endpoint
   app.post('/org/:slug/api/webhooks/test', requireOrganizationAccess, async (req, res) => {
@@ -5419,7 +5449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/org/:slug/api/vendors/:vendorId/test-ftp-connection", requireOrganizationAccess, async (req, res) => {
     try {
       const vendorId = parseInt(req.params.vendorId);
-      const { ftpHost, ftpUsername, ftpPassword, ftpPort, storeName } = req.body;
+      const { ftpHost, ftpUsername, ftpPassword, ftpPort } = req.body;
       
       console.log(`BILL HICKS FTP TEST: Testing FTP connection for vendor ${vendorId}`);
       
@@ -5428,16 +5458,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ftpHost: ftpHost ? 'PROVIDED' : 'MISSING', 
         ftpUsername: ftpUsername ? 'PROVIDED' : 'MISSING',
         ftpPassword: ftpPassword ? 'PROVIDED' : 'MISSING',
-        ftpPort,
-        storeName: storeName ? 'PROVIDED' : 'MISSING'
+        ftpPort
       });
       
-      if (!ftpHost || !ftpUsername || !ftpPassword || !storeName) {
+      if (!ftpHost || !ftpUsername || !ftpPassword) {
         const missingFields = [];
         if (!ftpHost) missingFields.push('ftpHost');
         if (!ftpUsername) missingFields.push('ftpUsername');
         if (!ftpPassword) missingFields.push('ftpPassword');
-        if (!storeName) missingFields.push('storeName');
         
         console.log('BILL HICKS FTP TEST: Missing required fields:', missingFields);
         return res.status(400).json({ 
@@ -5510,7 +5538,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               success: true,
               message: `FTP connection successful! Connected to ${ftpServerHost} and found ${files.length} files in ${ftpPath}`,
               ftpHost: ftpServerHost,
-              storeName,
               filesFound: files.length,
               availableFiles: files.map(f => f.name).slice(0, 5) // Show first 5 files
             };
@@ -5525,7 +5552,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               success: true,
               message: `FTP connection successful! Connected to ${ftpServerHost}. Note: ${ftpPath} directory not accessible, but basic connection works.`,
               ftpHost: ftpServerHost,
-              storeName,
               warning: `Could not access ${ftpPath} directory`
             };
             
@@ -5544,8 +5570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const testResult = {
           success: false,
           error: `FTP connection failed: ${connectionError.message}`,
-          ftpHost,
-          storeName
+          ftpHost
         };
         
         return res.json(testResult);

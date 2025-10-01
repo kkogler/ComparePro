@@ -1370,6 +1370,11 @@ function AdminCredentialsModal({
     vendor.adminCredentials || {}
   );
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  
+  // Update credentials when vendor changes (fixes stale data issue)
+  useEffect(() => {
+    setCredentials(vendor.adminCredentials || {});
+  }, [vendor.adminCredentials]);
 
   const handleCredentialChange = (fieldName: string, value: string) => {
     setCredentials(prev => ({ ...prev, [fieldName]: value }));

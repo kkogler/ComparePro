@@ -312,8 +312,10 @@ async function downloadCatalogFile(credentials: any): Promise<string> {
         host = url.hostname;
         secure = url.protocol === 'ftps:';
       } catch {
-        // Fallback: strip any protocol prefixes
-        host = credentials.ftpServer.replace(/^(https?|ftps?):\/\//, '');
+        // Fallback: strip any protocol prefixes and trailing slashes
+        host = credentials.ftpServer
+          .replace(/^(https?|ftps?):\/\//, '')
+          .replace(/\/+$/, '');
       }
 
       console.log(`🔗 Connecting to FTP host: ${host} (secure: ${secure})`);
@@ -622,69 +624,58 @@ function areExistingFieldsIdentical(existingProduct: any, mapped: {
 }
 
 /**
- * Get Bill Hicks FTP credentials from company_vendor_credentials table
+ * Get Bill Hicks ADMIN-LEVEL FTP credentials from supported_vendors table
+ * This is for the master catalog sync that runs system-wide
  */
 async function getBillHicksFTPCredentials(): Promise<any> {
-  console.log('🔍 GET BILL HICKS CREDENTIALS: Starting credential lookup...');
+  console.log('🔍 GET BILL HICKS ADMIN CREDENTIALS: Starting admin credential lookup...');
+  
+  // Get Bill Hicks vendor ID
   const billHicksVendorId = await storage.getBillHicksVendorId();
-  console.log('🔍 GET BILL HICKS CREDENTIALS: billHicksVendorId:', billHicksVendorId);
+  console.log('🔍 GET BILL HICKS ADMIN CREDENTIALS: billHicksVendorId:', billHicksVendorId);
   
-  // Get all companies that have Bill Hicks credentials
-  const { companyVendorCredentials } = await import('@shared/schema');
+  // Get the Bill Hicks supported vendor record with admin credentials
+  const billHicksVendor = await storage.getSupportedVendorById(billHicksVendorId);
   
-  // Try both the new vendor ID and the old vendor ID (5)
-  const oldBillHicksVendorId = 5;
-  console.log('🔍 GET BILL HICKS CREDENTIALS: Also checking old vendor ID:', oldBillHicksVendorId);
-  
-  // First try the new vendor ID
-  let credentials = await db.select()
-    .from(companyVendorCredentials)
-    .where(eq(companyVendorCredentials.supportedVendorId, billHicksVendorId));
-    
-  console.log('🔍 GET BILL HICKS CREDENTIALS: Found credentials with new ID:', credentials.length);
-  
-  // If no credentials found with new ID, try the old ID
-  if (credentials.length === 0) {
-    console.log('🔍 GET BILL HICKS CREDENTIALS: Trying old vendor ID...');
-    credentials = await db.select()
-      .from(companyVendorCredentials)
-      .where(eq(companyVendorCredentials.supportedVendorId, oldBillHicksVendorId));
-    console.log('🔍 GET BILL HICKS CREDENTIALS: Found credentials with old ID:', credentials.length);
-  }
-    
-  console.log('🔍 GET BILL HICKS CREDENTIALS: Total credentials found:', credentials.length);
-  if (credentials.length > 0) {
-    console.log('🔍 GET BILL HICKS CREDENTIALS: First credential:', {
-      ftpServer: credentials[0].ftpServer,
-      ftpUsername: credentials[0].ftpUsername,
-      ftpPassword: credentials[0].ftpPassword ? '[HIDDEN]' : 'null',
-      supportedVendorId: credentials[0].supportedVendorId
-    });
-  }
-    
-  // Return the first set of credentials found
-  // In a multi-tenant setup, this would need to be company-specific
-  if (credentials.length > 0) {
-    const cred = credentials[0];
-    const result = {
-      ftpServer: cred.ftpServer,
-      ftpUsername: cred.ftpUsername,
-      ftpPassword: cred.ftpPassword,
-      ftpPort: cred.ftpPort || 21,
-      ftpBasePath: cred.ftpBasePath || '/'
-    };
-    console.log('🔍 GET BILL HICKS CREDENTIALS: Returning credentials:', {
-      ftpServer: result.ftpServer,
-      ftpUsername: result.ftpUsername,
-      ftpPassword: result.ftpPassword ? '[HIDDEN]' : 'null',
-      ftpPort: result.ftpPort,
-      ftpBasePath: result.ftpBasePath
-    });
-    return result;
+  if (!billHicksVendor) {
+    console.log('❌ GET BILL HICKS ADMIN CREDENTIALS: Bill Hicks vendor not found');
+    return null;
   }
   
-  console.log('🔍 GET BILL HICKS CREDENTIALS: No credentials found, returning null');
-  return null;
+  // Get admin credentials from the supported vendor
+  const adminCredentials = billHicksVendor.adminCredentials;
+  
+  if (!adminCredentials) {
+    console.log('❌ GET BILL HICKS ADMIN CREDENTIALS: No admin credentials configured');
+    console.log('⚠️  Please configure admin credentials at: Admin > Supported Vendors > Bill Hicks');
+    return null;
+  }
+  
+  console.log('✅ GET BILL HICKS ADMIN CREDENTIALS: Found admin credentials');
+  console.log('🔍 FTP Server:', adminCredentials.ftpServer || adminCredentials.ftp_server);
+  console.log('🔍 FTP Username:', adminCredentials.ftpUsername || adminCredentials.ftp_username);
+  console.log('🔍 FTP Password:', (adminCredentials.ftpPassword || adminCredentials.ftp_password) ? '[HIDDEN]' : 'null');
+  
+  // Map credentials (support both camelCase and snake_case)
+  const result = {
+    ftpServer: adminCredentials.ftpServer || adminCredentials.ftp_server,
+    ftpUsername: adminCredentials.ftpUsername || adminCredentials.ftp_username,
+    ftpPassword: adminCredentials.ftpPassword || adminCredentials.ftp_password,
+    ftpPort: adminCredentials.ftpPort || adminCredentials.ftp_port || 21,
+    ftpBasePath: adminCredentials.ftpBasePath || adminCredentials.ftp_base_path || '/'
+  };
+  
+  // Validate required fields
+  if (!result.ftpServer || !result.ftpUsername || !result.ftpPassword) {
+    console.log('❌ GET BILL HICKS ADMIN CREDENTIALS: Missing required fields');
+    console.log('   ftpServer:', result.ftpServer ? 'present' : 'MISSING');
+    console.log('   ftpUsername:', result.ftpUsername ? 'present' : 'MISSING');
+    console.log('   ftpPassword:', result.ftpPassword ? 'present' : 'MISSING');
+    return null;
+  }
+  
+  console.log('✅ GET BILL HICKS ADMIN CREDENTIALS: Returning valid admin credentials');
+  return result;
 }
 
 /**
@@ -708,8 +699,10 @@ async function downloadInventoryFile(credentials: any): Promise<string> {
         host = url.hostname;
         secure = url.protocol === 'ftps:';
       } catch {
-        // Fallback: strip any protocol prefixes
-        host = credentials.ftpServer.replace(/^(https?|ftps?):\/\//, '');
+        // Fallback: strip any protocol prefixes and trailing slashes
+        host = credentials.ftpServer
+          .replace(/^(https?|ftps?):\/\//, '')
+          .replace(/\/+$/, '');
       }
 
       console.log(`🔗 Connecting to FTP host: ${host} (secure: ${secure})`);

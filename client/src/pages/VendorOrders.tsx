@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Edit, Plus, Settings, Trash2, Send, Merge, Store, Eye, FileText, Zap, Webhook, Link2, Globe, Download, Mail, FileSpreadsheet, X } from "lucide-react";
-import microBizLogo from "@assets/microbiz-logo-vertical-on clear w black text 150 x150_1753376920147.png";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -1299,36 +1298,13 @@ export default function VendorOrders() {
                     <TableHead>Status Action</TableHead>
                     <TableHead>Actions</TableHead>
                     <TableHead className="text-center">
-                      <div className="flex flex-col items-center space-y-2">
-                        <img 
-                          src={microBizLogo} 
-                          alt="MicroBiz" 
-                          className="h-8 w-auto object-contain"
-                        />
-                        <span className="text-xs text-gray-600">Exports</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm font-semibold text-gray-700">MicroBiz</span>
                       </div>
                     </TableHead>
                     <TableHead className="text-center">
-                      <div className="flex flex-col items-center space-y-2">
-                        <div className="flex flex-col items-center">
-                          {/* SwipeSimple Logo Recreation */}
-                          <div className="relative">
-                            {/* Card shape with rounded corners */}
-                            <div className="w-20 h-6 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg shadow-sm relative overflow-hidden">
-                              {/* Top stripe */}
-                              <div className="absolute top-0 left-0 w-full h-2 bg-blue-700 rounded-t-lg"></div>
-                              {/* Check circle */}
-                              <div className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-gray-700 rounded-full flex items-center justify-center">
-                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            </div>
-                          </div>
-                          {/* SwipeSimple text below */}
-                          <div className="text-xs font-bold text-blue-600 mt-1">SwipeSimple</div>
-                        </div>
-                        <span className="text-xs text-gray-600">Export</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm font-semibold text-gray-700">SwipeSimple</span>
                       </div>
                     </TableHead>
                   </TableRow>

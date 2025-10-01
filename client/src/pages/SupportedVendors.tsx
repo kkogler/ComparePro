@@ -340,6 +340,7 @@ export default function SupportedVendors() {
       <ChattanoogaConfig
         vendor={selectedVendor}
         isOpen={chattanoogaConfigOpen}
+        organizationSlug={slug}
         onClose={() => {
           setChattanoogaConfigOpen(false);
           setSelectedVendor(null);
@@ -357,6 +358,7 @@ export default function SupportedVendors() {
         <GunBrokerConfig 
           vendor={selectedVendor} 
           isOpen={gunBrokerConfigOpen}
+          organizationSlug={slug}
           onClose={() => {
             setGunBrokerConfigOpen(false);
             setSelectedVendor(null);
@@ -394,6 +396,7 @@ export default function SupportedVendors() {
         <SportsSouthConfig 
           vendor={selectedVendor} 
           isOpen={sportsSouthConfigOpen}
+          organizationSlug={slug}
           onClose={() => {
             setSportsSouthConfigOpen(false);
             setSelectedVendor(null);

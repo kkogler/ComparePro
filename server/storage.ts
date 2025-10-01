@@ -2400,23 +2400,50 @@ export class DatabaseStorage implements IStorage {
     console.log('💾 STORAGE: Supported Vendor ID:', supportedVendorId);
     console.log('💾 STORAGE: Credentials:', credentials);
     
-    // Map the credentials to the correct field names
-    const mappedCredentials = {
+    // Map snake_case fields to camelCase for Drizzle ORM
+    const mappedCredentials: any = {
       companyId: companyId,
       supportedVendorId: supportedVendorId,
-      ...credentials, // Spread the credentials directly
       updatedAt: new Date()
     };
+    
+    // Map common FTP fields
+    if (credentials.ftp_server !== undefined) mappedCredentials.ftpServer = credentials.ftp_server;
+    if (credentials.ftp_port !== undefined) mappedCredentials.ftpPort = credentials.ftp_port;
+    if (credentials.ftp_username !== undefined) mappedCredentials.ftpUsername = credentials.ftp_username;
+    if (credentials.ftp_password !== undefined) mappedCredentials.ftpPassword = credentials.ftp_password;
+    if (credentials.ftp_base_path !== undefined) mappedCredentials.ftpBasePath = credentials.ftp_base_path;
+    
+    // Map sync fields
+    if (credentials.catalog_sync_enabled !== undefined) mappedCredentials.catalogSyncEnabled = credentials.catalog_sync_enabled;
+    if (credentials.catalog_sync_schedule !== undefined) mappedCredentials.catalogSyncSchedule = credentials.catalog_sync_schedule;
+    if (credentials.inventory_sync_enabled !== undefined) mappedCredentials.inventorySyncEnabled = credentials.inventory_sync_enabled;
+    if (credentials.inventory_sync_schedule !== undefined) mappedCredentials.inventorySyncSchedule = credentials.inventory_sync_schedule;
+    
+    // Map API fields (for non-FTP vendors)
+    if (credentials.user_name !== undefined) mappedCredentials.userName = credentials.user_name;
+    if (credentials.password !== undefined) mappedCredentials.password = credentials.password;
+    if (credentials.customer_number !== undefined) mappedCredentials.customerNumber = credentials.customer_number;
+    if (credentials.api_key !== undefined) mappedCredentials.apiKey = credentials.api_key;
+    if (credentials.api_secret !== undefined) mappedCredentials.apiSecret = credentials.api_secret;
+    if (credentials.sid !== undefined) mappedCredentials.sid = credentials.sid;
+    if (credentials.token !== undefined) mappedCredentials.token = credentials.token;
+    
+    // Also accept camelCase fields (for backward compatibility) - but only if snake_case wasn't provided
+    if (credentials.ftpServer !== undefined && credentials.ftp_server === undefined) mappedCredentials.ftpServer = credentials.ftpServer;
+    if (credentials.ftpPort !== undefined && credentials.ftp_port === undefined) mappedCredentials.ftpPort = credentials.ftpPort;
+    if (credentials.ftpUsername !== undefined && credentials.ftp_username === undefined) mappedCredentials.ftpUsername = credentials.ftpUsername;
+    if (credentials.ftpPassword !== undefined && credentials.ftp_password === undefined) mappedCredentials.ftpPassword = credentials.ftpPassword;
+    if (credentials.ftpBasePath !== undefined && credentials.ftp_base_path === undefined) mappedCredentials.ftpBasePath = credentials.ftpBasePath;
+    
+    console.log('💾 STORAGE: Mapped credentials for Drizzle:', mappedCredentials);
     
     const [result] = await db
       .insert(companyVendorCredentials)
       .values(mappedCredentials)
       .onConflictDoUpdate({
         target: [companyVendorCredentials.companyId, companyVendorCredentials.supportedVendorId],
-        set: {
-          ...credentials, // Update with new credentials
-          updatedAt: new Date()
-        }
+        set: mappedCredentials // Use mapped credentials in update too
       })
       .returning();
     

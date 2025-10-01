@@ -20,7 +20,7 @@ const billHicksConfigSchema = z.object({
   ftpUsername: z.string().min(1, "FTP Username is required"),
   ftpPassword: z.string().min(1, "FTP Password is required"),
   ftpPort: z.string().optional().default("21"),
-  storeName: z.string().min(1, "Store Name is required (used for FTP file naming)"),
+  ftpBasePath: z.string().optional().default("/MicroBiz/Feeds"),
   
   // Sync Settings
   enableAutomaticSync: z.boolean().default(true),
@@ -87,37 +87,40 @@ export function BillHicksConfig({
   const form = useForm<BillHicksConfigForm>({
     resolver: zodResolver(billHicksConfigSchema),
     defaultValues: {
-      ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || "",
+      ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || "ftp.billhicks.com",
       ftpUsername: vendor?.credentials?.ftpUsername || "",
       ftpPassword: vendor?.credentials?.ftpPassword || "",
       ftpPort: vendor?.credentials?.ftpPort || "21",
-      storeName: vendor?.credentials?.storeName || "DemoGunStore",
+      ftpBasePath: vendor?.credentials?.ftpBasePath || "/MicroBiz/Feeds",
       enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
       syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
     },
   });
 
-  // Reset form when vendor data changes
+  // Reset form when vendor data changes or modal opens
   useEffect(() => {
-    if (isOpen && vendor?.credentials) {
+    if (isOpen) {
+      console.log('🔄 BILL HICKS CONFIG: useEffect triggered, vendor credentials:', vendor?.credentials);
+      
       const formData = {
-        ftpHost: vendor.credentials.ftpServer || vendor.credentials.ftpHost || "",
-        ftpUsername: vendor.credentials.ftpUsername || "",
-        ftpPassword: vendor.credentials.ftpPassword || "",
-        ftpPort: vendor.credentials.ftpPort || "21",
-        storeName: vendor.credentials.storeName || "DemoGunStore",
-        enablePriceComparison: vendor.credentials.enablePriceComparison ?? true,
-        enableAutomaticSync: vendor.credentials.enableAutomaticSync ?? true,
-        syncTime: parseSyncTime(vendor.credentials.catalogSyncSchedule),
+        ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || "ftp.billhicks.com",
+        ftpUsername: vendor?.credentials?.ftpUsername || "",
+        ftpPassword: vendor?.credentials?.ftpPassword || "",
+        ftpPort: vendor?.credentials?.ftpPort || "21",
+        ftpBasePath: vendor?.credentials?.ftpBasePath || "/MicroBiz/Feeds",
+        enablePriceComparison: vendor?.credentials?.enablePriceComparison ?? true,
+        enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
+        syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
       };
       
-      // Reset form immediately when modal opens and credentials are available
+      console.log('🔄 BILL HICKS CONFIG: Resetting form with data:', formData);
+      // Reset form when modal opens or when vendor credentials change
       form.reset(formData);
     }
     if (isOpen && vendor?.vendorShortCode !== undefined) {
       setShortCode(vendor.vendorShortCode || '');
     }
-  }, [isOpen, vendor?.credentials, form]);
+  }, [isOpen, vendor?.credentials?.ftpUsername, vendor?.credentials?.ftpPassword, vendor?.credentials?.ftpServer, vendor?.credentials?.ftpHost, vendor?.credentials?.ftpPort, vendor?.credentials?.ftpBasePath, form]);
 
   const testConnectionMutation = useMutation({
     mutationFn: async (formData: BillHicksConfigForm) => {
@@ -129,7 +132,6 @@ export function BillHicksConfig({
           ftpUsername: formData.ftpUsername,
           ftpPassword: formData.ftpPassword,
           ftpPort: parseInt(formData.ftpPort || "21"),
-          storeName: formData.storeName,
         });
         
         const result = await response.json();
@@ -198,7 +200,6 @@ export function BillHicksConfig({
         ftpUsername: formData.ftpUsername,
         ftpPassword: formData.ftpPassword,
         ftpPort: formData.ftpPort,
-        storeName: formData.storeName,
         enableAutomaticSync: formData.enableAutomaticSync,
         catalogSyncSchedule: catalogSyncSchedule,
         lastConfigured: new Date().toISOString(),
@@ -211,27 +212,30 @@ export function BillHicksConfig({
         inventorySyncEnabled: credentials.enableAutomaticSync
       });
 
-      const response = await apiRequest(`/org/${organizationSlug}/api/vendor-credentials/bill-hicks`, 'POST', {
-        ftpServer: credentials.ftpHost,
-        ftpUsername: credentials.ftpUsername,
-        ftpPassword: credentials.ftpPassword,
-        catalogSyncEnabled: true, // Always enable catalog sync for store-level
-        catalogSyncSchedule: catalogSyncSchedule,
-        inventorySyncEnabled: credentials.enableAutomaticSync
+      const response = await apiRequest(`/org/${organizationSlug}/api/vendors/bill-hicks/credentials`, 'POST', {
+        ftp_server: credentials.ftpHost,
+        ftp_username: credentials.ftpUsername,
+        ftp_password: credentials.ftpPassword,
+        ftp_port: credentials.ftpPort || '21',
+        ftp_base_path: formData.ftpBasePath || '/MicroBiz/Feeds',
+        catalog_sync_enabled: true, // Always enable catalog sync for store-level
+        catalog_sync_schedule: catalogSyncSchedule,
+        inventory_sync_enabled: credentials.enableAutomaticSync
       });
       
       console.log('🔄 BILL HICKS CONFIG: API response:', response);
       return response.json();
     },
-    onSuccess: () => {
-      console.log('🔄 BILL HICKS CONFIG: Save successful, calling onSuccess');
+    onSuccess: (response) => {
+      console.log('🔄 BILL HICKS CONFIG: Save successful, response:', response);
+      console.log('🔄 BILL HICKS CONFIG: Calling onSuccess to refresh vendor data');
       // Let parent component handle query invalidation to avoid race conditions
       toast({
         title: "Configuration Saved",
         description: "Bill Hicks & Co. settings have been saved successfully.",
       });
       onSuccess?.();
-      onClose();
+      // Don't close the modal - keep it open for further testing/configuration
     },
     onError: (error: any) => {
       console.log('🔄 BILL HICKS CONFIG: Save failed with error:', error);
@@ -290,6 +294,59 @@ export function BillHicksConfig({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="ftpUsername"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>FTP Username</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="Enter FTP username"
+                          data-testid="input-ftp-username"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="ftpPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>FTP Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter FTP password"
+                            data-testid="input-ftp-password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            data-testid="button-toggle-password"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -323,6 +380,9 @@ export function BillHicksConfig({
                             data-testid="input-ftp-port"
                           />
                         </FormControl>
+                        <FormDescription>
+                          Port 21 is typically used for FTP connections
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -331,72 +391,19 @@ export function BillHicksConfig({
 
                 <FormField
                   control={form.control}
-                  name="ftpUsername"
+                  name="ftpBasePath"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>FTP Username</FormLabel>
+                      <FormLabel>Base Directory</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
-                          placeholder="Your FTP username"
-                          data-testid="input-ftp-username"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="ftpPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>FTP Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Your FTP password"
-                            data-testid="input-ftp-password"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                            data-testid="button-toggle-password"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="storeName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Store Name</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          placeholder="DemoGunStore"
-                          data-testid="input-store-name"
+                          placeholder="/MicroBiz/Feeds"
+                          data-testid="input-ftp-base-path"
                         />
                       </FormControl>
                       <FormDescription>
-                        Your store identifier for catalog file naming: {(field.value || "StoreName") + "_Daily_Catalog.CSV"}
+                        The FTP directory path where your store-specific pricing file (MicroBiz_Daily_Catalog.csv) is located. We recommend using <strong>/MicroBiz/Feeds</strong> unless Bill Hicks has provided a different path for your store.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
