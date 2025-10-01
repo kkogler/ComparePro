@@ -8832,6 +8832,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Run admin user check on startup
   await ensureAdminUserExists();
 
+  // STARTUP: Check and log proxy configuration
+  const proxyConfigured = !!(
+    process.env.PROXY_HOST && 
+    process.env.PROXY_PORT && 
+    process.env.PROXY_USERNAME && 
+    process.env.PROXY_PASSWORD
+  );
+  
+  if (proxyConfigured) {
+    console.log('');
+    console.log('🌐 ============================================');
+    console.log('🌐 PROXY CONFIGURATION DETECTED');
+    console.log('🌐 ============================================');
+    console.log(`🌐 Host: ${process.env.PROXY_HOST}`);
+    console.log(`🌐 Port: ${process.env.PROXY_PORT}`);
+    console.log(`🌐 Username: ${process.env.PROXY_USERNAME}`);
+    console.log(`🌐 Password: ${'*'.repeat(8)}`);
+    console.log('🌐 ============================================');
+    console.log('🌐 All vendor API calls will route through fixed IP');
+    console.log('🌐 APIs using proxy: Lipsey\'s, Sports South, Chattanooga');
+    console.log('🌐 ============================================');
+    console.log('');
+  } else {
+    console.log('ℹ️  STARTUP: No proxy configured - using Replit\'s dynamic IP');
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }
