@@ -137,8 +137,10 @@ export default function AdminIntegrations() {
   // Test SMTP2GO email mutation
   const testSMTP2GOMutation = useMutation({
     mutationFn: async () => {
+      // Get the current user's email or admin settings email for testing
+      const testEmail = adminSettings?.systemEmail || 'test@example.com';
       const response = await apiRequest('/api/test-email', 'POST', {
-        email: 'test@example.com',
+        email: testEmail,
         provider: 'smtp2go',
       });
       return response.json();
@@ -165,14 +167,24 @@ export default function AdminIntegrations() {
 
   const handleTestSendGridEmail = async () => {
     setIsTestingEmail(true);
-    await testEmailMutation.mutateAsync();
-    setIsTestingEmail(false);
+    try {
+      await testEmailMutation.mutateAsync();
+    } catch (error) {
+      // Error already handled by mutation's onError
+    } finally {
+      setIsTestingEmail(false);
+    }
   };
 
   const handleTestSMTP2GOEmail = async () => {
     setIsTestingSMTP2GO(true);
-    await testSMTP2GOMutation.mutateAsync();
-    setIsTestingSMTP2GO(false);
+    try {
+      await testSMTP2GOMutation.mutateAsync();
+    } catch (error) {
+      // Error already handled by mutation's onError
+    } finally {
+      setIsTestingSMTP2GO(false);
+    }
   };
 
   if (isLoading) {

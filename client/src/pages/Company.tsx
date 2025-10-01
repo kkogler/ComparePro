@@ -655,145 +655,17 @@ export default function Company() {
             </CardContent>
           </Card>
 
-          {/* Company Billing Information Section */}
+          {/* Vendor Order Settings */}
           <Card>
             <CardHeader>
-              <CardTitle>Company Billing Information (Optional)</CardTitle>
+              <CardTitle>Vendor Order Settings</CardTitle>
               <p className="text-sm text-gray-500">
-                This information is used for billing and administrative purposes. Individual store addresses are managed separately in Settings → Stores.
+                Configure how vendor orders are processed in your organization.
               </p>
             </CardHeader>
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="companyEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Billing Email</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                placeholder="billing@company.com"
-                                type="email"
-                                data-testid="input-billing-email"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="companyPhone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Billing Phone</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                placeholder="(555) 123-4567"
-                                data-testid="input-billing-phone"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="storeAddress1"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Billing Street Address</FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              placeholder="123 Corporate Drive"
-                              data-testid="input-billing-address1"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="storeAddress2"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Suite / Unit (Optional)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              placeholder="Suite 100, Floor 5, etc."
-                              data-testid="input-billing-address2"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="storeCity"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Billing City</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                placeholder="City"
-                                data-testid="input-billing-city"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="storeState"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>State</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                placeholder="CA"
-                                data-testid="input-billing-state"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="storeZipCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>ZIP Code</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                placeholder="94025"
-                                data-testid="input-billing-zip"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                  {/* Vendor Order Settings */}
-                  <div className="pt-6 border-t">
-                    <h3 className="text-lg font-semibold mb-4">Vendor Order Settings</h3>
                     <FormField
                       control={form.control}
                       name="requireCategoryOnVendorOrders"
@@ -817,7 +689,6 @@ export default function Company() {
                         </FormItem>
                       )}
                     />
-                  </div>
 
                   <div className="flex justify-end pt-6 border-t">
                     <Button 

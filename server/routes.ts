@@ -1157,12 +1157,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taxSetting = integrationSettings?.swipeSimpleTax || "TRUE";
       const trackInventorySetting = integrationSettings?.swipeSimpleTrackInventory || "TRUE";
       
-      // Helper function to format UPC as text (same approach as MicroBiz export)
+      // Helper function to format UPC as text without apostrophe
+      // Swipe Simple expects UPC in plain format without quotes or apostrophes
       const formatUPCAsText = (value: string): string => {
         if (!value) return '';
         const cleanValue = String(value).trim();
-        // Quote the value to preserve leading zeros and ensure proper text formatting
-        return `"${cleanValue}"`;
+        // For Swipe Simple: Return unquoted value to prevent Excel/import systems from adding apostrophes
+        // Leading zeros are preserved in the import process without needing quotes
+        return cleanValue;
       };
 
       // Generate Swipe Simple CSV content with PriceCompare mapping
@@ -1310,25 +1312,311 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderDate
       );
       
-      // Send email with both CSV attachments using centralized configuration
-      const success = await csvExportService.sendOrderCSVEmail(
-        orderForExport,
-        recipientEmail,
-        csvContent,
-        quantityExportContent,
-        company?.name,
-        fileName,
-        quantityFileName
-      );
+      // Get admin settings for email service
+      const adminSettings = await storage.getAdminSettings();
+      
+      // Import email service
+      const { sendEmail } = await import('./email-service');
+      
+      // Create product list table for email
+      const productListHtml = `
+        <div style="background-color: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #555;">Order Items</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd;">
+                <th style="padding: 8px; text-align: left; font-size: 12px;">Product Name</th>
+                <th style="padding: 8px; text-align: center; font-size: 12px;">Qty</th>
+                <th style="padding: 8px; text-align: left; font-size: 12px;">UPC</th>
+                <th style="padding: 8px; text-align: right; font-size: 12px;">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orderForExport.items.map((item: any, index: number) => `
+                <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background-color: #f9f9f9;' : ''}">
+                  <td style="padding: 8px; font-size: 12px;">${item.product.name || 'N/A'}</td>
+                  <td style="padding: 8px; text-align: center; font-size: 12px; font-weight: bold;">${item.quantity}</td>
+                  <td style="padding: 8px; font-size: 11px; color: #666;">${item.product.upc || 'N/A'}</td>
+                  <td style="padding: 8px; text-align: right; font-size: 12px;">$${item.unitCost}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      // Create email content with CSV attachments
+      const emailContent = {
+        to: recipientEmail,
+        from: adminSettings?.systemEmail || 'noreply@pricecomparehub.com',
+        subject: `MicroBiz Import Files - Order ${order.orderNumber}`,
+        attachments: [
+          {
+            filename: fileName,
+            content: Buffer.from(csvContent).toString('base64'),
+            type: 'text/csv'
+          },
+          {
+            filename: quantityFileName,
+            content: Buffer.from(quantityExportContent).toString('base64'),
+            type: 'text/csv'
+          }
+        ],
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">MicroBiz Import Files - Order ${order.orderNumber}</h2>
+            
+            <p>Please find the MicroBiz product import files for your vendor order below.</p>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #555;">Order Details</h3>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Order Number:</strong> ${order.orderNumber}</li>
+                <li><strong>Vendor:</strong> ${vendor.name}</li>
+                <li><strong>Total Items:</strong> ${orderForExport.items.length}</li>
+              </ul>
+            </div>
+            
+            ${productListHtml}
+            
+            <div style="background-color: #e8f4f8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #555;">Files Included</h3>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Product Import File:</strong> Complete product information for MicroBiz</li>
+                <li><strong>Order Quantity Export:</strong> Simplified 3-column format (Part #, Quantity, Cost)</li>
+              </ul>
+            </div>
+            
+            <h3 style="color: #555;">Instructions:</h3>
+            <ol>
+              <li>Download the attached CSV files</li>
+              <li>Import the Product file into MicroBiz for complete product data</li>
+              <li>Use the Order Quantity file for simplified order tracking</li>
+              <li>Review and verify all imported products</li>
+            </ol>
+            
+            <p>If you have any questions about these import files, please contact support.</p>
+            
+            <p style="margin-top: 30px;">
+              Best regards,<br>
+              <strong>${adminSettings?.brandName || 'BestPrice Platform'} Team</strong>
+            </p>
+          </div>
+        `
+      };
+      
+      // Send email using your existing email service (SMTP2GO or SendGrid)
+      const success = await sendEmail(emailContent, adminSettings);
       
       if (success) {
+        console.log(`MicroBiz CSV email sent successfully to ${recipientEmail} for order ${order.orderNumber}`);
         res.json({ message: "CSV export email sent successfully" });
       } else {
-        res.status(500).json({ message: "Failed to send email" });
+        res.status(500).json({ message: "Failed to send email. Please check your SMTP2GO or SendGrid configuration in Admin Settings." });
       }
     } catch (error) {
       console.error('Email CSV export error:', error);
       res.status(500).json({ message: "Failed to send CSV export email" });
+    }
+  });
+
+  // Email Swipe Simple CSV export for vendor orders
+  app.post("/org/:slug/api/orders/:orderId/email-swipe-simple-csv", requireOrganizationAccess, async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      const organizationId = (req as any).organizationId;
+      const { recipientEmail } = req.body;
+      
+      if (!recipientEmail) {
+        return res.status(400).json({ message: "Recipient email is required" });
+      }
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(recipientEmail)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      // Get order with full details
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Verify order belongs to this organization
+      if (order.companyId !== organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Get order items with product details
+      const orderItems = await storage.getOrderItemsByOrderId(orderId);
+      
+      // Get vendor info
+      const vendor = await storage.getVendor(order.vendorId);
+      if (!vendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+      
+      // Get company info for sender details
+      const company = await storage.getCompany(organizationId);
+      
+      // Get integration settings for Swipe Simple
+      let integrationSettings;
+      try {
+        integrationSettings = await storage.getIntegrationSettings(organizationId);
+      } catch (error) {
+        console.warn('Integration settings table may not exist yet, using default values');
+        // Continue with default values if table doesn't exist
+      }
+      const taxSetting = integrationSettings?.swipeSimpleTax || "TRUE";
+      const trackInventorySetting = integrationSettings?.swipeSimpleTrackInventory || "TRUE";
+      
+      // Helper function to format UPC as text without apostrophe
+      const formatUPCAsText = (value: string): string => {
+        if (!value) return '';
+        const cleanValue = String(value).trim();
+        return cleanValue;
+      };
+
+      // Generate Swipe Simple CSV content with PriceCompare mapping
+      const csvRows = [];
+      
+      // Add header row
+      csvRows.push(['ID', 'Name', 'SKU', 'Price', 'Tax', 'Status', 'Track_inventory', 'on_hand_count', 'Category']);
+      
+      // Add data rows for each order item
+      for (const item of orderItems) {
+        const upcValue = (item as any).productUpc || '';
+        
+        csvRows.push([
+          '', // ID - Leave blank
+          (item as any).productName || '', // Name
+          upcValue, // SKU - UPC
+          item.retailPrice?.toString() || item.unitCost.toString(), // Price
+          taxSetting, // Tax
+          'active', // Status
+          trackInventorySetting, // Track_inventory
+          item.quantity.toString(), // on_hand_count
+          (item as any).productCategory || '' // Category
+        ]);
+      }
+      
+      // Convert to CSV string with proper UPC formatting
+      const csvContent = csvRows.map((row, index) => {
+        if (index === 0) {
+          // Header row
+          return row.map(cell => `"${cell}"`).join(',');
+        } else {
+          // Data rows - format UPC (SKU column) without quotes
+          return row.map((cell, colIndex) => {
+            if (colIndex === 2) { // SKU column (UPC)
+              return formatUPCAsText(cell.toString());
+            } else {
+              return `"${cell.toString().replace(/"/g, '""')}"`;
+            }
+          }).join(',');
+        }
+      }).join('\n');
+      
+      // Create filename
+      const orderDate = new Date(order.orderDate);
+      const filename = `swipe-simple-${vendor.vendorShortCode || 'vendor'}-${order.orderNumber}-${orderDate.getFullYear()}${String(orderDate.getMonth() + 1).padStart(2, '0')}${String(orderDate.getDate()).padStart(2, '0')}.csv`;
+      
+      // Get admin settings for email service
+      const adminSettings = await storage.getAdminSettings();
+      
+      // Import email service
+      const { sendEmail } = await import('./email-service');
+      
+      // Create email content with CSV attachment
+      const emailContent = {
+        to: recipientEmail,
+        from: adminSettings?.systemEmail || 'noreply@pricecomparehub.com',
+        subject: `Swipe Simple CSV Export - Order ${order.orderNumber}`,
+        attachments: [
+          {
+            filename: filename,
+            content: Buffer.from(csvContent).toString('base64'),
+            type: 'text/csv'
+          }
+        ],
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Swipe Simple CSV Export - Order ${order.orderNumber}</h2>
+            
+            <p>Please find attached the Swipe Simple CSV export for your vendor order.</p>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #555;">Order Details</h3>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Order Number:</strong> ${order.orderNumber}</li>
+                <li><strong>Vendor:</strong> ${vendor.name}</li>
+                <li><strong>Total Items:</strong> ${orderItems.length}</li>
+              </ul>
+            </div>
+            
+            <div style="background-color: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #555;">Order Items</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd;">
+                    <th style="padding: 8px; text-align: left; font-size: 12px;">Product Name</th>
+                    <th style="padding: 8px; text-align: center; font-size: 12px;">Qty</th>
+                    <th style="padding: 8px; text-align: left; font-size: 12px;">UPC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${orderItems.map((item: any, index: number) => `
+                    <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background-color: #f9f9f9;' : ''}">
+                      <td style="padding: 8px; font-size: 12px;">${(item as any).productName || 'N/A'}</td>
+                      <td style="padding: 8px; text-align: center; font-size: 12px; font-weight: bold;">${item.quantity}</td>
+                      <td style="padding: 8px; font-size: 11px; color: #666;">${(item as any).productUpc || 'N/A'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            
+            <div style="background-color: #e8f4f8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #555;">File Format</h3>
+              <p style="margin: 10px 0;">This CSV file is formatted for Swipe Simple (PriceCompare-compatible) and includes:</p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>Product names and SKU/UPC codes</li>
+                <li>Pricing information</li>
+                <li>Inventory quantities</li>
+                <li>Product categories</li>
+              </ul>
+            </div>
+            
+            <h3 style="color: #555;">Instructions:</h3>
+            <ol>
+              <li>Download the attached CSV file</li>
+              <li>Import into Swipe Simple following their import process</li>
+              <li>Verify all products imported correctly</li>
+            </ol>
+            
+            <p>If you have any questions about this export file, please contact support.</p>
+            
+            <p style="margin-top: 30px;">
+              Best regards,<br>
+              <strong>${adminSettings?.brandName || 'BestPrice Platform'} Team</strong>
+            </p>
+          </div>
+        `
+      };
+      
+      // Send email using your existing email service (SMTP2GO or SendGrid)
+      const success = await sendEmail(emailContent, adminSettings);
+      
+      if (success) {
+        console.log(`Swipe Simple CSV email sent successfully to ${recipientEmail} for order ${order.orderNumber}`);
+        res.json({ message: "Swipe Simple CSV email sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send email. Please check your SMTP2GO or SendGrid configuration in Admin Settings." });
+      }
+    } catch (error) {
+      console.error('Email Swipe Simple CSV export error:', error);
+      res.status(500).json({ message: "Failed to send Swipe Simple CSV email" });
     }
   });
 
@@ -2462,11 +2750,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pricingConfig = await storage.getDefaultPricingConfiguration(organizationId);
       
       if (handler.vendorId === 'chattanooga') {
+        const startTime = Date.now();
+        
         // Use NEW credential vault system for Chattanooga
         const { credentialVault } = await import('./credential-vault-service');
         const credentials = await credentialVault.getStoreCredentials('chattanooga', organizationId, 0);
         
         if (!credentials || !credentials.sid || !credentials.token) {
+          console.log(`VENDOR_TIMING: ${vendor.name} completed in ${Date.now() - startTime}ms - CONFIG_REQUIRED`);
           return res.json({
             vendor: {
               id: vendor.id,
@@ -2491,6 +2782,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           token: credentials.token 
         });
         const result = await chattanoogaAPI.searchProduct({ upc: product.upc });
+
+        console.log(`VENDOR_TIMING: ${vendor.name} completed in ${Date.now() - startTime}ms - ${result.success ? 'SUCCESS' : 'NOT_FOUND'}`);
 
         if (result.success && result.product) {
           const p = result.product;
@@ -2535,12 +2828,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           apiMessage: 'Product not found'
         });
       } else if (handler.vendorId === 'lipseys') {
+        const startTime = Date.now();
         
         const { LipseyAPI } = await import('./lipsey-api.js');
         const credentials = vendor.credentials as any;
         
         // Store-level credentials required - NO ENVIRONMENT VARIABLE FALLBACK
         if (!credentials || !credentials.email || !credentials.password) {
+          console.log(`VENDOR_TIMING: ${vendor.name} completed in ${Date.now() - startTime}ms - CONFIG_REQUIRED`);
           return res.json({
             vendor: {
               id: vendor.id,
@@ -2560,6 +2855,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const lipseyAPI = new LipseyAPI(credentials);
         // Optimized search: UPC only (no secondary searches for speed)
         let result = await lipseyAPI.searchProduct({ upc: product.upc });
+        
+        console.log(`VENDOR_TIMING: ${vendor.name} completed in ${Date.now() - startTime}ms - ${result.success ? 'SUCCESS' : 'NOT_FOUND'}`);
         
         if (result.success && result.product) {
           const lipseyProduct = result.product;
@@ -2603,10 +2900,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       } else if (handler.vendorId === 'gunbroker') {
+        const startTime = Date.now();
+        
         const { GunBrokerAPI } = await import('./gunbroker-api.js');
         
         // GunBroker is a marketplace - check store toggle first
         if (!isVendorEnabledForPriceComparison(vendor)) {
+          console.log(`VENDOR_TIMING: ${vendor.name} completed in ${Date.now() - startTime}ms - DISABLED`);
           return res.json({
             vendor: {
               id: vendor.id,
@@ -2631,6 +2931,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           adminCredentials = supportedVendor?.adminCredentials as any;
         }
         if (!adminCredentials || !adminCredentials.devKey) {
+          console.log(`VENDOR_TIMING: ${vendor.name} completed in ${Date.now() - startTime}ms - CONFIG_REQUIRED`);
           return res.json({
             vendor: {
               id: vendor.id,
@@ -2650,6 +2951,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('🔫 GUNBROKER MARKETPLACE: Using admin credentials for store:', vendor.name);
         const gunBrokerAPI = new GunBrokerAPI(adminCredentials);
         const result = await gunBrokerAPI.searchProduct({ upc: product.upc }, adminCredentials.buyNowOnly !== false);
+        
+        console.log(`VENDOR_TIMING: ${vendor.name} completed in ${Date.now() - startTime}ms - ${result.success ? 'SUCCESS' : 'NOT_FOUND'}`);
         
         if (result.success && result.product) {
           const bestMatch = result.product;

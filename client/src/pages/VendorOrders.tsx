@@ -41,6 +41,9 @@ export default function VendorOrders() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailRecipient, setEmailRecipient] = useState("");
   const [emailOrderId, setEmailOrderId] = useState<number | null>(null);
+  const [swipeSimpleEmailDialogOpen, setSwipeSimpleEmailDialogOpen] = useState(false);
+  const [swipeSimpleEmailRecipient, setSwipeSimpleEmailRecipient] = useState("");
+  const [swipeSimpleEmailOrderId, setSwipeSimpleEmailOrderId] = useState<number | null>(null);
   
   // Unsaved changes tracking
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -69,6 +72,7 @@ export default function VendorOrders() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { organizationSlug } = useAuth();
 
   // Check for orderId URL parameter to auto-open order details modal
@@ -622,6 +626,30 @@ export default function VendorOrders() {
     }
   });
 
+  // Mutation for emailing Swipe Simple CSV
+  const emailSwipeSimpleCSVMutation = useMutation({
+    mutationFn: async ({ orderId, recipientEmail }: { orderId: number; recipientEmail: string }) => {
+      const baseUrl = organizationSlug ? `/org/${organizationSlug}/api/orders` : '/api/orders';
+      return await apiRequest(`${baseUrl}/${orderId}/email-swipe-simple-csv`, 'POST', { recipientEmail });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email Sent",
+        description: "Swipe Simple CSV has been emailed successfully",
+      });
+      setSwipeSimpleEmailDialogOpen(false);
+      setSwipeSimpleEmailRecipient("");
+      setSwipeSimpleEmailOrderId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Email Failed",
+        description: error.message || "Failed to send Swipe Simple CSV email",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Handler for updating item quantity
   const handleUpdateQuantity = async (itemId: number, newQuantity: number, unitCost: string) => {
     if (newQuantity < 1) return;
@@ -665,7 +693,17 @@ export default function VendorOrders() {
   // Handler for opening email dialog
   const handleEmailCSV = async (orderId: number) => {
     setEmailOrderId(orderId);
+    // Pre-populate with user's email
+    setEmailRecipient(user?.email || "");
     setEmailDialogOpen(true);
+  };
+
+  // Handler for opening Swipe Simple email dialog
+  const handleEmailSwipeSimpleCSV = async (orderId: number) => {
+    setSwipeSimpleEmailOrderId(orderId);
+    // Pre-populate with user's email
+    setSwipeSimpleEmailRecipient(user?.email || "");
+    setSwipeSimpleEmailDialogOpen(true);
   };
 
   // Handler for sending email
@@ -682,6 +720,23 @@ export default function VendorOrders() {
     emailCSVMutation.mutate({
       orderId: emailOrderId,
       recipientEmail: emailRecipient.trim()
+    });
+  };
+
+  // Handler for sending Swipe Simple email
+  const handleSendSwipeSimpleEmail = async () => {
+    if (!swipeSimpleEmailOrderId || !swipeSimpleEmailRecipient.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    emailSwipeSimpleCSVMutation.mutate({
+      orderId: swipeSimpleEmailOrderId,
+      recipientEmail: swipeSimpleEmailRecipient.trim()
     });
   };
 
@@ -1470,17 +1525,30 @@ export default function VendorOrders() {
                       {/* SwipeSimple Export Column */}
                       <TableCell className="text-center">
                         {(order.status === 'open' || order.status === 'complete') && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleDownloadSwipeSimpleCSV(order.id)}
-                            disabled={downloadSwipeSimpleCSVMutation.isPending}
-                            className="text-green-600 hover:text-green-800 hover:bg-green-50"
-                            title="Download Swipe Simple CSV"
-                            data-testid={`button-download-swipe-simple-csv-${order.id}`}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleDownloadSwipeSimpleCSV(order.id)}
+                              disabled={downloadSwipeSimpleCSVMutation.isPending}
+                              className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                              title="Download Swipe Simple CSV"
+                              data-testid={`button-download-swipe-simple-csv-${order.id}`}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleEmailSwipeSimpleCSV(order.id)}
+                              disabled={emailSwipeSimpleCSVMutation.isPending}
+                              className="text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                              title="Email Swipe Simple CSV"
+                              data-testid={`button-email-swipe-simple-csv-${order.id}`}
+                            >
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -2118,6 +2186,55 @@ export default function VendorOrders() {
                 data-testid="button-email-send"
               >
                 {emailCSVMutation.isPending ? "Sending..." : "Send Email"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Swipe Simple CSV Dialog */}
+      <Dialog open={swipeSimpleEmailDialogOpen} onOpenChange={setSwipeSimpleEmailDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Email Swipe Simple CSV</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="swipe-simple-email-recipient" className="text-sm font-medium text-gray-700">
+                Recipient Email
+              </Label>
+              <Input
+                id="swipe-simple-email-recipient"
+                type="email"
+                value={swipeSimpleEmailRecipient}
+                onChange={(e) => setSwipeSimpleEmailRecipient(e.target.value)}
+                placeholder="Enter email address..."
+                className="mt-1"
+                data-testid="input-swipe-simple-email-recipient"
+              />
+            </div>
+            <div className="text-sm text-gray-600">
+              The Swipe Simple CSV file will be emailed to the specified address in PriceCompare-compatible format.
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSwipeSimpleEmailDialogOpen(false);
+                  setSwipeSimpleEmailRecipient("");
+                  setSwipeSimpleEmailOrderId(null);
+                }}
+                data-testid="button-swipe-simple-email-cancel"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSendSwipeSimpleEmail}
+                disabled={emailSwipeSimpleCSVMutation.isPending || !swipeSimpleEmailRecipient.trim()}
+                className="btn-orange-action"
+                data-testid="button-swipe-simple-email-send"
+              >
+                {emailSwipeSimpleCSVMutation.isPending ? "Sending..." : "Send Email"}
               </Button>
             </div>
           </div>

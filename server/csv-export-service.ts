@@ -371,6 +371,90 @@ export class CSVExportService {
       return false;
     }
   }
+
+  /**
+   * Send Swipe Simple CSV via email with single attachment
+   */
+  async sendSwipeSimpleCSVEmail(
+    recipientEmail: string,
+    csvContent: string,
+    companyName: string | undefined,
+    fileName: string,
+    orderNumber: string,
+    vendorName: string
+  ): Promise<boolean> {
+    try {
+      const base64Content = Buffer.from(csvContent).toString('base64');
+      
+      const senderEmail = getEmailSender();
+      const senderName = getEmailSenderName(companyName);
+      
+      const emailContent = {
+        to: recipientEmail,
+        from: {
+          email: senderEmail,
+          name: senderName
+        },
+        subject: `Swipe Simple CSV Export - Order ${orderNumber}`,
+        text: `Please find attached the Swipe Simple CSV export for order ${orderNumber} (${vendorName}).`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Swipe Simple CSV Export - Order ${orderNumber}</h2>
+            
+            <p>Please find attached the Swipe Simple CSV export for your vendor order.</p>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #555;">Order Details</h3>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Order Number:</strong> ${orderNumber}</li>
+                <li><strong>Vendor:</strong> ${vendorName}</li>
+              </ul>
+            </div>
+            
+            <div style="background-color: #e8f4f8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #555;">File Format</h3>
+              <p style="margin: 10px 0;">This CSV file is formatted for Swipe Simple (PriceCompare-compatible) and includes:</p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>Product names and SKU/UPC codes</li>
+                <li>Pricing information</li>
+                <li>Inventory quantities</li>
+                <li>Product categories</li>
+              </ul>
+            </div>
+            
+            <h3 style="color: #555;">Instructions:</h3>
+            <ol>
+              <li>Download the attached CSV file</li>
+              <li>Import into Swipe Simple following their import process</li>
+              <li>Verify all products imported correctly</li>
+            </ol>
+            
+            <p>If you have any questions about this export file, please contact support.</p>
+            
+            <p style="margin-top: 30px;">
+              Best regards,<br>
+              <strong>BestPrice Platform Team</strong>
+            </p>
+          </div>
+        `,
+        attachments: [
+          {
+            content: base64Content,
+            filename: fileName,
+            type: 'text/csv',
+            disposition: 'attachment'
+          }
+        ]
+      };
+
+      await this.mailService.send(emailContent);
+      console.log(`Swipe Simple CSV email sent successfully to ${recipientEmail} for order ${orderNumber}`);
+      return true;
+    } catch (error) {
+      console.error('SendGrid Swipe Simple email error:', error);
+      return false;
+    }
+  }
 }
 
 export const csvExportService = new CSVExportService();

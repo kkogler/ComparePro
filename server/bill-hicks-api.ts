@@ -29,60 +29,69 @@ export class BillHicksAPI {
   /**
    * Get pricing and availability for a specific product
    * Uses pre-imported data from FTP catalog and inventory files
+   * OPTIMIZED: Single JOIN query instead of 4 separate queries
    */
   async getProductPricing(upc: string, companyId: number): Promise<BillHicksPricingData | null> {
+    const startTime = Date.now();
+    
     try {
       // Get Bill Hicks vendor ID dynamically if not already cached
       if (this.vendorId === null) {
         this.vendorId = await storage.getBillHicksVendorId();
       }
       
-      // Find the product by UPC
-      const [product] = await db.select()
-        .from(products)
-        .where(eq(products.upc, upc));
+      // OPTIMIZED: Single query with JOINs instead of 4 separate queries
+      // Combines: product lookup + vendor mapping + inventory lookup
+      const [result] = await db.select({
+        vendorSku: vendorProductMappings.vendorSku,
+        vendorCost: vendorProductMappings.vendorCost,
+        mapPrice: vendorProductMappings.mapPrice,
+        msrpPrice: vendorProductMappings.msrpPrice,
+        lastPriceUpdate: vendorProductMappings.lastPriceUpdate,
+        updatedAt: vendorProductMappings.updatedAt,
+        quantityAvailable: vendorInventory.quantityAvailable,
+      })
+      .from(products)
+      .innerJoin(
+        vendorProductMappings,
+        and(
+          eq(products.id, vendorProductMappings.productId),
+          eq(vendorProductMappings.supportedVendorId, this.vendorId),
+          eq(vendorProductMappings.companyId, companyId)
+        )
+      )
+      .leftJoin(
+        vendorInventory,
+        and(
+          eq(vendorInventory.supportedVendorId, this.vendorId),
+          eq(vendorInventory.vendorSku, vendorProductMappings.vendorSku)
+        )
+      )
+      .where(eq(products.upc, upc))
+      .limit(1);
 
-      if (!product) {
+      const duration = Date.now() - startTime;
+      
+      if (!result) {
+        console.log(`VENDOR_TIMING: Bill Hicks completed in ${duration}ms - NOT_FOUND (UPC: ${upc})`);
         return null;
       }
 
-      // Get Bill Hicks vendor mapping for this company
-      const [vendorMapping] = await db.select()
-        .from(vendorProductMappings)
-        .where(
-          and(
-            eq(vendorProductMappings.productId, product.id),
-            eq(vendorProductMappings.supportedVendorId, this.vendorId),
-            eq(vendorProductMappings.companyId, companyId)
-          )
-        );
-
-      if (!vendorMapping) {
-        return null; // Bill Hicks doesn't carry this product for this company
-      }
-
-      // Get inventory data (shared across all companies)
-      const [inventoryRecord] = await db.select()
-        .from(vendorInventory)
-        .where(
-          and(
-            eq(vendorInventory.supportedVendorId, this.vendorId),
-            eq(vendorInventory.vendorSku, vendorMapping.vendorSku)
-          )
-        );
+      console.log(`VENDOR_TIMING: Bill Hicks completed in ${duration}ms - SUCCESS (UPC: ${upc})`);
 
       return {
-        vendorSku: vendorMapping.vendorSku,
+        vendorSku: result.vendorSku,
         upc: upc,
-        quantityAvailable: inventoryRecord?.quantityAvailable || 0,
-        vendorCost: vendorMapping.vendorCost ? parseFloat(vendorMapping.vendorCost) : undefined,
-        mapPrice: vendorMapping.mapPrice ? parseFloat(vendorMapping.mapPrice) : undefined,
-        msrpPrice: vendorMapping.msrpPrice ? parseFloat(vendorMapping.msrpPrice) : undefined,
-        lastUpdated: vendorMapping.lastPriceUpdate || vendorMapping.updatedAt
+        quantityAvailable: result.quantityAvailable || 0,
+        vendorCost: result.vendorCost ? parseFloat(result.vendorCost) : undefined,
+        mapPrice: result.mapPrice ? parseFloat(result.mapPrice) : undefined,
+        msrpPrice: result.msrpPrice ? parseFloat(result.msrpPrice) : undefined,
+        lastUpdated: result.lastPriceUpdate || result.updatedAt
       };
 
     } catch (error) {
-      console.error(`Bill Hicks API Error for UPC ${upc}:`, error);
+      const duration = Date.now() - startTime;
+      console.error(`VENDOR_TIMING: Bill Hicks completed in ${duration}ms - FAILED (UPC: ${upc})`, error);
       return null;
     }
   }

@@ -110,16 +110,16 @@ export default function ProductSearch(): JSX.Element {
     setSearchPerformed(true);
   };
 
+  // State to track if we're redirecting to comparison
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
   // Auto-redirect to comparison page if there's exactly one search result
   useEffect(() => {
     if (searchPerformed && searchResults && searchResults.length === 1 && !isLoading && !error) {
       const singleProduct = searchResults[0];
-      // Small delay to show user that search was performed, then redirect
-      const timer = setTimeout(() => {
-        setLocation(`/org/${orgSlug}/compare?productId=${singleProduct.id}`);
-      }, 500);
-      
-      return () => clearTimeout(timer);
+      // Set redirecting state and redirect immediately
+      setIsRedirecting(true);
+      setLocation(`/org/${orgSlug}/compare?productId=${singleProduct.id}`);
     }
   }, [searchResults, searchPerformed, isLoading, error, setLocation, orgSlug]);
 
@@ -318,7 +318,7 @@ export default function ProductSearch(): JSX.Element {
       </Card>
 
       {/* Recent Searches */}
-      {searchHistory && (searchHistory as any[]).length > 0 && !searchQuery.trim() && (
+      {searchHistory && (searchHistory as any[]).length > 0 && !searchQuery.trim() ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Recent Searches</CardTitle>
@@ -354,10 +354,10 @@ export default function ProductSearch(): JSX.Element {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Search Results */}
-      {isLoading && (
+      {isLoading ? (
         <Card>
           <CardContent className="py-6">
             <div className="flex items-center justify-center">
@@ -366,9 +366,21 @@ export default function ProductSearch(): JSX.Element {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {(searchResults as any[]).length > 0 && (
+      {/* Redirecting State */}
+      {isRedirecting ? (
+        <Card>
+          <CardContent className="py-6">
+            <div className="flex items-center justify-center text-blue-600">
+              <Search className="w-6 h-6 animate-spin mr-2" />
+              Finding product record...
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {(searchResults as any[]).length > 0 && !isRedirecting ? (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -481,10 +493,10 @@ export default function ProductSearch(): JSX.Element {
             )}
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* No Results - Only show when search is complete (not loading) and no results */}
-      {searchQuery.trim() && !isLoading && (searchResults as any[]).length === 0 && !error && (
+      {searchQuery.trim() && !isLoading && (searchResults as any[]).length === 0 && !error ? (
         <Card>
           <CardContent className="text-center py-8">
             <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -492,17 +504,17 @@ export default function ProductSearch(): JSX.Element {
             <p className="text-gray-500">Try adjusting your search criteria or search term.</p>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Error State */}
-      {error && (
+      {error ? (
         <Card>
           <CardContent className="text-center py-8">
             <h3 className="text-lg font-medium text-red-600 mb-2">Search Error</h3>
             <p className="text-gray-500">Unable to search products. Please try again.</p>
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 }

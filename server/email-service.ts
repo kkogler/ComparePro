@@ -1,12 +1,19 @@
 import sgMail from '@sendgrid/mail';
 import fetch from 'node-fetch';
 
+export interface EmailAttachment {
+  filename: string;
+  content: string; // base64 encoded
+  type?: string; // mime type
+}
+
 export interface EmailContent {
   to: string;
   from?: string;
   replyTo?: string;
   subject: string;
   html: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface AdminSettings {
@@ -24,13 +31,22 @@ export async function sendEmailViaSMTP2GO(content: EmailContent, adminSettings: 
   }
 
   try {
-    const payload = {
+    const payload: any = {
       api_key: adminSettings.smtp2goApiKey,
       to: [content.to],
       sender: content.from || adminSettings.systemEmail || 'noreply@pricecompare.com',
       subject: content.subject,
       html_body: content.html,
     };
+
+    // Add attachments if present (SMTP2GO format)
+    if (content.attachments && content.attachments.length > 0) {
+      payload.attachments = content.attachments.map(att => ({
+        filename: att.filename,
+        fileblob: att.content, // base64 encoded
+        mimetype: att.type || 'application/octet-stream'
+      }));
+    }
 
     const response = await fetch('https://api.smtp2go.com/v3/email/send', {
       method: 'POST',
@@ -46,7 +62,16 @@ export async function sendEmailViaSMTP2GO(content: EmailContent, adminSettings: 
       console.log('Email sent successfully via SMTP2GO to:', content.to);
       return true;
     } else {
-      console.error('Failed to send email via SMTP2GO:', result);
+      console.error('Failed to send email via SMTP2GO:', JSON.stringify(result, null, 2));
+      console.error('SMTP2GO Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        errors: result.data?.errors || result.errors,
+        failed: result.data?.failed,
+        sender: payload.sender,
+        recipient: content.to,
+        hasAttachments: !!content.attachments
+      });
       return false;
     }
   } catch (error: any) {

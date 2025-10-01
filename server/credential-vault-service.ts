@@ -471,15 +471,23 @@ export class CredentialVaultService {
 
   /**
    * Validate credentials against schema
+   * Supports both snake_case (schema) and camelCase (frontend) field names
    */
   private validateCredentials(credentials: Record<string, string>, schema: CredentialField[]): void {
+    // Helper to convert snake_case to camelCase
+    const snakeToCamel = (str: string) => str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    
     for (const field of schema) {
-      if (field.required && (!credentials[field.name] || credentials[field.name].trim() === '')) {
+      // Check both snake_case and camelCase versions of the field name
+      const snakeCaseName = field.name;
+      const camelCaseName = snakeToCamel(field.name);
+      const value = credentials[snakeCaseName] || credentials[camelCaseName];
+      
+      if (field.required && (!value || value.trim() === '')) {
         throw new Error(`Required field missing: ${field.label}`);
       }
 
-      if (credentials[field.name] && field.validation) {
-        const value = credentials[field.name];
+      if (value && field.validation) {
         const validation = field.validation;
 
         if (validation.minLength && value.length < validation.minLength) {
@@ -499,13 +507,38 @@ export class CredentialVaultService {
 
   /**
    * Process credentials (no encryption - pass through)
+   * Normalizes field names to match schema (snake_case or camelCase)
    */
   private processCredentials(
     credentials: Record<string, string>, 
     schema: CredentialField[]
   ): Record<string, string> {
-    // No encryption - return credentials as-is
-    return { ...credentials };
+    // Helper to convert snake_case to camelCase
+    const snakeToCamel = (str: string) => str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    
+    // Normalize credentials to include both naming conventions for compatibility
+    const normalized: Record<string, string> = {};
+    
+    for (const field of schema) {
+      const snakeCaseName = field.name;
+      const camelCaseName = snakeToCamel(field.name);
+      const value = credentials[snakeCaseName] || credentials[camelCaseName];
+      
+      if (value !== undefined) {
+        // Store in both formats for maximum compatibility
+        normalized[snakeCaseName] = value;
+        normalized[camelCaseName] = value;
+      }
+    }
+    
+    // Also include any extra fields from original credentials
+    for (const key in credentials) {
+      if (!normalized[key]) {
+        normalized[key] = credentials[key];
+      }
+    }
+    
+    return normalized;
   }
 
   /**
