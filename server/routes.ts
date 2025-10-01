@@ -8731,6 +8731,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint to test outbound IP address (verify proxy is working)
+  app.get('/api/admin/test-outbound-ip', requireAdminAuth, async (req, res) => {
+    try {
+      console.log('=== TESTING OUTBOUND IP ADDRESS ===');
+      
+      // Check if proxy is configured
+      const proxyConfigured = !!(
+        process.env.PROXY_HOST && 
+        process.env.PROXY_PORT && 
+        process.env.PROXY_USERNAME && 
+        process.env.PROXY_PASSWORD
+      );
+      
+      console.log('Proxy configured:', proxyConfigured);
+      if (proxyConfigured) {
+        console.log('Proxy settings:', {
+          host: process.env.PROXY_HOST,
+          port: process.env.PROXY_PORT,
+          username: process.env.PROXY_USERNAME ? '***' : undefined
+        });
+      }
+      
+      // Make a request to ipify.org to check our outbound IP
+      const https = await import('https');
+      const { HttpsProxyAgent } = await import('https-proxy-agent');
+      
+      let agent = undefined;
+      if (proxyConfigured) {
+        const proxyUrl = `http://${process.env.PROXY_USERNAME}:${process.env.PROXY_PASSWORD}@${process.env.PROXY_HOST}:${process.env.PROXY_PORT}`;
+        agent = new HttpsProxyAgent(proxyUrl);
+      }
+      
+      const ipResponse = await new Promise<string>((resolve, reject) => {
+        https.get('https://api.ipify.org?format=text', { agent }, (response) => {
+          let data = '';
+          response.on('data', chunk => data += chunk);
+          response.on('end', () => resolve(data));
+        }).on('error', reject);
+      });
+      
+      console.log('Outbound IP detected:', ipResponse);
+      
+      res.json({
+        success: true,
+        proxyConfigured,
+        proxyHost: proxyConfigured ? process.env.PROXY_HOST : null,
+        proxyPort: proxyConfigured ? process.env.PROXY_PORT : null,
+        detectedOutboundIP: ipResponse.trim(),
+        expectedIP: proxyConfigured ? process.env.PROXY_HOST : 'N/A (no proxy configured)',
+        isProxyWorking: proxyConfigured && ipResponse.trim() === process.env.PROXY_HOST,
+        message: proxyConfigured && ipResponse.trim() === process.env.PROXY_HOST
+          ? '✅ Proxy is working correctly! All API calls route through fixed IP.'
+          : proxyConfigured 
+            ? '⚠️ Proxy configured but not routing correctly. Check proxy server.'
+            : 'ℹ️ No proxy configured. Using Replit\'s dynamic IP.'
+      });
+    } catch (error: any) {
+      console.error('Error testing outbound IP:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to test outbound IP',
+        message: error.message 
+      });
+    }
+  });
+
   // Setup test email routes
   try {
     const { setupTestEmailRoute } = await import('./test-email-route');
