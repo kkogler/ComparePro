@@ -76,10 +76,11 @@ export default function SupportedVendors() {
 
   // Mutation to toggle vendor enabled/disabled state
   const toggleVendorEnabledMutation = useMutation({
-    mutationFn: async ({ vendorId, enabled }: { vendorId: number; enabled: boolean }) => {
-      const url = `/org/${slug}/api/vendors/${vendorId}/toggle-enabled`;
+    mutationFn: async ({ vendorSlug, vendorId, enabled }: { vendorSlug: string; vendorId: number; enabled: boolean }) => {
+      const url = `/org/${slug}/api/vendors/${vendorSlug}/toggle-enabled`;
       console.log('🔄 VENDOR TOGGLE: Frontend - calling URL:', url);
       console.log('🔄 VENDOR TOGGLE: Frontend - slug:', slug);
+      console.log('🔄 VENDOR TOGGLE: Frontend - vendorSlug:', vendorSlug);
       console.log('🔄 VENDOR TOGGLE: Frontend - vendorId:', vendorId);
       return await apiRequest(url, 'PATCH', { enabled });
     },
@@ -112,14 +113,15 @@ export default function SupportedVendors() {
   const handleToggleVendorEnabled = (vendor: any, enabled: boolean) => {
     console.log('🔄 VENDOR TOGGLE: Frontend - vendor:', vendor);
     console.log('🔄 VENDOR TOGGLE: Frontend - vendor.id:', vendor.id);
+    console.log('🔄 VENDOR TOGGLE: Frontend - vendor.slug:', vendor.slug);
     console.log('🔄 VENDOR TOGGLE: Frontend - vendor.enabledForPriceComparison:', vendor.enabledForPriceComparison);
     console.log('🔄 VENDOR TOGGLE: Frontend - enabled:', enabled);
     console.log('🔄 VENDOR TOGGLE: Frontend - Switch checked value:', vendor.enabledForPriceComparison !== false);
-    toggleVendorEnabledMutation.mutate({ vendorId: vendor.id, enabled });
+    toggleVendorEnabledMutation.mutate({ vendorSlug: vendor.slug, vendorId: vendor.id, enabled });
   };
 
   const handleConfigureVendor = (vendor: any) => {
-    console.log('handleConfigureVendor called for:', vendor.name, vendor.id);
+    console.log('handleConfigureVendor called for:', vendor.name, vendor.id, 'slug:', vendor.slug);
     setSelectedVendor(vendor);
     
     // Open the appropriate configuration modal based on vendor short code
@@ -381,6 +383,7 @@ export default function SupportedVendors() {
             if (!open) setSelectedVendor(null);
           }}
           vendorId={selectedVendor.id}
+          vendor={selectedVendor}
           organizationSlug={slug || ''}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: [`/org/${slug}/api/supported-vendors`] });

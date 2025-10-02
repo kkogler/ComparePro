@@ -2421,7 +2421,14 @@ export class DatabaseStorage implements IStorage {
     if (credentials.inventory_sync_schedule !== undefined) mappedCredentials.inventorySyncSchedule = credentials.inventory_sync_schedule;
     
     // Map API fields (for non-FTP vendors)
-    if (credentials.user_name !== undefined) mappedCredentials.userName = credentials.user_name;
+    // Priority: email > user_name (Lipsey's uses email, Sports South uses user_name)
+    if (credentials.email !== undefined) {
+      mappedCredentials.userName = credentials.email;
+      console.log('💾 STORAGE: Mapped email to userName:', credentials.email);
+    } else if (credentials.user_name !== undefined) {
+      mappedCredentials.userName = credentials.user_name;
+      console.log('💾 STORAGE: Mapped user_name to userName:', credentials.user_name);
+    }
     if (credentials.password !== undefined) mappedCredentials.password = credentials.password;
     if (credentials.customer_number !== undefined) mappedCredentials.customerNumber = credentials.customer_number;
     if (credentials.api_key !== undefined) mappedCredentials.apiKey = credentials.api_key;

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Loader2, ExternalLink, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
 
 interface LipseyConfigProps {
   open: boolean;
@@ -29,66 +29,90 @@ export function LipseyConfig({
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; dealerInfo?: any } | null>(null);
+  const [hasExistingCredentials, setHasExistingCredentials] = useState(false);
   const { toast } = useToast();
 
   // Load existing credentials when modal opens
   useEffect(() => {
-    if (open && vendorId && vendorId > 0) {
+    console.log('🔍 LIPSEY MODAL: useEffect triggered', { open, vendorSlug: vendor?.slug, vendorId });
+    if (open && (vendor?.slug || vendorId)) {
+      // Reset state and load fresh credentials when modal opens
+      console.log('🔍 LIPSEY MODAL: Modal is opening, loading credentials...');
+      setTestResult(null);
       loadExistingCredentials();
+    } else if (!open) {
+      // Clear form state when modal closes
+      console.log('🔍 LIPSEY MODAL: Modal is closing, clearing state...');
+      setEmail('');
+      setPassword('');
+      setTestResult(null);
+      setHasExistingCredentials(false);
     }
-  }, [open, vendorId]);
+  }, [open, vendor?.slug, vendorId]);
 
   const loadExistingCredentials = async () => {
     try {
-      const response = await fetch(`/org/${organizationSlug}/api/vendors`, {
+      // Use vendor slug if available, otherwise fall back to vendorId
+      const vendorIdentifier = vendor?.slug || vendor?.vendorShortCode || vendorId;
+      
+      console.log('🔍 LIPSEY LOAD CREDS: Loading credentials for vendor:', vendorIdentifier);
+      
+      const response = await fetch(`/org/${organizationSlug}/api/vendors/${vendorIdentifier}/credentials`, {
         method: 'GET',
         credentials: 'include'
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch vendors: ${response.status}`);
+        console.error('🔍 LIPSEY LOAD CREDS: Failed to fetch:', response.status);
+        throw new Error(`Failed to fetch credentials: ${response.status}`);
       }
       
-      const vendors = await response.json();
-      const vendor = vendors.find((v: any) => v.id === vendorId);
+      const data = await response.json();
       
-      if (vendor && vendor.credentials) {
-        setEmail(vendor.credentials.email || '');
-        setPassword(vendor.credentials.password || '');
+      console.log('🔍 LIPSEY LOAD CREDS: Received data:', { 
+        success: data.success, 
+        hasCredentials: !!data.credentials,
+        email: data.credentials?.email ? 'present' : 'missing',
+        password: data.credentials?.password ? data.credentials.password : 'missing'
+      });
+      
+      if (data.success && data.credentials && (data.credentials.email || data.credentials.password)) {
+        setEmail(data.credentials.email || '');
+        // Check if credentials exist (password is redacted as ••••••••)
+        const pwd = data.credentials.password;
+        if (pwd && pwd === '••••••••') {
+          // Credentials exist but are redacted for security - show the masked value
+          console.log('🔍 LIPSEY LOAD CREDS: Found existing credentials (password redacted)');
+          setHasExistingCredentials(true);
+          setPassword('••••••••'); // Show masked value so user knows password exists
+        } else if (pwd) {
+          // Actual password returned (shouldn't happen but handle it)
+          console.log('🔍 LIPSEY LOAD CREDS: Found credentials with actual password');
+          setPassword(pwd);
+          setHasExistingCredentials(true);
+        } else {
+          console.log('🔍 LIPSEY LOAD CREDS: No password found');
+          setHasExistingCredentials(false);
+          setPassword('');
+        }
+      } else {
+        console.log('🔍 LIPSEY LOAD CREDS: No credentials found in response');
+        setHasExistingCredentials(false);
+        setPassword('');
       }
     } catch (error) {
-      console.error('Failed to load existing credentials:', error);
+      console.error('🔍 LIPSEY LOAD CREDS: Error loading credentials:', error);
+      setHasExistingCredentials(false);
     }
   };
 
   const handleTestConnection = async () => {
-    if (!email || !password) {
-      toast({
-        title: "Missing Credentials",
-        description: "Please enter both email and password before testing.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!vendorId || vendorId <= 0) {
-      toast({
-        title: "Invalid Vendor",
-        description: "Vendor configuration error. Please reload the page.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsTesting(true);
     setTestResult(null);
 
     try {
       console.log('🔍 LIPSEY TEST: Starting connection test');
-      console.log('🔍 LIPSEY TEST: Using vendor ID:', vendorId);
       
-      // ✅ FIX: Remove redundant save - test connection should use already saved credentials
-      // The credentials should already be saved when the user clicked "Save"
       const vendorIdentifier = vendor?.slug || vendor?.vendorShortCode || vendorId;
       const response = await fetch(`/org/${organizationSlug}/api/vendors/${vendorIdentifier}/test-connection`, {
         method: 'POST',
@@ -131,19 +155,15 @@ export function LipseyConfig({
   };
 
   const handleSave = async () => {
-    if (!email || !password) {
+    // Check if password is just the placeholder (not changed)
+    const isPasswordPlaceholder = password === '••••••••';
+    
+    // If password is placeholder and we have existing credentials, allow save (preserves existing password)
+    // If no existing credentials, require actual password
+    if (!email || (!password && !hasExistingCredentials) || (!isPasswordPlaceholder && !password)) {
       toast({
         title: "Missing Credentials",
-        description: "Please enter both email and password.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!vendorId || vendorId <= 0) {
-      toast({
-        title: "Invalid Vendor",
-        description: "Vendor configuration error. Please reload the page.",
+        description: "Please enter both username and password.",
         variant: "destructive",
       });
       return;
@@ -152,13 +172,20 @@ export function LipseyConfig({
     setIsLoading(true);
 
     try {
+      // Build credentials object - only include password if it's been changed (not placeholder)
+      const credentials: any = {
+        email: email.trim()
+      };
+      
+      // Only send password if it's not the placeholder (meaning user entered a new password)
+      if (!isPasswordPlaceholder && password) {
+        credentials.password = password.trim();
+      }
+      
       const response = await apiRequest(
         `/org/${organizationSlug}/api/vendors/${vendor?.slug || vendor?.vendorShortCode || vendorId}/credentials`,
         'POST',
-        {
-          email: email.trim(),
-          password: password.trim()
-        }
+        credentials
       );
 
       if (response.ok) {
@@ -166,6 +193,9 @@ export function LipseyConfig({
           title: "Credentials Saved",
           description: "Lipsey's API credentials have been saved successfully.",
         });
+        
+        // Mark that credentials now exist
+        setHasExistingCredentials(true);
         
         onSuccess?.();
         onOpenChange(false);
@@ -185,18 +215,19 @@ export function LipseyConfig({
   };
 
   const handleClose = () => {
-    setEmail('');
-    setPassword('');
-    setTestResult(null);
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        handleClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Lipsey's API Configuration
+            Lipsey's Admin Credentials
           </DialogTitle>
         </DialogHeader>
 
@@ -210,24 +241,24 @@ export function LipseyConfig({
               Lipsey's requires domain and IP address pre-approval before API access is granted.
             </p>
             <Button
-              variant="outline"
+              variant="link"
               size="sm"
-              onClick={() => window.open('https://forms.office.com/Pages/ResponsePage.aspx?id=X654_c0rsk2wjv95IGAUMcxFCPJ9ZUFCqCosllGjJbtUOUFMSDhVVE1FSEYzV0w1WUY5S1BITFJWQSQlQCN0PWcu', '_blank')}
-              className="text-blue-700 dark:text-blue-300"
+              onClick={() => window.open('https://api.lipseys.com/', '_blank')}
+              className="text-blue-700 dark:text-blue-300 p-0 h-auto"
             >
               <ExternalLink className="w-4 h-4 mr-2" />
-              Submit Approval Form
+              View Lipsey's API Documentation
             </Button>
           </div>
 
           {/* Credentials Form */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Username</Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="dealer@yourstore.com"
+                type="text"
+                placeholder="Enter username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full"
@@ -239,7 +270,7 @@ export function LipseyConfig({
               <Input
                 id="password"
                 type="password"
-                placeholder="Your Lipsey's password"
+                placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full"
@@ -247,50 +278,12 @@ export function LipseyConfig({
             </div>
           </div>
 
-          {/* Test Connection Result */}
-          {testResult && (
-            <div className={`rounded-lg border p-4 ${
-              testResult.success 
-                ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
-                : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-            }`}>
-              <div className="flex items-center gap-2 mb-2">
-                {testResult.success ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                ) : (
-                  <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                )}
-                <span className={`font-medium ${
-                  testResult.success 
-                    ? 'text-green-900 dark:text-green-100' 
-                    : 'text-red-900 dark:text-red-100'
-                }`}>
-                  {testResult.success ? 'Connection Successful' : 'Connection Failed'}
-                </span>
-              </div>
-              <p className={`text-sm ${
-                testResult.success 
-                  ? 'text-green-700 dark:text-green-300' 
-                  : 'text-red-700 dark:text-red-300'
-              }`}>
-                {testResult.message}
-              </p>
-              {testResult.dealerInfo && (
-                <div className="mt-2 text-sm text-green-700 dark:text-green-300">
-                  <p><strong>Dealer:</strong> {testResult.dealerInfo.name}</p>
-                  <p><strong>Customer #:</strong> {testResult.dealerInfo.cusNo}</p>
-                  <p><strong>Location:</strong> {testResult.dealerInfo.locationName}</p>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div className="flex gap-3 justify-between">
             <Button
               variant="outline"
               onClick={handleTestConnection}
-              disabled={isTesting || !email || !password}
+              disabled={isTesting || (!hasExistingCredentials && (!email || !password))}
             >
               {isTesting ? (
                 <>
@@ -308,7 +301,7 @@ export function LipseyConfig({
               </Button>
               <Button 
                 onClick={handleSave} 
-                disabled={isLoading || !email || !password}
+                disabled={isLoading || !email || (!password && !hasExistingCredentials)}
                 className="btn-orange-action"
               >
                 {isLoading ? (
@@ -321,19 +314,6 @@ export function LipseyConfig({
                 )}
               </Button>
             </div>
-          </div>
-
-          {/* API Documentation Link */}
-          <div className="text-center pt-4 border-t">
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => window.open('https://api.lipseys.com/', '_blank')}
-              className="text-muted-foreground"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View Lipsey's API Documentation
-            </Button>
           </div>
         </div>
       </DialogContent>

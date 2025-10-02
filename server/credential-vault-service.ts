@@ -624,6 +624,22 @@ export class CredentialVaultService {
     try {
       const result = { ...credentials };
       
+      // ✅ LIPSEY'S: Map userName ↔ email (Lipsey's uses email as username)
+      if (vendorId.toLowerCase().includes('lipsey')) {
+        console.log('🔧 LIPSEYS: Applying field aliases');
+        
+        // Map database userName field back to email for frontend
+        if (result['userName'] && !result['email']) {
+          result['email'] = result['userName'];
+          console.log('🔧 ALIAS: userName → email');
+        }
+        // Also support reverse mapping
+        if (result['email'] && !result['userName']) {
+          result['userName'] = result['email'];
+          console.log('🔧 ALIAS: email → userName');
+        }
+      }
+      
       // ✅ ENHANCED: Sports South comprehensive field mapping
       if (vendorId.toLowerCase().includes('sports') && vendorId.toLowerCase().includes('south')) {
         console.log('🔧 SPORTS SOUTH: Applying comprehensive field aliases');
@@ -772,6 +788,12 @@ export class CredentialVaultService {
         const supportedVendor = await storage.getSupportedVendorByName(vendorId);
         if (!supportedVendor) return null;
         storedCredentials = await storage.getCompanyVendorCredentials(companyId, supportedVendor.id);
+        
+        // ✅ FIX: Apply field aliases for store credentials (userName → email for Lipsey's)
+        if (storedCredentials) {
+          storedCredentials = await this.applyFieldAliases(vendorId, storedCredentials);
+          console.log('🔧 REDACTED CREDS: Applied field aliases for', vendorId, 'Fields:', Object.keys(storedCredentials));
+        }
       }
 
       if (!storedCredentials) {

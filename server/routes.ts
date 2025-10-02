@@ -3365,6 +3365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           id: orgVendor.id,
           name: orgVendor.name,
+          slug: orgVendor.slug, // Include slug for API routing
           // Always use admin-level short code if available; fallback to org-level
           vendorShortCode: supportedVendor?.vendorShortCode || orgVendor.vendorShortCode,
           status: orgVendor.status,
@@ -5717,22 +5718,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // For Bill Hicks vendors, get credentials from company_vendor_credentials table
+      // For vendors using company_vendor_credentials table (Bill Hicks, Lipsey's, etc.)
       let testCredentials = vendor.credentials;
-      if (supportedVendor.name.toLowerCase().includes('bill hicks')) {
-        const companyVendorCreds = await storage.getCompanyVendorCredentials(organizationId, vendor.supportedVendorId);
-        if (companyVendorCreds) {
-          testCredentials = {
-            ftpHost: companyVendorCreds.ftpServer,
-            ftpUsername: companyVendorCreds.ftpUsername,
-            ftpPassword: companyVendorCreds.ftpPassword,
-            ftpPort: companyVendorCreds.ftpPort || 21
-          };
-        }
+      const companyVendorCreds = await storage.getCompanyVendorCredentials(organizationId, vendor.supportedVendorId);
+      
+      if (supportedVendor.name.toLowerCase().includes('bill hicks') && companyVendorCreds) {
+        testCredentials = {
+          ftpHost: companyVendorCreds.ftpServer,
+          ftpUsername: companyVendorCreds.ftpUsername,
+          ftpPassword: companyVendorCreds.ftpPassword,
+          ftpPort: companyVendorCreds.ftpPort || 21
+        };
+      } else if (supportedVendor.name.toLowerCase().includes('lipsey') && companyVendorCreds) {
+        testCredentials = {
+          email: companyVendorCreds.userName,  // userName maps to email for Lipsey's
+          password: companyVendorCreds.password
+        };
+      } else if (companyVendorCreds) {
+        // For other vendors using company_vendor_credentials
+        testCredentials = companyVendorCreds;
       }
       
-      // Check if vendor has credentials
-      if (!testCredentials) {
+      // Check if vendor has credentials (allow vendorRegistry to handle if missing)
+      if (!testCredentials && !companyVendorCreds) {
         return res.status(400).json({ 
           success: false, 
           message: 'No credentials configured for this vendor' 
