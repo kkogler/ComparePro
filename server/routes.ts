@@ -8805,6 +8805,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve the Lipsey's API test page
+  app.get('/test-lipseys', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(process.cwd(), 'test-lipseys.html');
+    res.sendFile(htmlPath);
+  });
+
+  // Admin endpoint to test Lipsey's API and get sample catalog data
+  app.get('/api/admin/test-lipseys-api', requireAdminAuth, async (req, res) => {
+    try {
+      console.log('=== TESTING LIPSEY\'S API ===');
+      
+      // Get Lipsey's admin credentials
+      const [lipseyVendor] = await db
+        .select()
+        .from(supportedVendors)
+        .where(eq(supportedVendors.name, "Lipsey's"));
+
+      if (!lipseyVendor || !lipseyVendor.adminCredentials) {
+        return res.status(404).json({
+          success: false,
+          error: 'Lipsey\'s vendor not configured or missing admin credentials'
+        });
+      }
+
+      const credentials = lipseyVendor.adminCredentials as { email: string; password: string };
+      console.log('Using credentials:', credentials.email);
+      
+      // Initialize Lipsey API client (will automatically use proxy if configured)
+      const { LipseyAPI } = await import('./lipsey-api.js');
+      const api = new LipseyAPI(credentials);
+      
+      // Test authentication
+      console.log('Testing authentication...');
+      const authResult = await api.authenticate();
+      
+      if (!authResult) {
+        return res.status(401).json({
+          success: false,
+          error: 'Lipsey\'s authentication failed',
+          message: 'Check credentials and IP whitelist'
+        });
+      }
+      
+      console.log('✅ Authentication successful!');
+      
+      // Get catalog feed (limited sample)
+      console.log('Fetching catalog feed...');
+      const catalogItems = await api.getCatalogFeed();
+      
+      if (!catalogItems || catalogItems.length === 0) {
+        return res.json({
+          success: true,
+          authenticated: true,
+          totalItems: 0,
+          sampleProducts: [],
+          message: 'Authentication successful but no catalog items returned'
+        });
+      }
+      
+      console.log(`✅ Retrieved ${catalogItems.length} catalog items`);
+      
+      // Return first 5 items as samples
+      const sampleSize = Math.min(5, catalogItems.length);
+      const samples = catalogItems.slice(0, sampleSize).map(item => ({
+        // Core fields
+        itemNo: item.itemNo,
+        description1: item.description1,
+        description2: item.description2,
+        upc: item.upc,
+        manufacturer: item.manufacturer,
+        model: item.model,
+        manufacturerModelNo: item.manufacturerModelNo,
+        type: item.type,
+        itemType: item.itemType,
+        
+        // Pricing
+        price: item.price,
+        currentPrice: item.currentPrice,
+        retailMap: item.retailMap,
+        msrp: item.msrp,
+        
+        // Inventory
+        quantity: item.quantity,
+        allocated: item.allocated,
+        onSale: item.onSale,
+        canDropship: item.canDropship,
+        
+        // Specifications
+        caliberGauge: item.caliberGauge,
+        action: item.action,
+        barrelLength: item.barrelLength,
+        capacity: item.capacity,
+        finish: item.finish,
+        weight: item.weight,
+        
+        // Image
+        imageName: item.imageName,
+        
+        // Compliance
+        fflRequired: item.fflRequired,
+        sotRequired: item.sotRequired
+      }));
+      
+      res.json({
+        success: true,
+        authenticated: true,
+        totalItems: catalogItems.length,
+        sampleProducts: samples,
+        fieldMapping: {
+          itemNo: 'Lipsey\'s item number',
+          description1: 'Primary description',
+          description2: 'Secondary description',
+          upc: 'Universal Product Code',
+          manufacturer: 'Manufacturer/brand name',
+          model: 'Model number',
+          manufacturerModelNo: 'Manufacturer\'s model number',
+          price: 'Dealer cost',
+          retailMap: 'Minimum Advertised Price (MAP)',
+          msrp: 'Manufacturer\'s Suggested Retail Price',
+          quantity: 'Available quantity',
+          imageName: 'Image filename (construct URL: https://www.lipseyscloud.com/images/{imageName})'
+        },
+        message: `Successfully retrieved ${catalogItems.length} items from Lipsey's catalog`
+      });
+      
+    } catch (error: any) {
+      console.error('Error testing Lipsey\'s API:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
   // Setup test email routes
   try {
     const { setupTestEmailRoute } = await import('./test-email-route');
