@@ -8942,6 +8942,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Direct Lipsey's API test with provided credentials (no admin auth required for testing)
+  app.post('/api/test-lipseys-direct', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing credentials',
+          message: 'Please provide email and password in request body'
+        });
+      }
+      
+      console.log('=== DIRECT LIPSEY\'S API TEST ===');
+      console.log('Email:', email);
+      
+      // Check proxy configuration
+      const proxyConfigured = !!(
+        process.env.PROXY_HOST && 
+        process.env.PROXY_PORT && 
+        process.env.PROXY_USERNAME && 
+        process.env.PROXY_PASSWORD
+      );
+      
+      console.log('Proxy configured:', proxyConfigured);
+      if (proxyConfigured) {
+        console.log(`Proxy: ${process.env.PROXY_HOST}:${process.env.PROXY_PORT}`);
+      }
+      
+      // Initialize Lipsey API (will use proxy if configured)
+      const { LipseyAPI } = await import('./lipsey-api.js');
+      const api = new LipseyAPI({ email, password });
+      
+      // Test authentication
+      console.log('Testing authentication with Lipsey\'s...');
+      const authResult = await api.authenticate();
+      
+      if (!authResult) {
+        return res.status(401).json({
+          success: false,
+          authenticated: false,
+          proxyConfigured,
+          proxyIP: proxyConfigured ? process.env.PROXY_HOST : null,
+          error: 'Authentication failed',
+          message: 'Invalid credentials or IP not whitelisted at Lipsey\'s'
+        });
+      }
+      
+      console.log('✅ Authentication successful!');
+      
+      // Get a small sample of catalog
+      console.log('Fetching catalog sample...');
+      const catalogItems = await api.getCatalogFeed();
+      
+      const sampleSize = Math.min(3, catalogItems.length);
+      const samples = catalogItems.slice(0, sampleSize).map(item => ({
+        itemNo: item.itemNo,
+        description: item.description1,
+        manufacturer: item.manufacturer,
+        model: item.model,
+        price: item.price,
+        quantity: item.quantity,
+        upc: item.upc
+      }));
+      
+      res.json({
+        success: true,
+        authenticated: true,
+        proxyConfigured,
+        proxyIP: proxyConfigured ? process.env.PROXY_HOST : null,
+        totalItems: catalogItems.length,
+        sampleProducts: samples,
+        message: proxyConfigured 
+          ? `✅ Successfully authenticated via proxy ${process.env.PROXY_HOST}. Retrieved ${catalogItems.length} items.`
+          : `✅ Successfully authenticated (no proxy). Retrieved ${catalogItems.length} items.`
+      });
+      
+    } catch (error: any) {
+      console.error('Error in direct Lipsey\'s test:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message,
+        message: 'Test failed - check server logs for details'
+      });
+    }
+  });
+
   // Setup test email routes
   try {
     const { setupTestEmailRoute } = await import('./test-email-route');
