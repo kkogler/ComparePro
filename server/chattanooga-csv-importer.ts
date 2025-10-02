@@ -228,14 +228,14 @@ export class ChattanoogaCSVImporter {
             specifications: null,
             serialized: mappedData.serialized ?? this.determineSerializedStatus(row['Item Name'], row.Category),
             retailVerticalId: (await import('@shared/retail-vertical-config')).DEFAULT_RETAIL_VERTICAL.id,
-            source: 'Chattanooga Shooting Supplies',
+            source: 'chattanooga', // Using vendor slug for consistent priority matching
             imageUrl: row['Image Location']?.trim() || null, // Initial Chattanooga image - fallback will be applied later
             imageSource: (row['Image Location']?.trim()) ? 'Chattanooga Shooting Supplies' : null // Set imageSource when imageUrl exists
           };
 
           if (existingProduct) {
             // Use simple quality-based priority system
-            if (await shouldReplaceProduct(existingProduct, productData, 'Chattanooga Shooting Supplies')) {
+            if (await shouldReplaceProduct(existingProduct, productData, 'chattanooga')) {
               // Update product with new data (no complex metadata)
               await storage.updateProduct(existingProduct.id, productData);
               console.log(`CHATTANOOGA CSV: Replaced existing product data for UPC ${cleanUPC}`);

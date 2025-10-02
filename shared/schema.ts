@@ -360,6 +360,23 @@ export const supportedVendors = pgTable("supported_vendors", {
   billHicksMasterCatalogRecordsSkipped: integer("bill_hicks_master_catalog_records_skipped").default(0),
   billHicksMasterCatalogTotalRecords: integer("bill_hicks_master_catalog_total_records").default(0),
   
+  // Lipsey's catalog sync settings and status (admin-level)
+  lipseysCatalogSyncEnabled: boolean("lipseys_catalog_sync_enabled").default(false),
+  lipseysCatalogSyncTime: varchar("lipseys_catalog_sync_time", { length: 5 }).default('08:00'),
+  lipseysCatalogSyncFrequency: text("lipseys_catalog_sync_frequency").default('daily'),
+  lipseysCatalogSyncStatus: varchar("lipseys_catalog_sync_status", { length: 20 }).default('not_configured'), // 'not_configured', 'in_progress', 'success', 'error'
+  lipseysLastCatalogSync: timestamp("lipseys_last_catalog_sync"),
+  lipseysCatalogSyncError: text("lipseys_catalog_sync_error"),
+  
+  // Lipsey's catalog sync statistics
+  lipseysRecordsAdded: integer("lipseys_records_added").default(0),
+  lipseysRecordsUpdated: integer("lipseys_records_updated").default(0),
+  lipseysRecordsSkipped: integer("lipseys_records_skipped").default(0),
+  lipseysRecordsFailed: integer("lipseys_records_failed").default(0),
+  lipseysTotalRecords: integer("lipseys_total_records").default(0),
+  lipseysImagesAdded: integer("lipseys_images_added").default(0),
+  lipseysImagesUpdated: integer("lipseys_images_updated").default(0),
+  
   vendorType: text("vendor_type").default("vendor"), // 'vendor' or 'marketplace'
   nameAliases: text("name_aliases").array(), // Alternative names for vendor lookup
   isEnabled: boolean("is_enabled").default(true),

@@ -547,7 +547,7 @@ async function createNewProduct(billHicksProduct: BillHicksProduct): Promise<voi
     manufacturerPartNumber: extractPartNumber(billHicksProduct.product_name),
     category: billHicksProduct.category_description,
     description: billHicksProduct.long_description || billHicksProduct.short_description,
-    source: 'Bill Hicks & Co.',
+    source: 'bill-hicks', // Using vendor slug for consistent priority matching
     retailVerticalId: 1, // Firearms
     createdAt: new Date(),
     updatedAt: new Date()
@@ -565,7 +565,7 @@ async function updateExistingProduct(productId: number, billHicksProduct: BillHi
       manufacturerPartNumber: extractPartNumber(billHicksProduct.product_name),
       category: billHicksProduct.category_description,
       description: billHicksProduct.long_description || billHicksProduct.short_description,
-      source: 'Bill Hicks & Co.',
+      source: 'bill-hicks', // Using vendor slug for consistent priority matching
       updatedAt: new Date()
     })
     .where(eq(products.id, productId));
@@ -597,7 +597,7 @@ function computeMappedFieldsFromBillHicksProduct(billHicksProduct: BillHicksProd
     manufacturerPartNumber: extractPartNumber(billHicksProduct.product_name),
     category: billHicksProduct.category_description,
     description: billHicksProduct.long_description || billHicksProduct.short_description,
-    source: 'Bill Hicks & Co.'
+    source: 'bill-hicks' // Using vendor slug for consistent priority matching
   };
 }
 

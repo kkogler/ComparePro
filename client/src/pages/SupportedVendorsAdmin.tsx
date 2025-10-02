@@ -1885,6 +1885,8 @@ function SyncSettingsModal({ vendor, onClose }: { vendor: SupportedVendor; onClo
       return <SportsSouthSyncSettings onSync={handleSyncCatalog} isLoading={isLoading} catalogInfo={catalogInfo} onScheduleChange={setScheduleChanges} />
     } else if (vendor.name.toLowerCase().includes('chattanooga')) {
       return <ChattanoogaSyncSettings onSync={handleSyncCatalog} isLoading={isLoading} onScheduleChange={setScheduleChanges} />;
+    } else if (vendor.name.toLowerCase().includes('lipsey')) {
+      return <LipseysSyncSettings onSync={handleSyncCatalog} isLoading={isLoading} onScheduleChange={setScheduleChanges} />;
     } else {
       return <GenericVendorSyncSettings vendor={vendor} onSync={handleSyncCatalog} isLoading={isLoading} onScheduleChange={setScheduleChanges} />;
     }
@@ -2586,6 +2588,253 @@ function ChattanoogaSyncSettings({ onSync, isLoading, onScheduleChange }: { onSy
         >
           <RefreshCw className="h-4 w-4 mr-2" />
           {isLoading ? 'Syncing...' : 'Start Manual CSV Sync'}
+        </Button>
+      </div>
+
+    </div>
+  );
+}
+
+// Lipsey's Sync Settings
+function LipseysSyncSettings({ onSync, isLoading, onScheduleChange }: { onSync: (type: 'full' | 'incremental') => void; isLoading: boolean; onScheduleChange: (changes: {time?: string, frequency?: string} | null) => void }) {
+  const { toast } = useToast();
+  const { data: adminSettings } = useAdminSettings();
+  const queryClient = useQueryClient();
+  
+  // Local state for schedule changes
+  const [localScheduleTime, setLocalScheduleTime] = useState('08:00');  // 8:00 AM
+  const [localScheduleFrequency, setLocalScheduleFrequency] = useState('daily');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  
+  // Fetch Lipsey's vendor info
+  const { data: vendors } = useQuery<SupportedVendor[]>({
+    queryKey: ['/api/admin/supported-vendors'],
+  });
+  
+  const lipseysVendor = vendors?.find(v => v.name.toLowerCase().includes('lipsey'));
+  
+  // Update local state when vendor data changes
+  useEffect(() => {
+    if (lipseysVendor) {
+      setLocalScheduleTime((lipseysVendor as any).lipseysCatalogSyncTime || '08:00');
+      setLocalScheduleFrequency((lipseysVendor as any).lipseysCatalogSyncFrequency || 'daily');
+      setScheduleEnabled((lipseysVendor as any).lipseysCatalogSyncEnabled || false);
+      setHasUnsavedChanges(false);
+    }
+  }, [lipseysVendor]);
+
+  const handleScheduleToggle = async (enabled: boolean) => {
+    try {
+      await apiRequest('/api/admin/lipseys/schedule/toggle', 'POST', { enabled });
+      
+      // Trigger immediate refetch to update UI state
+      await queryClient.refetchQueries({ queryKey: ['/api/admin/supported-vendors'] });
+      
+      setScheduleEnabled(enabled);
+      
+      toast({
+        title: enabled ? "Schedule Enabled" : "Schedule Disabled",
+        description: enabled 
+          ? "Automated Lipsey's daily catalog sync has been enabled"
+          : "Automated Lipsey's catalog sync has been disabled"
+      });
+    } catch (error) {
+      console.error('Error toggling Lipsey\'s schedule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update Lipsey's schedule settings. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleScheduleTimeChange = (time: string) => {
+    setLocalScheduleTime(time);
+    setHasUnsavedChanges(true);
+    onScheduleChange({ time, frequency: localScheduleFrequency });
+  };
+
+  const handleScheduleFrequencyChange = (frequency: string) => {
+    setLocalScheduleFrequency(frequency);
+    setHasUnsavedChanges(true);
+    onScheduleChange({ time: localScheduleTime, frequency });
+  };
+  
+
+  const handleManualSync = async () => {
+    try {
+      const response = await apiRequest('/api/admin/test-lipseys-sync', 'POST', {});
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Manual Sync Started",
+          description: "Lipsey's catalog sync initiated..."
+        });
+        
+        // Refresh vendor data to show updated sync status
+        setTimeout(async () => {
+          await queryClient.refetchQueries({ queryKey: ['/api/admin/supported-vendors'] });
+        }, 2000);
+      } else {
+        toast({
+          title: "Manual Sync Failed",
+          description: result.message || "Failed to start manual sync. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error starting manual sync:', error);
+      toast({
+        title: "Sync Error",
+        description: "Failed to start manual sync. Please check your connection and try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Information */}
+      <div className="bg-blue-50 p-4 rounded-lg text-sm space-y-2">
+        <div className="font-medium text-blue-700">Lipsey's Sync Information:</div>
+        <ul className="text-blue-600 space-y-1">
+          <li>• <strong>Daily Sync:</strong> Downloads complete product catalog via API</li>
+          <li>• <strong>Vendor Priority:</strong> Priority #2 - Can replace Chattanooga (P3) and Bill Hicks (P4) data, but preserves Sports South (P1) data</li>
+          <li>• <strong>Catalog Size:</strong> ~17,500 products</li>
+          <li>• <strong>Rate Limits:</strong> Limited catalog downloads per day - sync at night</li>
+          <li>• <strong>Data:</strong> Product catalog details (UPC, name, part numbers, specs) - Pricing retrieved via real-time API calls</li>
+        </ul>
+      </div>
+      
+      {/* Sync Status */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="font-medium mb-3 flex items-center gap-2">
+          <Database className="h-4 w-4" />
+          Lipsey's Catalog Sync Status
+        </h4>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="font-medium">Status:</span>
+            <span className={`ml-2 ${
+              (lipseysVendor as any)?.lipseysCatalogSyncStatus === 'success' ? 'text-green-700' :
+              (lipseysVendor as any)?.lipseysCatalogSyncStatus === 'error' ? 'text-red-700' :
+              (lipseysVendor as any)?.lipseysCatalogSyncStatus === 'in_progress' ? 'text-blue-700' : 'text-gray-500'
+            }`}>
+              {(lipseysVendor as any)?.lipseysCatalogSyncStatus || 'not_configured'}
+            </span>
+          </div>
+          <div>
+            <span className="font-medium">Last Sync:</span>
+            <span className="ml-2 text-gray-600">
+              {(lipseysVendor as any)?.lipseysLastCatalogSync 
+                ? new Date((lipseysVendor as any).lipseysLastCatalogSync).toLocaleDateString('en-US', { timeZone: adminSettings?.systemTimeZone || 'America/Los_Angeles' }) + ' at ' + new Date((lipseysVendor as any).lipseysLastCatalogSync).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: adminSettings?.systemTimeZone || 'America/Los_Angeles', timeZoneName: 'short' })
+                : 'Never'
+              }
+            </span>
+          </div>
+        </div>
+        
+        {/* Display sync statistics */}
+        {(lipseysVendor as any)?.lipseysCatalogSyncStatus === 'success' && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="font-medium text-green-700">Added:</span> {(lipseysVendor as any)?.lipseysRecordsAdded || 0}</div>
+                <div><span className="font-medium text-blue-700">Updated:</span> {(lipseysVendor as any)?.lipseysRecordsUpdated || 0}</div>
+                <div><span className="font-medium text-gray-700">Skipped:</span> {(lipseysVendor as any)?.lipseysRecordsSkipped || 0}</div>
+                <div><span className="font-medium text-red-700">Failed:</span> {(lipseysVendor as any)?.lipseysRecordsFailed || 0}</div>
+              </div>
+              <div className="mt-1 text-center"><span className="font-medium">Processed:</span> {(lipseysVendor as any)?.lipseysTotalRecords || 0}</div>
+            </div>
+          </div>
+        )}
+        
+        {(lipseysVendor as any)?.lipseysCatalogSyncError && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-red-700"><strong>Error:</strong> {(lipseysVendor as any).lipseysCatalogSyncError}</p>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Schedule Settings */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="font-medium mb-3 flex items-center gap-2">
+          <Clock className="h-4 w-4" />
+          Schedule Settings
+        </h4>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Label htmlFor="schedule-enabled" className="font-medium">Automated Sync:</Label>
+            <Switch
+              id="schedule-enabled"
+              checked={scheduleEnabled}
+              onCheckedChange={handleScheduleToggle}
+            />
+            <span className="text-sm text-gray-600">
+              {scheduleEnabled ? 'Enabled' : 'Disabled'}
+            </span>
+          </div>
+          
+          {scheduleEnabled && (
+            <>
+              <div className="flex items-center gap-4">
+                <Label htmlFor="sync-time" className="font-medium w-24">Time:</Label>
+                <Input
+                  id="sync-time"
+                  type="time"
+                  value={localScheduleTime}
+                  onChange={(e) => handleScheduleTimeChange(e.target.value)}
+                  className="w-32"
+                />
+                <span className="text-xs text-gray-500">
+                  ({adminSettings?.systemTimeZone || 'America/Los_Angeles'})
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Label htmlFor="sync-frequency" className="font-medium w-24">Frequency:</Label>
+                <Select value={localScheduleFrequency} onValueChange={handleScheduleFrequencyChange}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekdays">Weekdays</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {hasUnsavedChanges && (
+                <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                  ⚠️ Schedule changes will be saved when you click "Save All Changes" below
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      
+      {/* Manual Sync */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="font-medium mb-3 flex items-center gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Manual Sync
+        </h4>
+        <p className="text-sm text-gray-600 mb-3">
+          Manually trigger a full catalog sync. Note: Lipsey's limits catalog downloads per day.
+        </p>
+        <Button
+          onClick={handleManualSync}
+          disabled={isLoading}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          {isLoading ? 'Syncing...' : 'Start Manual Sync'}
         </Button>
       </div>
 

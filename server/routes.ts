@@ -5320,6 +5320,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerChattanoogaScheduleRoutes } = await import('./chattanooga-schedule-routes');
   registerChattanoogaScheduleRoutes(app);
 
+  // Register Lipsey's schedule routes
+  const { registerLipseysScheduleRoutes } = await import('./lipseys-schedule-routes');
+  registerLipseysScheduleRoutes(app);
+
   // Sports South Catalog Sync - Full Sync
   app.post("/api/sports-south/catalog/sync-full", async (req, res) => {
     try {
@@ -8807,10 +8811,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve the Lipsey's API test page
   app.get('/test-lipseys', (req, res) => {
-    const fs = require('fs');
-    const path = require('path');
-    const htmlPath = path.join(process.cwd(), 'test-lipseys.html');
-    res.sendFile(htmlPath);
+    import('path').then(({ default: path }) => {
+      const htmlPath = path.join(process.cwd(), 'test-lipseys.html');
+      res.sendFile(htmlPath);
+    }).catch(err => {
+      res.status(500).json({ error: 'Failed to serve test page', details: err.message });
+    });
+  });
+
+  // Test page for Lipsey's Catalog Sync
+  app.get('/test-lipseys-sync', (req, res) => {
+    import('path').then(({ default: path }) => {
+      const htmlPath = path.join(process.cwd(), 'test-lipseys-sync.html');
+      res.sendFile(htmlPath);
+    }).catch(err => {
+      res.status(500).json({ error: 'Failed to serve test page', details: err.message });
+    });
   });
 
   // Admin endpoint to test Lipsey's API and get sample catalog data
@@ -8992,32 +9008,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('✅ Authentication successful!');
       
-      // Get a small sample of catalog
-      console.log('Fetching catalog sample...');
-      const catalogItems = await api.getCatalogFeed();
+       // Get a small sample of catalog with ALL fields
+       console.log('Fetching catalog sample...');
+       const catalogItems = await api.getCatalogFeed();
+       
+       // Return 2 complete products with ALL fields (not filtered)
+       const sampleSize = Math.min(2, catalogItems.length);
+       const samples = catalogItems.slice(0, sampleSize);
       
-      const sampleSize = Math.min(3, catalogItems.length);
-      const samples = catalogItems.slice(0, sampleSize).map(item => ({
-        itemNo: item.itemNo,
-        description: item.description1,
-        manufacturer: item.manufacturer,
-        model: item.model,
-        price: item.price,
-        quantity: item.quantity,
-        upc: item.upc
-      }));
-      
-      res.json({
-        success: true,
-        authenticated: true,
-        proxyConfigured,
-        proxyIP: proxyConfigured ? process.env.PROXY_HOST : null,
-        totalItems: catalogItems.length,
-        sampleProducts: samples,
-        message: proxyConfigured 
-          ? `✅ Successfully authenticated via proxy ${process.env.PROXY_HOST}. Retrieved ${catalogItems.length} items.`
-          : `✅ Successfully authenticated (no proxy). Retrieved ${catalogItems.length} items.`
-      });
+       res.json({
+         success: true,
+         authenticated: true,
+         proxyConfigured,
+         proxyIP: proxyConfigured ? process.env.PROXY_HOST : null,
+         totalItems: catalogItems.length,
+         sampleProducts: samples,
+         note: 'Sample products contain ALL fields from Lipsey\'s API for field mapping verification',
+         message: proxyConfigured 
+           ? `✅ Successfully authenticated via proxy ${process.env.PROXY_HOST}. Retrieved ${catalogItems.length} items. Showing ${samples.length} complete products with all fields.`
+           : `✅ Successfully authenticated (no proxy). Retrieved ${catalogItems.length} items. Showing ${samples.length} complete products with all fields.`
+       });
       
     } catch (error: any) {
       console.error('Error in direct Lipsey\'s test:', error);
@@ -9025,6 +9035,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         error: error.message,
         message: 'Test failed - check server logs for details'
+      });
+    }
+  });
+
+  // Admin endpoint to migrate product sources to slugs
+  app.post('/api/admin/migrate-product-sources', requireAdminAuth, async (req, res) => {
+    try {
+      console.log('=== MIGRATING PRODUCT SOURCES TO SLUGS ===');
+      
+      // Mapping of old vendor names to new slugs
+      const VENDOR_NAME_TO_SLUG_MAP: Record<string, string> = {
+        'Sports South': 'sports_south',
+        'Bill Hicks & Co.': 'bill-hicks',
+        'Chattanooga Shooting Supplies': 'chattanooga',
+        "Lipsey's Inc.": 'lipseys',
+        'Lipseys': 'lipseys',
+        "Lipsey's": 'lipseys',
+        'GunBroker.com': 'gunbroker',
+        'GunBroker': 'gunbroker'
+      };
+      
+      let totalUpdated = 0;
+      
+      for (const [oldName, newSlug] of Object.entries(VENDOR_NAME_TO_SLUG_MAP)) {
+        if (oldName === newSlug) continue; // Skip if already using slug
+        
+        const result = await db
+          .update(products)
+          .set({ source: newSlug, updatedAt: new Date() })
+          .where(eq(products.source, oldName));
+        
+        const affected = result.rowCount || 0;
+        totalUpdated += affected;
+        
+        if (affected > 0) {
+          console.log(`✓ Updated ${affected} products: "${oldName}" → "${newSlug}"`);
+        }
+      }
+      
+      // Get current distinct sources
+      const updatedSources = await db
+        .selectDistinct({ source: products.source })
+        .from(products)
+        .where(sql`${products.source} IS NOT NULL`);
+      
+      console.log('Migration completed. Current sources:', updatedSources.map(s => s.source));
+      
+      res.json({
+        success: true,
+        message: `Successfully migrated ${totalUpdated} products to use vendor slugs`,
+        totalUpdated,
+        currentSources: updatedSources.map(s => s.source)
+      });
+      
+    } catch (error: any) {
+      console.error('Migration failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
+  // Admin endpoint to test Lipsey's catalog sync (manual trigger)
+  app.post('/api/admin/test-lipseys-sync', requireAdminAuth, async (req, res) => {
+    try {
+      console.log('=== MANUAL LIPSEY\'S CATALOG SYNC TEST ===');
+      
+      // Get Lipsey's admin credentials
+      const [lipseyVendor] = await db
+        .select()
+        .from(supportedVendors)
+        .where(eq(supportedVendors.name, "Lipsey's"));
+
+      if (!lipseyVendor || !lipseyVendor.adminCredentials) {
+        return res.status(404).json({
+          success: false,
+          error: 'Lipsey\'s vendor not configured or missing admin credentials'
+        });
+      }
+
+      const credentials = lipseyVendor.adminCredentials as { email: string; password: string };
+      console.log('Using credentials:', credentials.email);
+      
+      // Determine sync type and limit
+      const syncType = req.body.syncType || 'incremental';
+      const limit = req.body.limit || null; // Optional limit for testing
+      console.log('Sync type:', syncType);
+      if (limit) {
+        console.log(`Testing with limit: ${limit} products`);
+      }
+      
+      // Initialize Lipsey's catalog sync service
+      const { LipseysCatalogSyncService } = await import('./lipseys-catalog-sync.js');
+      const syncService = new LipseysCatalogSyncService(credentials);
+      
+      // Perform sync
+      console.log(`Starting ${syncType} sync...`);
+      const result = syncType === 'full' 
+        ? await syncService.performFullCatalogSync(limit)
+        : await syncService.performIncrementalSync();
+      
+      console.log('Sync completed:', result);
+      
+      res.json({
+        success: result.success,
+        syncType,
+        message: result.message,
+        statistics: {
+          productsProcessed: result.productsProcessed,
+          newProducts: result.newProducts,
+          updatedProducts: result.updatedProducts,
+          skippedProducts: result.skippedProducts,
+          errors: result.errors.length,
+          warnings: result.warnings.length
+        },
+        errors: result.errors,
+        warnings: result.warnings
+      });
+      
+    } catch (error: any) {
+      console.error('Error in Lipsey\'s sync test:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message,
+        stack: error.stack
       });
     }
   });

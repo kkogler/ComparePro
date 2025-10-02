@@ -22,55 +22,56 @@ const MIN_PRIORITY = 1; // Highest priority
  * Lower numbers indicate higher priority (1 = highest, N = lowest where N is total vendors)
  * Each vendor has a unique priority - no ties or tie-breaking needed
  * 
- * @param vendorSource - The vendor name/source to lookup priority for
+ * @param vendorSlug - The vendor slug/short code to lookup priority for (e.g., "lipseys", "sports_south")
  * @returns Promise<number> - The priority value (1-N) or 999 for unknown vendors
  */
-export async function getVendorRecordPriority(vendorSource: string): Promise<number> {
-  if (!vendorSource || typeof vendorSource !== 'string') {
-    console.log(`VENDOR PRIORITY: Invalid vendor source provided: ${vendorSource}`);
+export async function getVendorRecordPriority(vendorSlug: string): Promise<number> {
+  if (!vendorSlug || typeof vendorSlug !== 'string') {
+    console.log(`VENDOR PRIORITY: Invalid vendor slug provided: ${vendorSlug}`);
     return DEFAULT_PRIORITY;
   }
 
-  const cacheKey = vendorSource.toLowerCase().trim();
+  const cacheKey = vendorSlug.toLowerCase().trim();
   const now = Date.now();
 
   // Check cache first
   const cached = cache.get(cacheKey);
   if (cached && (now - cached.timestamp) < CACHE_TTL) {
-    console.log(`VENDOR PRIORITY: Cache hit for "${vendorSource}" -> priority ${cached.priority}`);
+    console.log(`VENDOR PRIORITY: Cache hit for "${vendorSlug}" -> priority ${cached.priority}`);
     return cached.priority;
   }
 
   try {
-    // Query database for vendor priority using case-insensitive comparison
+    // Query database for vendor priority using vendorShortCode (slug)
     const [result] = await db
       .select({ 
         productRecordPriority: supportedVendors.productRecordPriority,
+        vendorShortCode: supportedVendors.vendorShortCode,
         name: supportedVendors.name 
       })
       .from(supportedVendors)
-      .where(sql`lower(trim(${supportedVendors.name})) = lower(trim(${vendorSource}))`);
+      .where(sql`lower(trim(${supportedVendors.vendorShortCode})) = lower(trim(${vendorSlug}))`);
 
     let priority: number;
 
     if (!result) {
       // Vendor not found in supportedVendors table
-      console.log(`VENDOR PRIORITY: Vendor "${vendorSource}" not found in supportedVendors table, using default priority ${DEFAULT_PRIORITY}`);
+      console.log(`VENDOR PRIORITY: Vendor slug "${vendorSlug}" not found in supportedVendors table, using default priority ${DEFAULT_PRIORITY}`);
       priority = DEFAULT_PRIORITY;
     } else if (result.productRecordPriority === null || result.productRecordPriority === undefined) {
       // Vendor found but priority not set
-      console.log(`VENDOR PRIORITY: Vendor "${vendorSource}" found but productRecordPriority is null, using default priority ${DEFAULT_PRIORITY}`);
+      console.log(`VENDOR PRIORITY: Vendor "${result.name}" (slug: ${vendorSlug}) found but productRecordPriority is null, using default priority ${DEFAULT_PRIORITY}`);
       priority = DEFAULT_PRIORITY;
     } else {
       // Validate priority is a positive integer
       const rawPriority = result.productRecordPriority;
       if (rawPriority < MIN_PRIORITY || !Number.isInteger(rawPriority)) {
-        console.warn(`VENDOR PRIORITY: Invalid priority value ${rawPriority} for vendor "${vendorSource}" (expected positive integer), using default priority ${DEFAULT_PRIORITY}`);
+        console.warn(`VENDOR PRIORITY: Invalid priority value ${rawPriority} for vendor "${result.name}" (slug: ${vendorSlug}), using default priority ${DEFAULT_PRIORITY}`);
         priority = DEFAULT_PRIORITY;
       } else {
         // Valid priority found (no upper limit since priorities are now unique and sequential)
         priority = rawPriority;
-        console.log(`VENDOR PRIORITY: Found valid priority ${priority} for vendor "${vendorSource}"`);
+        console.log(`VENDOR PRIORITY: Found valid priority ${priority} for vendor "${result.name}" (slug: ${vendorSlug})`);
       }
     }
 
@@ -83,11 +84,11 @@ export async function getVendorRecordPriority(vendorSource: string): Promise<num
     return priority;
 
   } catch (error) {
-    console.error(`VENDOR PRIORITY: Database error looking up priority for "${vendorSource}":`, error);
+    console.error(`VENDOR PRIORITY: Database error looking up priority for slug "${vendorSlug}":`, error);
     
     // Return cached value if available, even if stale
     if (cached) {
-      console.log(`VENDOR PRIORITY: Using stale cached value for "${vendorSource}" due to database error`);
+      console.log(`VENDOR PRIORITY: Using stale cached value for "${vendorSlug}" due to database error`);
       return cached.priority;
     }
 
@@ -99,15 +100,15 @@ export async function getVendorRecordPriority(vendorSource: string): Promise<num
  * Get vendor priority synchronously from cache only
  * Used for performance-critical paths where database lookup is not acceptable
  * 
- * @param vendorSource - The vendor name/source to lookup priority for
+ * @param vendorSlug - The vendor slug/short code to lookup priority for
  * @returns number | null - The cached priority value or null if not cached
  */
-export function getVendorRecordPriorityFromCache(vendorSource: string): number | null {
-  if (!vendorSource || typeof vendorSource !== 'string') {
+export function getVendorRecordPriorityFromCache(vendorSlug: string): number | null {
+  if (!vendorSlug || typeof vendorSlug !== 'string') {
     return null;
   }
 
-  const cacheKey = vendorSource.toLowerCase().trim();
+  const cacheKey = vendorSlug.toLowerCase().trim();
   const cached = cache.get(cacheKey);
   
   if (!cached) {
@@ -117,7 +118,7 @@ export function getVendorRecordPriorityFromCache(vendorSource: string): number |
   const now = Date.now();
   if ((now - cached.timestamp) > CACHE_TTL) {
     // Cache entry is stale but return it anyway for sync operations
-    console.log(`VENDOR PRIORITY: Using stale cached priority ${cached.priority} for "${vendorSource}"`);
+    console.log(`VENDOR PRIORITY: Using stale cached priority ${cached.priority} for slug "${vendorSlug}"`);
   }
 
   return cached.priority;
@@ -127,16 +128,16 @@ export function getVendorRecordPriorityFromCache(vendorSource: string): number |
  * Preload vendor priorities for commonly used vendors
  * Call this during application startup for better performance
  * 
- * @param vendorNames - Array of vendor names to preload
+ * @param vendorSlugs - Array of vendor slugs to preload
  */
-export async function preloadVendorPriorities(vendorNames: string[]): Promise<void> {
-  console.log(`VENDOR PRIORITY: Preloading priorities for ${vendorNames.length} vendors`);
+export async function preloadVendorPriorities(vendorSlugs: string[]): Promise<void> {
+  console.log(`VENDOR PRIORITY: Preloading priorities for ${vendorSlugs.length} vendors`);
   
-  const loadPromises = vendorNames.map(async (vendorName) => {
+  const loadPromises = vendorSlugs.map(async (vendorSlug) => {
     try {
-      await getVendorRecordPriority(vendorName);
+      await getVendorRecordPriority(vendorSlug);
     } catch (error) {
-      console.error(`VENDOR PRIORITY: Failed to preload priority for "${vendorName}":`, error);
+      console.error(`VENDOR PRIORITY: Failed to preload priority for slug "${vendorSlug}":`, error);
     }
   });
 
@@ -158,22 +159,22 @@ export function clearVendorPriorityCache(): void {
  * Invalidate cache entry for a specific vendor
  * Called when vendor priority is updated via admin interface
  * 
- * @param vendorName - The vendor name to invalidate
+ * @param vendorSlug - The vendor slug to invalidate
  */
-export function invalidateVendorPriorityCache(vendorName: string): void {
-  if (!vendorName || typeof vendorName !== 'string') {
-    console.warn(`VENDOR PRIORITY: Invalid vendor name provided for cache invalidation: ${vendorName}`);
+export function invalidateVendorPriorityCache(vendorSlug: string): void {
+  if (!vendorSlug || typeof vendorSlug !== 'string') {
+    console.warn(`VENDOR PRIORITY: Invalid vendor slug provided for cache invalidation: ${vendorSlug}`);
     return;
   }
 
-  const cacheKey = vendorName.toLowerCase().trim();
+  const cacheKey = vendorSlug.toLowerCase().trim();
   const wasPresent = cache.has(cacheKey);
   
   if (wasPresent) {
     cache.delete(cacheKey);
-    console.log(`VENDOR PRIORITY: Cache invalidated for vendor "${vendorName}"`);
+    console.log(`VENDOR PRIORITY: Cache invalidated for vendor slug "${vendorSlug}"`);
   } else {
-    console.log(`VENDOR PRIORITY: No cache entry found for vendor "${vendorName}" - nothing to invalidate`);
+    console.log(`VENDOR PRIORITY: No cache entry found for vendor slug "${vendorSlug}" - nothing to invalidate`);
   }
 }
 
@@ -345,6 +346,7 @@ export async function fixVendorPriorityConsistency(): Promise<{
       .select({
         id: supportedVendors.id,
         name: supportedVendors.name,
+        vendorShortCode: supportedVendors.vendorShortCode,
         priority: supportedVendors.productRecordPriority
       })
       .from(supportedVendors);
@@ -383,8 +385,10 @@ export async function fixVendorPriorityConsistency(): Promise<{
           .set({ productRecordPriority: expectedPriority })
           .where(eq(supportedVendors.id, vendor.id));
         
-        // Invalidate cache for updated vendor
-        invalidateVendorPriorityCache(vendor.name);
+        // Invalidate cache for updated vendor (using slug)
+        if (vendor.vendorShortCode) {
+          invalidateVendorPriorityCache(vendor.vendorShortCode);
+        }
         
         vendorsUpdated++;
       }

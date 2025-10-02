@@ -277,6 +277,87 @@ export const VENDOR_FIELD_MAPPINGS: Record<string, VendorFieldMapping> = {
         }
       }
     }
+  },
+
+  /** LIPSEY'S MAPPING RULES */
+  'lipseys': {
+    vendorId: 'lipseys',
+    vendorName: "Lipsey's",
+    fields: {
+      productName: {
+        primary: 'description1',
+        fallbacks: ['description2', 'manufacturer', 'model'],
+        quality: 'high',
+        description: 'description1 contains primary product description'
+      },
+      description: {
+        primary: 'description2',
+        fallbacks: ['description1'],
+        quality: 'medium',
+        description: 'description2 provides detailed product information'
+      },
+      brand: {
+        primary: 'manufacturer',
+        fallbacks: [],
+        quality: 'high',
+        description: 'Manufacturer/brand name from manufacturer field'
+      },
+      model: {
+        primary: 'model',
+        fallbacks: [],
+        quality: 'high',
+        description: 'Product model from model field'
+      },
+      upc: {
+        primary: 'upc',
+        fallbacks: [],
+        quality: 'high',
+        description: 'UPC from upc field'
+      },
+      manufacturerPartNumber: {
+        primary: 'manufacturerModelNo',
+        fallbacks: [],
+        quality: 'high',
+        description: 'Manufacturer part number from manufacturerModelNo field'
+      },
+      category: {
+        primary: 'type',
+        fallbacks: ['itemType'],
+        quality: 'medium',
+        description: 'Product category from type field'
+      }
+    },
+    processing: {
+      trim: ['description1', 'description2', 'manufacturer', 'model', 'manufacturerModelNo'],
+      custom: {
+        'productName': (product: any, brandName?: string) => {
+          // Priority 1: Use description1 (primary description)
+          if (product.description1 && product.description1.trim()) {
+            return product.description1.trim();
+          }
+          
+          // Priority 2: Use description2 (secondary description)
+          if (product.description2 && product.description2.trim()) {
+            return product.description2.trim();
+          }
+          
+          // Priority 3: Construct from manufacturer + model
+          const parts: string[] = [];
+          if (brandName && brandName.trim()) parts.push(brandName.trim());
+          if (product.model && product.model.trim()) parts.push(product.model.trim());
+          
+          if (parts.length > 0) return parts.join(' ');
+          
+          // Fallback: Use manufacturer only
+          if (product.manufacturer && product.manufacturer.trim()) {
+            return product.manufacturer.trim();
+          }
+          
+          // Last resort
+          return `Lipsey's Item ${product.itemNo || 'Unknown'}`;
+        }
+      }
+    }
   }
 };
 
