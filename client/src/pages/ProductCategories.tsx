@@ -37,8 +37,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 // Category form schema - based on the database schema
+// Note: 'name' is auto-generated in backend from displayName
 const categorySchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
   slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
   displayName: z.string().min(1, "Display name is required").max(100),
   description: z.string().optional(),
@@ -107,7 +107,6 @@ export default function ProductCategories() {
   const createForm = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
-      name: "",
       slug: "",
       displayName: "",
       description: "",
@@ -119,7 +118,6 @@ export default function ProductCategories() {
   const editForm = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
-      name: "",
       slug: "",
       displayName: "",
       description: "",
@@ -274,7 +272,6 @@ export default function ProductCategories() {
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
     editForm.reset({
-      name: category.name,
       slug: category.slug,
       displayName: category.displayName,
       description: category.description || "",
@@ -332,14 +329,6 @@ export default function ProductCategories() {
       .trim();
   };
 
-  // Generate name from display name (remove special characters but keep spaces)
-  const generateName = (displayName: string) => {
-    return displayName
-      .replace(/[^a-zA-Z0-9\s]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-  };
-
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -387,27 +376,8 @@ export default function ProductCategories() {
                           onChange={(e) => {
                             field.onChange(e);
                             const slug = generateSlug(e.target.value);
-                            const name = generateName(e.target.value);
                             createForm.setValue("slug", slug);
-                            createForm.setValue("name", name);
                           }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Internal Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          data-testid="input-name"
-                          placeholder="Internal category name"
                         />
                       </FormControl>
                       <FormMessage />
@@ -577,23 +547,6 @@ export default function ProductCategories() {
                         {...field}
                         data-testid="input-edit-display-name"
                         placeholder="Enter category display name"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Internal Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        data-testid="input-edit-name"
-                        placeholder="Internal category name"
                       />
                     </FormControl>
                     <FormMessage />

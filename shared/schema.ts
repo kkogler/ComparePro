@@ -77,7 +77,6 @@ export const stores = pgTable("stores", {
   zipCode: text("zip_code"),
   country: text("country").default("US"), // Country code (ISO 3166-1 alpha-2)
   phone: text("phone"),
-  email: text("email"),
   fflNumber: text("ffl_number"), // Federal Firearms License number
   isActive: boolean("is_active").default(true), // Keep for backwards compatibility
   status: text("status").default("active"), // 'active', 'inactive', 'archived'
@@ -1168,16 +1167,13 @@ export const subscriptions = pgTable("subscriptions", {
   // Billing details
   amount: decimal("amount", { precision: 10, scale: 2 }),
   currency: text("currency").default("USD"),
-  billingCycle: text("billing_cycle").default("month"), // 'month', 'year'
+  billingCycle: text("billing_cycle"), // 'month', 'year'
   nextBillingDate: timestamp("next_billing_date"),
   
   // Cancellation details
-  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  // Note: cancel_at_period_end, auto_renew, cancellation_reason columns don't exist in DB yet
+  // They are Zoho-specific features that can be added later if needed
   cancelledAt: timestamp("cancelled_at"),
-  cancellationReason: text("cancellation_reason"),
-  
-  // Auto-renewal
-  autoRenew: boolean("auto_renew").default(true),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

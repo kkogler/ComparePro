@@ -4212,6 +4212,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create manual subscription (for development and manual onboarding)
+  app.post('/api/admin/subscriptions/create', requireAdminAuth, async (req, res) => {
+    try {
+      const {
+        companyName,
+        firstName,
+        lastName,
+        email,
+        phone,
+        address1,
+        address2,
+        city,
+        state,
+        zipCode,
+        country,
+        timezone,
+        retailVerticalId,
+        plan,
+        customerAccountNumber
+      } = req.body;
+
+      // Validate required fields
+      if (!companyName || !firstName || !lastName || !email || !plan) {
+        return res.status(400).json({ 
+          message: "Missing required fields: companyName, firstName, lastName, email, and plan are required" 
+        });
+      }
+
+      // Import billing service and create subscription
+      const { BillingService } = await import('./billing-service');
+      const billingService = new BillingService();
+
+      const result = await billingService.createManualSubscription({
+        companyName,
+        firstName,
+        lastName,
+        email,
+        phone,
+        address1,
+        address2,
+        city,
+        state,
+        zipCode,
+        country,
+        timezone,
+        retailVerticalId: retailVerticalId ? parseInt(retailVerticalId) : undefined,
+        plan,
+        customerAccountNumber
+      });
+
+      if (result.success) {
+        console.log('✅ ADMIN: Manual subscription created successfully', {
+          companyId: result.company.id,
+          companyName: result.company.name,
+          slug: result.company.slug,
+          adminUser: req.user?.username
+        });
+
+        res.status(201).json({
+          success: true,
+          message: result.message,
+          company: {
+            id: result.company.id,
+            name: result.company.name,
+            slug: result.company.slug,
+            plan: result.company.plan,
+            loginUrl: `${req.protocol}://${req.get('host')}/org/${result.company.slug}/auth`
+          }
+        });
+      } else {
+        res.status(500).json({ 
+          success: false,
+          message: "Failed to create subscription" 
+        });
+      }
+
+    } catch (error: any) {
+      console.error('❌ ADMIN: Manual subscription creation error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Failed to create subscription",
+        error: error.toString()
+      });
+    }
+  });
+
   app.get('/api/admin/organizations', requireAdminAuth, async (req, res) => {
     try {
       const organizations = await storage.getAllCompaniesWithStats();
@@ -6064,8 +6150,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/org/:slug/api/categories", requireOrganizationAccess, async (req, res) => {
     try {
       const organizationId = (req as any).organizationId;
+      
+      // Auto-generate 'name' from displayName (remove special chars, keep spaces)
+      const name = req.body.displayName
+        ? req.body.displayName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
+        : req.body.name || '';
+      
       const categoryData = {
         ...req.body,
+        name,
         companyId: organizationId
       };
       
@@ -6097,7 +6190,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Category not found" });
       }
       
-      const updatedCategory = await storage.updateCategory(categoryId, req.body);
+      // Auto-generate 'name' from displayName if displayName is provided
+      const updateData = { ...req.body };
+      if (req.body.displayName && !req.body.name) {
+        updateData.name = req.body.displayName
+          .replace(/[^a-zA-Z0-9\s]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+      
+      const updatedCategory = await storage.updateCategory(categoryId, updateData);
       res.json(updatedCategory);
     } catch (error) {
       console.error("Error updating category:", error);

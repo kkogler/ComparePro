@@ -346,11 +346,11 @@ export const settings = pgTable("settings", {
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
 	companyId: integer("company_id"),
 	microbizEnabled: boolean("microbiz_enabled").default(false),
-	storeAddress1: text("store_address1").default(').notNull(),
+	storeAddress1: text("store_address1").notNull(),
 	storeAddress2: text("store_address2"),
-	storeCity: text("store_city").default(').notNull(),
-	storeState: text("store_state").default(').notNull(),
-	storeZipCode: text("store_zip_code").default(').notNull(),
+	storeCity: text("store_city").notNull(),
+	storeState: text("store_state").notNull(),
+	storeZipCode: text("store_zip_code").notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.companyId],
@@ -381,7 +381,6 @@ export const stores = pgTable("stores", {
 	name: text().notNull(),
 	slug: text().notNull(),
 	phone: text(),
-	email: text(),
 	fflNumber: text("ffl_number"),
 	storeNumber: text("store_number"),
 	isActive: boolean("is_active").default(true),

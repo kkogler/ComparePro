@@ -1,5 +1,5 @@
 import { db } from './db';
-import { companies, billingEvents, usageMetrics, users, stores, userStores } from '@shared/schema';
+import { companies, billingEvents, usageMetrics, users, stores, userStores, vendors, supportedVendors } from '@shared/schema';
 import { eq, and, or, isNull } from 'drizzle-orm';
 import { storage } from './storage';
 import { hashPassword } from './auth';
@@ -740,9 +740,7 @@ export class BillingService {
             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
           amount: subscription.plan?.price?.toString() || 
                  (planCode === 'enterprise' ? '299' : planCode === 'standard' ? '99' : '0'),
-          currency: subscription.currency_code || 'USD',
-          cancelAtPeriodEnd: false, // Default to false for new subscriptions
-          autoRenew: true // Default to true for new subscriptions
+          currency: subscription.currency_code || 'USD'
         });
         console.log(`✅ BillingService: Created subscription record for ${subscriptionId}`);
       } catch (subscriptionError) {
@@ -1052,11 +1050,14 @@ export class BillingService {
   }
 
   // Auto-provision admin user and default store for new company
+  // Enhanced to accept full customer data including address, timezone, retail vertical
   async provisionCompanyOnboarding(companyId: number, customerData: any, provider: 'zoho' | 'recurly'): Promise<void> {
     console.log('🚀 BillingService: Starting company onboarding provisioning', {
       companyId,
       provider,
       customerEmail: provider === 'zoho' ? customerData?.email : customerData?.email,
+      timezone: customerData?.timezone,
+      retailVerticalId: customerData?.retailVerticalId,
       timestamp: new Date().toISOString()
     });
 
@@ -1226,17 +1227,25 @@ export class BillingService {
           .replace(/-+/g, '-') // Replace multiple hyphens with single
           .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
         
-        // Create default store using company name
+        // Create default store using company name and customer data
         const defaultStoreData: InsertStore = {
           companyId,
           name: companyName,
           slug: storeSlug || `company-${companyId}-store`,
-          shortName: companyName.length > 10 ? companyName.substring(0, 10).toUpperCase() : companyName.toUpperCase(),
+          shortName: companyName.replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 8),
           storeNumber: '01', // First store
           status: 'active',
           isActive: true,
-          timezone: 'America/New_York',
-          currency: 'USD'
+          timezone: customerData?.timezone || 'America/New_York',
+          currency: 'USD',
+          // Enhanced: Add address information from customerData
+          address1: customerData?.address1 || customerData?.billing_address?.street || null,
+          address2: customerData?.address2 || customerData?.billing_address?.street2 || null,
+          city: customerData?.city || customerData?.billing_address?.city || null,
+          state: customerData?.state || customerData?.billing_address?.state || null,
+          zipCode: customerData?.zipCode || customerData?.zip || customerData?.billing_address?.zip || null,
+          country: customerData?.country || customerData?.billing_address?.country || 'US',
+          phone: customerData?.phone || customerData?.billing_address?.phone || null
         };
 
           console.log('🏪 BillingService: Creating default store');
@@ -1297,7 +1306,82 @@ export class BillingService {
           console.log('✅ BillingService: User-store mappings already exist');
         }
 
-        // 5. Update default store for users if not set
+        // 5. Update company with timezone and retail vertical if provided
+        if (customerData?.timezone || customerData?.retailVerticalId) {
+          const companyUpdates: any = {};
+          if (customerData.timezone) {
+            companyUpdates.settings = { timezone: customerData.timezone, currency: 'USD' };
+          }
+          if (customerData.retailVerticalId) {
+            companyUpdates.retailVerticalId = customerData.retailVerticalId;
+          }
+          if (Object.keys(companyUpdates).length > 0) {
+            await tx
+              .update(companies)
+              .set(companyUpdates)
+              .where(eq(companies.id, companyId));
+            console.log('✅ BillingService: Updated company with timezone/retail vertical');
+          }
+        }
+
+        // 6. Enable all active supported vendors for the company
+        console.log('🔌 BillingService: Enabling all supported vendors for company');
+        const supportedVendorsResult = await tx
+          .select({ 
+            id: supportedVendors.id, 
+            name: supportedVendors.name,
+            vendorShortCode: supportedVendors.vendorShortCode,
+            apiType: supportedVendors.apiType
+          })
+          .from(supportedVendors)
+          .where(eq(supportedVendors.isEnabled, true));
+        
+        if (supportedVendorsResult.length > 0) {
+          // Check which vendors are already enabled
+          const existingVendors = await tx
+            .select({ supportedVendorId: vendors.supportedVendorId })
+            .from(vendors)
+            .where(eq(vendors.companyId, companyId));
+          
+          const existingVendorIds = new Set(existingVendors.map(v => v.supportedVendorId));
+          
+          // Create vendors for any that don't exist
+          const vendorsToCreate = supportedVendorsResult
+            .filter(sv => !existingVendorIds.has(sv.id))
+            .map(sv => {
+              const vendorShortCode = sv.vendorShortCode || sv.name;
+              const baseSlug = vendorShortCode.toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+              
+              // Make slug unique per company by appending company ID
+              const slug = `${baseSlug || `vendor-${sv.id}`}-${companyId}`;
+              
+              return {
+                companyId,
+                supportedVendorId: sv.id,
+                name: sv.name,
+                vendorShortCode,
+                slug,
+                integrationType: sv.apiType || 'api',
+                status: 'offline',
+                enabledForPriceComparison: true,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              };
+            });
+          
+          if (vendorsToCreate.length > 0) {
+            await tx.insert(vendors).values(vendorsToCreate);
+            console.log(`✅ BillingService: Enabled ${vendorsToCreate.length} vendors for company`);
+          } else {
+            console.log('✅ BillingService: All supported vendors already enabled');
+          }
+        }
+
+        // 7. Update default store for users if not set
         await tx
           .update(users)
           .set({ defaultStoreId: defaultStore.id })
@@ -1689,6 +1773,153 @@ export class BillingService {
       }
       
       console.log(`🔓 Released webhook lock for customer ${customerId}`);
+    }
+  }
+
+  /**
+   * Generate unique slug for company, handling duplicates
+   * Appends numbers if slug already exists (e.g., demo-gun-store-2)
+   */
+  async generateUniqueSlug(baseName: string): Promise<string> {
+    const baseSlug = baseName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 50);
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Check if slug exists
+    while (true) {
+      const existing = await storage.getCompanyBySlug(slug);
+      if (!existing) {
+        return slug;
+      }
+      
+      // Slug exists, try with number suffix
+      counter++;
+      slug = `${baseSlug}-${counter}`;
+    }
+  }
+
+  /**
+   * Create a new subscription manually (for dev testing and manual creation)
+   * This provides the same functionality as the Zoho webhook but for manual use
+   */
+  async createManualSubscription(data: {
+    companyName: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    address1?: string;
+    address2?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    timezone?: string;
+    retailVerticalId?: number;
+    plan: string;
+    customerAccountNumber?: string;
+  }): Promise<{ success: boolean; company: any; message: string }> {
+    try {
+      console.log('🎯 BillingService: Creating manual subscription', {
+        companyName: data.companyName,
+        plan: data.plan,
+        email: data.email
+      });
+
+      // Generate unique slug
+      const slug = await this.generateUniqueSlug(data.companyName);
+
+      // Map plan limits
+      const planLimits = {
+        free: { maxUsers: 5, maxVendors: 3, maxOrders: 100 },
+        standard: { maxUsers: 25, maxVendors: 6, maxOrders: 1000 },
+        enterprise: { maxUsers: 100, maxVendors: 999, maxOrders: 10000 }
+      };
+
+      const limits = planLimits[data.plan as keyof typeof planLimits] || planLimits.free;
+
+      // Create company
+      const companyData = {
+        name: data.companyName,
+        slug,
+        plan: data.plan,
+        status: 'active',
+        email: data.email,
+        phone: data.phone || null,
+        billingProvider: 'manual',
+        billingCustomerId: data.customerAccountNumber || `MANUAL-${Date.now()}`,
+        billingSubscriptionId: `MANUAL-SUB-${Date.now()}`,
+        maxUsers: limits.maxUsers,
+        maxVendors: limits.maxVendors,
+        maxOrders: limits.maxOrders,
+        features: data.plan === 'enterprise' ? 
+          { apiAccess: true, advancedAnalytics: true, orderProcessing: true, asnProcessing: true } : 
+          data.plan === 'standard' ?
+          { apiAccess: true, advancedAnalytics: true, orderProcessing: false, asnProcessing: false } :
+          { apiAccess: false, advancedAnalytics: false, orderProcessing: false, asnProcessing: false },
+        settings: { timezone: data.timezone || 'America/New_York', currency: 'USD' },
+        retailVerticalId: data.retailVerticalId || null
+      };
+
+      const newCompany = await storage.createCompany(companyData);
+
+      // Create subscription record (without Zoho-specific fields like cancelAtPeriodEnd/autoRenew)
+      await storage.createSubscription({
+        companyId: newCompany.id,
+        externalSubscriptionId: `MANUAL-${newCompany.id}-${Date.now()}`,
+        externalCustomerId: companyData.billingCustomerId,
+        externalSubscriptionNumber: companyData.billingSubscriptionId,
+        planId: data.plan,
+        status: 'active',
+        billingProvider: 'manual',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        amount: data.plan === 'enterprise' ? '299' : data.plan === 'standard' ? '99' : '0',
+        currency: 'USD'
+      });
+
+      // Provision company with full customer data
+      const customerData = {
+        email: data.email,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        display_name: `${data.firstName} ${data.lastName}`,
+        phone: data.phone,
+        address1: data.address1,
+        address2: data.address2,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        zip: data.zipCode,
+        country: data.country || 'US',
+        timezone: data.timezone || 'America/New_York',
+        retailVerticalId: data.retailVerticalId
+      };
+
+      await this.provisionCompanyOnboarding(newCompany.id, customerData, 'zoho');
+
+      console.log('✅ BillingService: Manual subscription created successfully', {
+        companyId: newCompany.id,
+        slug: newCompany.slug,
+        plan: newCompany.plan
+      });
+
+      return {
+        success: true,
+        company: newCompany,
+        message: `Subscription created successfully for ${data.companyName}`
+      };
+
+    } catch (error) {
+      console.error('❌ BillingService: Manual subscription creation failed:', error);
+      throw error;
     }
   }
 }

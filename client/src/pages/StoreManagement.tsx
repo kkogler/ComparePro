@@ -32,7 +32,6 @@ const createStoreSchemaBase = z.object({
   zipCode: z.string().optional(),
   country: z.string().optional(),
   phone: z.string().optional(),
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
   fflNumber: z.string().optional(),
   timezone: z.string().min(1, "Timezone is required"),
   status: z.enum(["active", "inactive", "archived"]).optional(),
@@ -78,7 +77,6 @@ interface StoreData {
   zipCode?: string;
   country?: string;
   phone?: string;
-  email?: string;
   fflNumber?: string;
   timezone: string;
   isActive: boolean;
@@ -329,7 +327,6 @@ export default function StoreManagement() {
       zipCode: "",
       country: "",
       phone: "",
-      email: "",
       fflNumber: "",
       storeNumber: "",
       timezone: getDefaultTimezone(),
@@ -350,7 +347,6 @@ export default function StoreManagement() {
       zipCode: "",
       country: "",
       phone: "",
-      email: "",
       fflNumber: "",
       storeNumber: "",
       timezone: getDefaultTimezone(),
@@ -416,7 +412,6 @@ export default function StoreManagement() {
       zipCode: store.zipCode || "",
       country: store.country || "",
       phone: store.phone || "",
-      email: store.email || "",
       fflNumber: store.fflNumber || "",
       timezone: store.timezone || "America/New_York",
       status: store.status || "active",
@@ -631,34 +626,19 @@ export default function StoreManagement() {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={createStoreForm.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="(555) 123-4567" data-testid="input-store-phone" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={createStoreForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="email" placeholder="store@company.com" data-testid="input-store-email" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={createStoreForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="(555) 123-4567" data-testid="input-store-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className={`grid gap-4 ${isFirearmsVertical ? 'grid-cols-2' : 'grid-cols-1'}`}>
                   {isFirearmsVertical && (
                     <FormField
@@ -810,17 +790,11 @@ export default function StoreManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        {store.phone && (
+                        {store.phone ? (
                           <div className="text-sm" data-testid={`text-store-phone-${store.id}`}>
                             {store.phone}
                           </div>
-                        )}
-                        {store.email && (
-                          <div className="text-sm text-muted-foreground" data-testid={`text-store-email-${store.id}`}>
-                            {store.email}
-                          </div>
-                        )}
-                        {!store.phone && !store.email && (
+                        ) : (
                           <span className="text-muted-foreground">Not set</span>
                         )}
                       </div>
@@ -1125,34 +1099,19 @@ export default function StoreManagement() {
                   )}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={editStoreForm.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="(555) 123-4567" data-testid="input-edit-store-phone" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editStoreForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" placeholder="store@example.com" data-testid="input-edit-store-email" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={editStoreForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="(555) 123-4567" data-testid="input-edit-store-phone" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
             </form>
           </Form>
@@ -1335,34 +1294,19 @@ export default function StoreManagement() {
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={createStoreForm.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="(555) 123-4567" data-testid="input-store-phone" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createStoreForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" placeholder="store@example.com" data-testid="input-store-email" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={createStoreForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="(555) 123-4567" data-testid="input-store-phone" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <DialogFooter>
                 <Button type="submit" disabled={createStoreMutation.isPending} data-testid="button-create-store">
                   {createStoreMutation.isPending ? "Creating..." : "Create Store"}

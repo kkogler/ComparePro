@@ -36,9 +36,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Trash2, Building2, Users, Search, ExternalLink as LinkIcon } from 'lucide-react';
+import { Copy, Trash2, Building2, Users, Search, ExternalLink as LinkIcon, Plus } from 'lucide-react';
 import { getStatusColor, getPlanColor, getUniquePlans, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUSES } from "@shared/subscription-config";
 import { Link } from 'wouter';
+import { CreateSubscriptionDialog } from '@/components/CreateSubscriptionDialog';
 
 interface Organization {
   id: number;
@@ -60,6 +61,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('active-paused');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
 
   // Fetch organizations (subscriptions)
@@ -193,6 +195,10 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold">Subscriptions</h1>
           <p className="text-muted-foreground">Manage subscriptions and billing</p>
         </div>
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Subscription
+        </Button>
       </div>
 
       {/* Removed summary cards per requirements */}
@@ -372,7 +378,11 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-
+      {/* Create Subscription Dialog */}
+      <CreateSubscriptionDialog 
+        open={showCreateDialog} 
+        onOpenChange={setShowCreateDialog} 
+      />
     </div>
   );
 }
