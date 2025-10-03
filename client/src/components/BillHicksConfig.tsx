@@ -127,7 +127,7 @@ export function BillHicksConfig({
       setIsTestingConnection(true);
       
       try {
-        const response = await apiRequest(`/org/demo-gun-store/api/vendors/${vendor.id}/test-ftp-connection`, 'POST', {
+        const response = await apiRequest(`/org/${organizationSlug}/api/vendors/${vendor.id}/test-ftp-connection`, 'POST', {
           ftpHost: formData.ftpHost,
           ftpUsername: formData.ftpUsername,
           ftpPassword: formData.ftpPassword,
