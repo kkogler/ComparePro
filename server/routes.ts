@@ -2863,7 +2863,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const startTime = Date.now();
         
         const { LipseyAPI } = await import('./lipsey-api.js');
-        const credentials = vendor.credentials as any;
+        
+        // Get credentials from company_vendor_credentials table (not vendor.credentials)
+        const companyVendorCreds = await storage.getCompanyVendorCredentials(organizationId, vendor.supportedVendorId);
+        
+        // Map userName -> email for Lipsey's API
+        const credentials = companyVendorCreds ? {
+          email: companyVendorCreds.userName,  // userName maps to email for Lipsey's
+          password: companyVendorCreds.password
+        } : null;
         
         // Store-level credentials required - NO ENVIRONMENT VARIABLE FALLBACK
         if (!credentials || !credentials.email || !credentials.password) {
@@ -5757,8 +5765,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         testResult = await vendorRegistry.testVendorConnection('gunbroker', 'admin', undefined, (req as any).user?.id || 0);
       } else {
         // Test the connection using the vendor registry with store-level credentials
+        // Use slug normalization to handle legacy format conversions (sports_south -> sports-south)
+        const { getStandardizedSlug } = await import('./slug-utils');
+        const rawSlug = supportedVendor.shortCode || supportedVendor.name;
+        const normalizedSlug = getStandardizedSlug(rawSlug) || rawSlug.toLowerCase().replace(/\s+/g, '-');
+        
+        console.log('VENDOR TEST CONNECTION: Raw slug:', rawSlug, '→ Normalized slug:', normalizedSlug);
+        
         testResult = await vendorRegistry.testVendorConnection(
-          supportedVendor.shortCode || supportedVendor.name.toLowerCase().replace(/\s+/g, '_'),
+          normalizedSlug,
           'store',
           organizationId,
           (req as any).user?.id || 0

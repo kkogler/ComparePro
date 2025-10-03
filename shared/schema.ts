@@ -1100,6 +1100,9 @@ export const companyVendorCredentials = pgTable("company_vendor_credentials", {
   lastCatalogRecordsCreated: integer("last_catalog_records_created").default(0),
   lastCatalogRecordsUpdated: integer("last_catalog_records_updated").default(0),
   lastCatalogRecordsDeactivated: integer("last_catalog_records_deactivated").default(0),
+  lastCatalogRecordsSkipped: integer("last_catalog_records_skipped").default(0),
+  lastCatalogRecordsFailed: integer("last_catalog_records_failed").default(0),
+  lastCatalogRecordsProcessed: integer("last_catalog_records_processed").default(0),
   
   lastInventorySync: timestamp("last_inventory_sync"),
   inventorySyncStatus: text("inventory_sync_status").default("never_synced"), // 'success', 'error', 'in_progress', 'never_synced'

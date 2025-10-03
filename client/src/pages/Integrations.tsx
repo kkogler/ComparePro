@@ -61,6 +61,9 @@ export default function Integrations() {
   // Update integrations mutation
   const updateIntegrationsMutation = useMutation({
     mutationFn: async (data: IntegrationsFormData) => {
+      if (!organizationSlug) {
+        throw new Error('Organization not found');
+      }
       const response = await apiRequest(`/org/${organizationSlug}/api/settings/integrations`, 'PUT', data);
       return await response.json();
     },
@@ -69,7 +72,9 @@ export default function Integrations() {
         title: "Integration settings updated",
         description: "Your integration settings have been saved successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/org/${organizationSlug}/api/settings/integrations`] });
+      if (organizationSlug) {
+        queryClient.invalidateQueries({ queryKey: [`/org/${organizationSlug}/api/settings/integrations`] });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -98,17 +103,18 @@ export default function Integrations() {
         </div>
       </div>
 
-      {/* Webhook Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Server className="h-5 w-5" />
-            Webhook Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...integrationsForm}>
-            <form onSubmit={integrationsForm.handleSubmit(onIntegrationsSubmit)} className="space-y-4">
+      <Form {...integrationsForm}>
+        <form onSubmit={integrationsForm.handleSubmit(onIntegrationsSubmit)} className="space-y-6">
+          
+          {/* Webhook Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-5 w-5" />
+                Webhook Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <FormField
                 control={integrationsForm.control}
                 name="webhookUrl"
@@ -141,32 +147,18 @@ export default function Integrations() {
                   </FormItem>
                 )}
               />
-              <div className="flex justify-end">
-                <Button 
-                  type="submit" 
-                  disabled={updateIntegrationsMutation.isPending}
-                  className="bg-orange-500 hover:bg-orange-600"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {updateIntegrationsMutation.isPending ? "Saving..." : "Save Settings"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Swipe Simple Download Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Swipe Simple Download Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...integrationsForm}>
-            <div className="space-y-4">
+          {/* Swipe Simple Download Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Swipe Simple Download Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <FormField
                 control={integrationsForm.control}
                 name="swipeSimpleTax"
@@ -220,10 +212,23 @@ export default function Integrations() {
                   These settings control the Tax and Track_inventory column values when downloading Swipe Simple CSV files from vendor orders.
                 </p>
               </div>
-            </div>
-          </Form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+
+          {/* Save Button - Bottom Right */}
+          <div className="flex justify-end">
+            <Button 
+              type="submit" 
+              disabled={updateIntegrationsMutation.isPending}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {updateIntegrationsMutation.isPending ? "Saving..." : "Save All Settings"}
+            </Button>
+          </div>
+
+        </form>
+      </Form>
 
     </div>
   );

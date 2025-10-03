@@ -166,12 +166,14 @@ export function BillHicksConfig({
       const response = await apiRequest(`/org/${organizationSlug}/api/vendor-credentials/bill-hicks/sync`, 'POST');
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({
-        title: "Sync Started",
-        description: data.message || "Bill Hicks sync has been initiated successfully.",
+        title: data.success ? "Sync Completed" : "Sync Started",
+        description: data.message || "Bill Hicks sync has been completed successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/org/${organizationSlug}/api/supported-vendors`] });
+      // Invalidate and refetch to update UI with new sync timestamp and stats
+      await queryClient.invalidateQueries({ queryKey: [`/org/${organizationSlug}/api/supported-vendors`] });
+      await queryClient.refetchQueries({ queryKey: [`/org/${organizationSlug}/api/supported-vendors`] });
     },
     onError: (error: any) => {
       toast({
@@ -179,6 +181,8 @@ export function BillHicksConfig({
         description: error.message || "Failed to start Bill Hicks sync",
         variant: "destructive",
       });
+      // Refresh on error too to show updated error status
+      queryClient.invalidateQueries({ queryKey: [`/org/${organizationSlug}/api/supported-vendors`] });
     },
   });
 
@@ -546,34 +550,60 @@ export function BillHicksConfig({
                     </div>
 
                     
-                    {/* Catalog sync stats - store level only includes catalog sync */}
-                    {(vendorData?.lastCatalogRecordsCreated || vendorData?.lastCatalogRecordsUpdated || 
-                      vendorData?.lastCatalogRecordsDeactivated) && (
-                      <div className="pt-3 border-t space-y-3">
-                        <h4 className="font-medium text-sm">Last Sync Statistics</h4>
-                        
-                        {/* Catalog Sync Stats */}
-                        <div>
-                          <div className="text-xs font-medium text-gray-700 mb-2">Catalog Sync</div>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            {vendorData?.lastCatalogRecordsCreated !== undefined && (
-                              <div>
-                                <span className="font-medium">Added:</span>
-                                <span className="ml-2 text-green-600">{vendorData.lastCatalogRecordsCreated.toLocaleString()}</span>
-                              </div>
-                            )}
-                            {vendorData?.lastCatalogRecordsUpdated !== undefined && (
-                              <div>
-                                <span className="font-medium">Updated:</span>
-                                <span className="ml-2 text-blue-600">{vendorData.lastCatalogRecordsUpdated.toLocaleString()}</span>
-                              </div>
-                            )}
-                            {vendorData?.lastCatalogRecordsDeactivated !== undefined && (
-                              <div>
-                                <span className="font-medium">Deactivated:</span>
-                                <span className="ml-2 text-orange-600">{vendorData.lastCatalogRecordsDeactivated.toLocaleString()}</span>
-                              </div>
-                            )}
+                    {/* Last Sync Metrics - matching format from Admin view */}
+                    {vendorData?.lastCatalogSync && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                          {/* Status and Last Sync on same row */}
+                          <div>
+                            <span className="font-medium text-gray-700">Status:</span>
+                            <span className={`ml-2 ${
+                              vendorData.catalogSyncStatus === 'success' ? 'text-green-600' :
+                              vendorData.catalogSyncStatus === 'error' ? 'text-red-600' :
+                              vendorData.catalogSyncStatus === 'in_progress' ? 'text-blue-600' :
+                              'text-gray-600'
+                            }`}>
+                              {vendorData.catalogSyncStatus === 'success' ? 'Success' :
+                               vendorData.catalogSyncStatus === 'error' ? 'Error' :
+                               vendorData.catalogSyncStatus === 'in_progress' ? 'In Progress' :
+                               'Never Synced'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Last Sync:</span>
+                            <span className="ml-2 text-gray-900">
+                              {new Date(vendorData.lastCatalogSync).toLocaleString('en-US', {
+                                month: '2-digit',
+                                day: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true,
+                                timeZoneName: 'short'
+                              })}
+                            </span>
+                          </div>
+                          
+                          {/* Metrics */}
+                          <div>
+                            <span className="font-medium text-gray-700">Added:</span>
+                            <span className="ml-2 text-green-600">{(vendorData.lastCatalogRecordsCreated || 0).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Updated:</span>
+                            <span className="ml-2 text-blue-600">{(vendorData.lastCatalogRecordsUpdated || 0).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Skipped:</span>
+                            <span className="ml-2 text-gray-600">{(vendorData.lastCatalogRecordsSkipped || 0).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Failed:</span>
+                            <span className="ml-2 text-red-600">{(vendorData.lastCatalogRecordsFailed || 0).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Processed:</span>
+                            <span className="ml-2 text-gray-900">{(vendorData.lastCatalogRecordsProcessed || 0).toLocaleString()}</span>
                           </div>
                         </div>
                       </div>

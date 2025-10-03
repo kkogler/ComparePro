@@ -685,12 +685,18 @@ async function updateStoreSyncStatus(companyId: number, billHicksVendorId: numbe
   if (status === 'success') {
     updateData.last_catalog_sync = new Date();
     updateData.catalog_sync_error = null;
-    updateData.last_catalog_records_created = stats.recordsAdded;
-    updateData.last_catalog_records_updated = stats.recordsUpdated;
+    updateData.last_catalog_records_created = stats.recordsAdded || 0;
+    updateData.last_catalog_records_updated = stats.recordsUpdated || 0;
+    updateData.last_catalog_records_skipped = stats.recordsSkipped || 0;
+    updateData.last_catalog_records_failed = stats.recordsErrors || 0;
+    updateData.last_catalog_records_processed = stats.totalRecords || 0;
   } else if (status === 'error') {
     updateData.catalog_sync_error = error;
     updateData.last_catalog_records_created = 0;
     updateData.last_catalog_records_updated = 0;
+    updateData.last_catalog_records_skipped = 0;
+    updateData.last_catalog_records_failed = 0;
+    updateData.last_catalog_records_processed = 0;
   }
 
   // Merge update data with existing credentials
