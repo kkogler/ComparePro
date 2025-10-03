@@ -144,7 +144,7 @@ export class VendorRegistry {
       // Sports South
       const { SportsSouthAPI } = await import('./sports-south-api');
       this.register({
-        vendorId: 'sports_south',
+        vendorId: 'sports-south',
         vendorName: 'Sports South',
         apiType: 'rest_api',
         testConnection: async (creds) => {

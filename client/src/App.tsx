@@ -30,7 +30,6 @@ import Company from "@/pages/Company";
 import Integrations from "@/pages/Integrations";
 import PricingConfiguration from "@/pages/PricingConfiguration";
 import ProductCategories from "@/pages/ProductCategories";
-import MultiSelectDemo from "@/pages/MultiSelectDemo";
 import BillingPage from "@/pages/BillingPage";
 import AuthPage from "@/pages/AuthPage";
 import UserActivation from "@/pages/UserActivation";
@@ -58,7 +57,6 @@ function Router() {
       <ProtectedRoute path="/org/:slug/categories" component={() => <Layout><ProductCategories /></Layout>} />
       <ProtectedRoute path="/org/:slug/integrations" component={() => <Layout><Integrations /></Layout>} />
       <ProtectedRoute path="/org/:slug/billing" component={BillingPage} />
-      <ProtectedRoute path="/org/:slug/multi-select-demo" component={() => <Layout><MultiSelectDemo /></Layout>} />
 
       {/* Admin routes */}
       <Route path="/admin/auth" component={AuthPage} />

@@ -114,6 +114,17 @@ export function registerCredentialManagementRoutes(app: Express): void {
 
       console.log(`🔍 ADMIN TEST CONNECTION: Starting test for vendor: ${vendorId}, userId: ${userId}`);
       
+      // Verify the vendor exists first
+      const supportedVendor = await storage.getSupportedVendorByName(vendorId);
+      if (!supportedVendor) {
+        console.error(`❌ ADMIN TEST CONNECTION: Vendor not found: ${vendorId}`);
+        return res.status(404).json({
+          success: false,
+          status: 'error',
+          message: `Vendor not found: ${vendorId}. Please check the vendor configuration.`
+        });
+      }
+      
       const result = await vendorRegistry.testVendorConnection(vendorId, 'admin', undefined, userId);
       
       console.log(`🔍 ADMIN TEST CONNECTION: Result for ${vendorId}:`, {
@@ -123,12 +134,9 @@ export function registerCredentialManagementRoutes(app: Express): void {
 
       // Update the vendor's admin connection status in the database
       try {
-        const supportedVendor = await storage.getSupportedVendorByName(vendorId);
-        if (supportedVendor) {
-          await storage.updateSupportedVendor(supportedVendor.id, {
-            adminConnectionStatus: result.success ? 'online' : 'error'
-          });
-        }
+        await storage.updateSupportedVendor(supportedVendor.id, {
+          adminConnectionStatus: result.success ? 'online' : 'error'
+        });
       } catch (updateError) {
         console.warn('Failed to update admin connection status:', updateError);
       }
@@ -148,7 +156,7 @@ export function registerCredentialManagementRoutes(app: Express): void {
         });
       }
     } catch (error: any) {
-      console.error(`❌ ADMIN CONNECTION TEST: Exception for vendor ${vendorId}:`, error);
+      console.error(`❌ ADMIN CONNECTION TEST: Exception for vendor ${req.params.vendorId}:`, error);
       res.status(500).json({ 
         success: false, 
         status: 'error',

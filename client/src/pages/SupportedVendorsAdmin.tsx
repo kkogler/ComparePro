@@ -1383,28 +1383,36 @@ function AdminCredentialsModal({
   const handleTestConnection = async () => {
     setIsTestingConnection(true);
     try {
-      // Use vendor short code or fallback to name for new credential management system
+      // Use vendor short code - should already be normalized to lowercase in database
       const vendorIdentifier = vendor.vendorShortCode || vendor.name.toLowerCase().replace(/\s+/g, '_');
+      
+      console.log('🔍 ADMIN TEST CONNECTION: Testing with vendorIdentifier:', vendorIdentifier);
       
       const response = await apiRequest(`/api/admin/vendors/${vendorIdentifier}/test-connection`, 'POST');
       
       if (response.ok) {
+        const result = await response.json();
         // Refresh the table data to show updated connection status
         queryClient.invalidateQueries({ queryKey: ['/api/admin/supported-vendors'] });
         toast({
           title: "Connection Successful",
-          description: `Admin credentials for ${vendor.name} are working correctly`,
+          description: result.message || `Admin credentials for ${vendor.name} are working correctly`,
         });
       } else {
         const errorData = await response.json();
+        console.error('🔍 ADMIN TEST CONNECTION ERROR:', errorData);
         throw new Error(errorData.message || "Connection test failed");
       }
-    } catch (error) {
+    } catch (error: any) {
       // Also refresh on failure to show updated error status
       queryClient.invalidateQueries({ queryKey: ['/api/admin/supported-vendors'] });
+      
+      const errorMessage = error.message || "Please verify your admin credentials and try again";
+      console.error('🔍 ADMIN TEST CONNECTION EXCEPTION:', error);
+      
       toast({
         title: "Connection Failed",
-        description: error.message || "Please verify your admin credentials and try again",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -1414,26 +1422,34 @@ function AdminCredentialsModal({
 
   const handleSaveCredentials = async () => {
     try {
-      // Use vendor short code or fallback to name for new credential management system
+      // Use vendor short code - should already be normalized to lowercase in database
       const vendorIdentifier = vendor.vendorShortCode || vendor.name.toLowerCase().replace(/\s+/g, '_');
+      
+      console.log('🔍 ADMIN SAVE CREDENTIALS: Saving with vendorIdentifier:', vendorIdentifier);
+      console.log('🔍 ADMIN SAVE CREDENTIALS: Credential keys:', Object.keys(credentials));
       
       const response = await apiRequest(`/api/admin/vendors/${vendorIdentifier}/credentials`, 'POST', credentials);
       
       if (response.ok) {
+        const result = await response.json();
         queryClient.invalidateQueries({ queryKey: ['/api/admin/supported-vendors'] });
         toast({
           title: "Credentials Saved",
-          description: `Admin credentials for ${vendor.name} have been saved successfully`,
+          description: result.message || `Admin credentials for ${vendor.name} have been saved successfully`,
         });
         onClose();
       } else {
         const errorData = await response.json();
+        console.error('🔍 ADMIN SAVE CREDENTIALS ERROR:', errorData);
         throw new Error(errorData.message || "Failed to save credentials");
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.message || "Failed to save admin credentials. Please try again.";
+      console.error('🔍 ADMIN SAVE CREDENTIALS EXCEPTION:', error);
+      
       toast({
         title: "Save Failed",
-        description: error.message || "Failed to save admin credentials. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -1762,6 +1778,10 @@ function SyncSettingsModal({ vendor, onClose }: { vendor: SupportedVendor; onClo
       } else if (vendor.name.toLowerCase().includes('chattanooga')) {
         endpoint = `/api/chattanooga/catalog/sync-${syncType}`;
         successMessage = `Chattanooga ${syncType} sync completed successfully`;
+      } else if (vendor.name.toLowerCase().includes('lipsey')) {
+        endpoint = `/api/admin/test-lipseys-sync`;
+        successMessage = `Lipsey's catalog sync completed successfully`;
+        requestBody = { syncType };
       } else {
         // Generic vendor sync endpoint
         endpoint = `/api/admin/supported-vendors/${vendor.id}/sync-catalog`;
@@ -2660,39 +2680,6 @@ function LipseysSyncSettings({ onSync, isLoading, onScheduleChange }: { onSync: 
     setHasUnsavedChanges(true);
     onScheduleChange({ time: localScheduleTime, frequency });
   };
-  
-
-  const handleManualSync = async () => {
-    try {
-      const response = await apiRequest('/api/admin/test-lipseys-sync', 'POST', {});
-      const result = await response.json();
-      
-      if (result.success) {
-        toast({
-          title: "Manual Sync Started",
-          description: "Lipsey's catalog sync initiated..."
-        });
-        
-        // Refresh vendor data to show updated sync status
-        setTimeout(async () => {
-          await queryClient.refetchQueries({ queryKey: ['/api/admin/supported-vendors'] });
-        }, 2000);
-      } else {
-        toast({
-          title: "Manual Sync Failed",
-          description: result.message || "Failed to start manual sync. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error starting manual sync:', error);
-      toast({
-        title: "Sync Error",
-        description: "Failed to start manual sync. Please check your connection and try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -2819,23 +2806,47 @@ function LipseysSyncSettings({ onSync, isLoading, onScheduleChange }: { onSync: 
         </div>
       </div>
       
-      {/* Manual Sync */}
+      {/* Manual Sync Controls */}
       <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-medium mb-3 flex items-center gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Manual Sync
-        </h4>
-        <p className="text-sm text-gray-600 mb-3">
-          Manually trigger a full catalog sync. Note: Lipsey's limits catalog downloads per day.
+        <h4 className="font-medium mb-3">Manual Sync Controls</h4>
+        <p className="text-sm text-gray-600 mb-4">
+          Use these buttons to manually trigger immediate syncs. Manual syncs run independently 
+          of the automated Scheduled Deployments above.
         </p>
-        <Button
-          onClick={handleManualSync}
-          disabled={isLoading}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          {isLoading ? 'Syncing...' : 'Start Manual Sync'}
-        </Button>
+        
+        <div className="flex gap-2 mb-4">
+          <Button 
+            onClick={() => onSync('full')}
+            disabled={isLoading}
+            variant="outline"
+            className="border-blue-300 bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 flex-1"
+            data-testid="button-lipseys-full-sync"
+          >
+            <Database className="h-4 w-4 mr-2" />
+            {isLoading ? 'Syncing...' : 'Manual Full Catalog Sync'}
+          </Button>
+          <Button 
+            onClick={() => onSync('incremental')}
+            disabled={isLoading}
+            variant="outline"
+            className="border-blue-300 bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 flex-1"
+            data-testid="button-lipseys-incremental-sync"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Manual Incremental Sync
+          </Button>
+        </div>
+        
+        {/* Sync Information */}
+        <div className="bg-white p-3 rounded-lg text-xs space-y-1 border border-blue-100">
+          <div className="font-medium text-gray-700">Sync Information:</div>
+          <ul className="text-gray-600 space-y-1">
+            <li>• <strong>Full Sync:</strong> Downloads complete Lipsey's catalog (~10,000+ products)</li>
+            <li>• <strong>Incremental Sync:</strong> Downloads catalog but only processes changed products</li>
+            <li>• <strong>Note:</strong> Lipsey's API doesn't support true differential queries - both download full catalog</li>
+            <li>• <strong>Limit:</strong> Lipsey's limits catalog downloads per day - use incremental when possible</li>
+          </ul>
+        </div>
       </div>
 
     </div>

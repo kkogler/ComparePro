@@ -5,7 +5,7 @@
 
 /**
  * Generate a vendor slug from a vendor short code
- * @param shortCode The vendor short code (e.g., "sports_south", "chattanooga")
+ * @param shortCode The vendor short code (e.g., "sports-south", "chattanooga")
  * @returns A normalized slug suitable for system-wide use
  */
 export function generateVendorSlug(shortCode: string): string {
@@ -88,8 +88,9 @@ export const LEGACY_VENDOR_SLUG_MAP: Record<string, string> = {
   'chattanooga shooting supplies inc.': 'chattanooga',
   'chattanooga shooting supplies': 'chattanooga',
   'chattanooga': 'chattanooga',
-  'sports south': 'sports_south',
-  'sports_south': 'sports_south',
+  'sports south': 'sports-south',
+  'sports_south': 'sports-south',
+  'sports-south': 'sports-south',
   'bill hicks & co.': 'bill-hicks',
   'bill hicks': 'bill-hicks',
   'bill_hicks': 'bill-hicks',

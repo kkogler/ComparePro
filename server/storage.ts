@@ -1556,11 +1556,29 @@ export class DatabaseStorage implements IStorage {
 
 
   async createSupportedVendor(vendor: any): Promise<SupportedVendor> {
+    // ✅ ENFORCE: vendorShortCode MUST be lowercase to match handler IDs
+    if (vendor.vendorShortCode) {
+      const normalized = vendor.vendorShortCode.toLowerCase();
+      if (vendor.vendorShortCode !== normalized) {
+        console.warn(`⚠️  Auto-normalizing vendorShortCode: "${vendor.vendorShortCode}" → "${normalized}"`);
+        vendor.vendorShortCode = normalized;
+      }
+    }
+    
     const [result] = await db.insert(supportedVendors).values(vendor).returning();
     return result;
   }
 
   async updateSupportedVendor(id: number, updates: any): Promise<SupportedVendor | undefined> {
+    // ✅ ENFORCE: vendorShortCode MUST be lowercase to match handler IDs
+    if (updates.vendorShortCode) {
+      const normalized = updates.vendorShortCode.toLowerCase();
+      if (updates.vendorShortCode !== normalized) {
+        console.warn(`⚠️  Auto-normalizing vendorShortCode: "${updates.vendorShortCode}" → "${normalized}"`);
+        updates.vendorShortCode = normalized;
+      }
+    }
+    
     // Handle retail vertical assignments if provided
     if ('retailVerticalIds' in updates && Array.isArray(updates.retailVerticalIds)) {
       const retailVerticalIds = updates.retailVerticalIds as number[];
@@ -1747,8 +1765,16 @@ export class DatabaseStorage implements IStorage {
         break; // Stop adding vendors once limit is reached
       }
       
+      // Generate slug from vendorShortCode (or fallback to name)
+      const { generateVendorSlug, generateVendorSlugFromName } = await import('./slug-utils');
+      const slug = supported.vendorShortCode 
+        ? generateVendorSlug(supported.vendorShortCode)
+        : generateVendorSlugFromName(supported.name);
+      
       await this.createVendor({
         name: supported.name,
+        slug, // ✅ Required field for vendor identification
+        vendorShortCode: supported.vendorShortCode || null,
         companyId,
         supportedVendorId: supported.id,
         integrationType: 'api', // Default integration type

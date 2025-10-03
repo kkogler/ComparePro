@@ -22,7 +22,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Mail, CreditCard } from 'lucide-react';
+import { Settings, Mail, CreditCard, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const integrationsSchema = z.object({
   sendgridApiKey: z.string().optional(),
@@ -40,6 +41,7 @@ interface AdminSettings {
   id: number;
   sendgridApiKey: string | null;
   smtp2goApiKey: string | null;
+  systemEmail?: string | null;
   zohoBillingClientId?: string | null;
   zohoBillingClientSecret?: string | null;
   zohoBillingRefreshToken?: string | null;
@@ -138,7 +140,7 @@ export default function AdminIntegrations() {
   const testSMTP2GOMutation = useMutation({
     mutationFn: async () => {
       // Get the current user's email or admin settings email for testing
-      const testEmail = adminSettings?.systemEmail || 'test@example.com';
+      const testEmail = (adminSettings as any)?.systemEmail || 'test@example.com';
       const response = await apiRequest('/api/test-email', 'POST', {
         email: testEmail,
         provider: 'smtp2go',
@@ -307,12 +309,29 @@ export default function AdminIntegrations() {
           {/* SMTP2GO Email Configuration */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                SMTP2GO (Email)
+              <CardTitle className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  SMTP2GO (Email)
+                </div>
+                {adminSettings?.smtp2goApiKey ? (
+                  <Badge className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Active (Primary)
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-gray-500">
+                    Not Configured
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>
                 Configure SMTP2GO for email delivery (1,000 free emails per month)
+                {adminSettings?.smtp2goApiKey && (
+                  <div className="mt-2 text-sm font-medium text-green-700">
+                    ℹ️ SMTP2GO is configured and will be used as the primary email provider
+                  </div>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -355,12 +374,38 @@ export default function AdminIntegrations() {
           {/* SendGrid Email Configuration */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                SendGrid (Email)
+              <CardTitle className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  SendGrid (Email)
+                </div>
+                {adminSettings?.sendgridApiKey && adminSettings?.smtp2goApiKey ? (
+                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                    Fallback
+                  </Badge>
+                ) : adminSettings?.sendgridApiKey && !adminSettings?.smtp2goApiKey ? (
+                  <Badge className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-gray-500">
+                    Not Configured
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>
                 Configure SendGrid for email delivery (requires paid subscription)
+                {adminSettings?.sendgridApiKey && adminSettings?.smtp2goApiKey && (
+                  <div className="mt-2 text-sm font-medium text-yellow-700">
+                    ℹ️ SendGrid is configured as a fallback if SMTP2GO fails
+                  </div>
+                )}
+                {adminSettings?.sendgridApiKey && !adminSettings?.smtp2goApiKey && (
+                  <div className="mt-2 text-sm font-medium text-green-700">
+                    ℹ️ SendGrid is configured and will be used as the primary email provider
+                  </div>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

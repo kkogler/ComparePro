@@ -262,7 +262,7 @@ export class SportsSouthCatalogSyncService {
         specifications: this.buildSpecifications(sportsProduct),
         customProperties: {},
         status: 'active',
-        source: 'sports_south', // Track import source for data lineage (using vendor slug)
+        source: 'sports-south', // Track import source for data lineage (using vendor slug)
         retailVerticalId: this.retailVerticalId
       };
 

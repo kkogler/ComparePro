@@ -10,24 +10,21 @@ import { AlertTriangle, CheckCircle, Clock, CreditCard, Users, Building2, Shoppi
 import { useParams } from 'wouter';
 
 interface SubscriptionStatus {
-  status: string;
-  trialStatus?: string;
-  plan: string;
-  trialEndsAt?: string;
-  trialDaysRemaining?: number;
-  features: Record<string, boolean>;
-  limits: {
-    maxUsers: number;
-    maxVendors: number;
-    maxOrders: number;
+  id: string;
+  plan: {
+    name: string;
+    code: string;
+    price: number;
+    interval: string;
   };
-  billingProvider?: string;
-}
-
-interface UsageData {
-  users: { current: number; limit: number; available: number; atLimit: boolean };
-  vendors: { current: number; limit: number; available: number; atLimit: boolean };
-  orders: { current: number; limit: number; available: number; atLimit: boolean };
+  status: 'trial' | 'active' | 'expired' | 'cancelled';
+  trialEndsAt?: string;
+  nextBillingAt: string;
+  usage: {
+    users: { current: number; limit: number };
+    vendors: { current: number; limit: number };
+    orders: { current: number; limit: number };
+  };
 }
 
 export function SubscriptionStatus() {
@@ -35,9 +32,9 @@ export function SubscriptionStatus() {
   const queryClient = useQueryClient();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  // Fetch subscription status
+  // Fetch subscription data (includes usage)
   const { data: status, isLoading } = useQuery<SubscriptionStatus>({
-    queryKey: [`/org/${slug}/api/subscription/status`],
+    queryKey: [`/org/${slug}/api/subscription`],
     enabled: !!slug
   });
 
@@ -160,33 +157,29 @@ export function SubscriptionStatus() {
                 {getStatusBadge(status.status)}
               </CardTitle>
               <CardDescription>
-                Current plan: {getPlanBadge(status.plan)}
+                Current plan: {getPlanBadge(status.plan.code)}
               </CardDescription>
-            </div>
-            <div className="text-right">
-              {status.billingProvider && (
-                <p className="text-sm text-muted-foreground">
-                  Managed by {status.billingProvider === 'zoho' ? 'Zoho Billing' : status.billingProvider}
-                </p>
-              )}
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {/* Trial Warning */}
-          {status.status === 'trial' && status.trialDaysRemaining !== undefined && (
-            <Alert className="mb-4">
-              <Clock className="h-4 w-4" />
-              <AlertDescription>
-                Your trial expires in <strong>{status.trialDaysRemaining} days</strong>.
-                {status.trialDaysRemaining <= 3 && (
-                  <Button asChild variant="link" className="p-0 h-auto ml-2">
-                    <a href={`/org/${slug}/billing/upgrade`}>Upgrade now</a>
-                  </Button>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
+          {status.status === 'trial' && status.trialEndsAt && (() => {
+            const daysRemaining = Math.max(0, Math.ceil((new Date(status.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+            return (
+              <Alert className="mb-4">
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  Your trial expires in <strong>{daysRemaining} days</strong>.
+                  {daysRemaining <= 3 && (
+                    <Button asChild variant="link" className="p-0 h-auto ml-2">
+                      <a href={`/org/${slug}/billing/upgrade`}>Upgrade now</a>
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            );
+          })()}
 
           {/* Expired Status */}
           {['expired', 'cancelled'].includes(status.status) && (
@@ -206,73 +199,58 @@ export function SubscriptionStatus() {
             </Alert>
           )}
 
-          {/* Past Due Status */}
-          {status.status === 'past_due' && (
-            <Alert variant="destructive" className="mb-4">
-              <CreditCard className="h-4 w-4" />
-              <AlertDescription>
-                Your payment is past due. Zoho Billing has sent you payment reminders.
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto ml-2"
-                  onClick={() => portalMutation.mutate()}
-                  disabled={portalMutation.isPending}
-                >
-                  Update payment method
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
 
           {/* Usage Limits */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <UsageCard
               title="Users"
               icon={Users}
-              current={0} // TODO: Get actual usage
-              limit={status.limits.maxUsers}
-              color={getUsageColor(0, status.limits.maxUsers)}
+              current={status.usage.users.current}
+              limit={status.usage.users.limit}
+              color={getUsageColor(status.usage.users.current, status.usage.users.limit)}
             />
             <UsageCard
               title="Vendors"
               icon={Building2}
-              current={0} // TODO: Get actual usage
-              limit={status.limits.maxVendors}
-              color={getUsageColor(0, status.limits.maxVendors)}
+              current={status.usage.vendors.current}
+              limit={status.usage.vendors.limit}
+              color={getUsageColor(status.usage.vendors.current, status.usage.vendors.limit)}
             />
             <UsageCard
               title="Monthly Orders"
               icon={ShoppingCart}
-              current={0} // TODO: Get actual usage
-              limit={status.limits.maxOrders}
-              color={getUsageColor(0, status.limits.maxOrders)}
+              current={status.usage.orders.current}
+              limit={status.usage.orders.limit}
+              color={getUsageColor(status.usage.orders.current, status.usage.orders.limit)}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Plan Features */}
+      {/* Plan Information */}
       <Card>
         <CardHeader>
-          <CardTitle>Plan Features</CardTitle>
+          <CardTitle>Plan Details</CardTitle>
           <CardDescription>
-            Features included in your {status.plan} plan
+            Your current subscription: {status.plan.name}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(status.features).map(([feature, enabled]) => (
-              <div key={feature} className="flex items-center gap-2">
-                {enabled ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                ) : (
-                  <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
-                )}
-                <span className={enabled ? 'text-foreground' : 'text-muted-foreground'}>
-                  {formatFeatureName(feature)}
-                </span>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Plan</span>
+              <span className="font-medium">{status.plan.name}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Price</span>
+              <span className="font-medium">${status.plan.price}/{status.plan.interval}</span>
+            </div>
+            {status.nextBillingAt && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Next Billing</span>
+                <span className="font-medium">{new Date(status.nextBillingAt).toLocaleDateString()}</span>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -293,15 +271,15 @@ export function SubscriptionStatus() {
               <div className="flex flex-wrap gap-2">
                 <Button 
                   onClick={() => upgradeMutation.mutate('standard-plan-v1')}
-                  disabled={upgradeMutation.isPending || status.plan === 'standard'}
+                  disabled={upgradeMutation.isPending || status.plan.code === 'standard'}
                 >
-                  {status.plan === 'standard' ? 'Current Plan' : 'Upgrade to Standard'}
+                  {status.plan.code === 'standard' ? 'Current Plan' : 'Upgrade to Standard'}
                 </Button>
                 <Button 
                   onClick={() => upgradeMutation.mutate('enterprise-plan-v1')}
-                  disabled={upgradeMutation.isPending || status.plan === 'enterprise'}
+                  disabled={upgradeMutation.isPending || status.plan.code === 'enterprise'}
                 >
-                  {status.plan === 'enterprise' ? 'Current Plan' : 'Upgrade to Enterprise'}
+                  {status.plan.code === 'enterprise' ? 'Current Plan' : 'Upgrade to Enterprise'}
                 </Button>
               </div>
             </div>

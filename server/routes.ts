@@ -3029,10 +3029,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             apiMessage: result.message || 'Product not found on GunBroker'
           });
         }
-      } else if (handler.vendorId === 'sports_south') {
+      } else if (handler.vendorId === 'sports-south') {
         // Use credential vault for Sports South credentials
         const { credentialVault } = await import('./credential-vault-service');
-        const credentials = await credentialVault.getStoreCredentials('sports_south', organizationId, 0);
+        const credentials = await credentialVault.getStoreCredentials('sports-south', organizationId, 0);
         
         if (!credentials || !credentials.userName || !credentials.password || !credentials.source || !credentials.customerNumber) {
           return res.json({
@@ -5414,7 +5414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use credential vault for Sports South credentials
       const { credentialVault } = await import('./credential-vault-service');
-      const credentials = await credentialVault.getStoreCredentials('sports_south', organizationId, 0);
+      const credentials = await credentialVault.getStoreCredentials('sports-south', organizationId, 0);
       if (!credentials) {
         return res.status(404).json({ success: false, message: 'Sports South vendor not configured for this organization' });
       }
@@ -9046,7 +9046,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Mapping of old vendor names to new slugs
       const VENDOR_NAME_TO_SLUG_MAP: Record<string, string> = {
-        'Sports South': 'sports_south',
+        'Sports South': 'sports-south',
         'Bill Hicks & Co.': 'bill-hicks',
         'Chattanooga Shooting Supplies': 'chattanooga',
         "Lipsey's Inc.": 'lipseys',
@@ -9128,6 +9128,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Testing with limit: ${limit} products`);
       }
       
+      // Set sync status to in_progress at start
+      await db.update(supportedVendors)
+        .set({ catalogSyncStatus: 'in_progress' })
+        .where(eq(supportedVendors.id, lipseyVendor.id));
+      
       // Initialize Lipsey's catalog sync service
       const { LipseysCatalogSyncService } = await import('./lipseys-catalog-sync.js');
       const syncService = new LipseysCatalogSyncService(credentials);
@@ -9139,6 +9144,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : await syncService.performIncrementalSync();
       
       console.log('Sync completed:', result);
+      
+      // Update database with sync status and statistics
+      try {
+        const updates: any = {
+          catalogSyncStatus: result.success ? 'success' : 'error',
+          lastCatalogSync: new Date(),
+          catalogSyncError: result.success ? null : result.message,
+          lastSyncNewRecords: result.newProducts || 0,
+          lastSyncRecordsUpdated: result.updatedProducts || 0,
+          lastSyncRecordsSkipped: result.skippedProducts || 0
+        };
+        
+        await db.update(supportedVendors)
+          .set(updates)
+          .where(eq(supportedVendors.id, lipseyVendor.id));
+        
+        console.log(`LIPSEYS SYNC: Updated database with sync status: ${updates.catalogSyncStatus}`);
+      } catch (updateError) {
+        console.error('Failed to update Lipsey\'s sync status in database:', updateError);
+      }
       
       res.json({
         success: result.success,
@@ -9158,6 +9183,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error: any) {
       console.error('Error in Lipsey\'s sync test:', error);
+      
+      // Update database with error status
+      try {
+        const [lipseyVendor] = await db
+          .select()
+          .from(supportedVendors)
+          .where(eq(supportedVendors.name, "Lipsey's"));
+        
+        if (lipseyVendor) {
+          await db.update(supportedVendors)
+            .set({
+              catalogSyncStatus: 'error',
+              catalogSyncError: error.message
+            })
+            .where(eq(supportedVendors.id, lipseyVendor.id));
+        }
+      } catch (updateError) {
+        console.error('Failed to update error status:', updateError);
+      }
+      
       res.status(500).json({ 
         success: false,
         error: error.message,

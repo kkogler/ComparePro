@@ -22,7 +22,7 @@ const MIN_PRIORITY = 1; // Highest priority
  * Lower numbers indicate higher priority (1 = highest, N = lowest where N is total vendors)
  * Each vendor has a unique priority - no ties or tie-breaking needed
  * 
- * @param vendorSlug - The vendor slug/short code to lookup priority for (e.g., "lipseys", "sports_south")
+ * @param vendorSlug - The vendor slug/short code to lookup priority for (e.g., "lipseys", "sports-south")
  * @returns Promise<number> - The priority value (1-N) or 999 for unknown vendors
  */
 export async function getVendorRecordPriority(vendorSlug: string): Promise<number> {
