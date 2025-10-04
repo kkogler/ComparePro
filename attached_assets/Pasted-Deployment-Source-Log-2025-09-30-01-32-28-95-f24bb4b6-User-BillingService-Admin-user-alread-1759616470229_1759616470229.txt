@@ -1,0 +1,67 @@
+Deployment
+Source
+Log
+2025-09-30 01:32:28.95
+f24bb4b6
+User
+✅ BillingService: Admin user already exists, using existing {
+2025-09-30 01:32:28.98
+f24bb4b6
+User
+✅ BillingService: Default user already exists, using existing { companyId: 1, existingDefaultUserId: 2, username: 'default' }
+2025-09-30 01:32:29.62
+f24bb4b6
+User
+✅ BillingService: Admin user already exists, using existing {
+2025-09-30 01:32:29.66
+f24bb4b6
+User
+✅ BillingService: Default user already exists, using existing { companyId: 1, existingDefaultUserId: 2, username: 'default' }
+2025-09-30 02:14:18.81
+f24bb4b6
+User
+✅ BillingService: Admin user already exists, using existing {
+2025-09-30 02:14:18.84
+f24bb4b6
+User
+✅ BillingService: Default user already exists, using existing { companyId: 2, existingDefaultUserId: 4, username: 'default' }
+2025-10-03 08:09:42.92
+2433823f
+User
+✅ BillingService: Admin user already exists, using existing {
+2025-10-03 08:09:42.95
+2433823f
+User
+✅ BillingService: Default user already exists, using existing { companyId: 3, existingDefaultUserId: 11, username: 'default' }
+2025-10-03 21:32:20.17
+7af43cea
+User
+✅ BillingService: Admin user already exists, using existing {
+2025-10-03 21:32:20.20
+7af43cea
+User
+✅ BillingService: Default user already exists, using existing { companyId: 7, existingDefaultUserId: 17, username: 'default' }
+2025-10-03 21:32:22.00
+7af43cea
+User
+✅ BillingService: Admin user already exists, using existing {
+2025-10-03 21:32:22.03
+7af43cea
+User
+✅ BillingService: Default user already exists, using existing { companyId: 7, existingDefaultUserId: 17, username: 'default' }
+2025-10-03 23:10:53.47
+6974bc1e
+User
+✅ BillingService: Admin user already exists, using existing {
+2025-10-03 23:10:53.50
+6974bc1e
+User
+✅ BillingService: Default user already exists, using existing { companyId: 7, existingDefaultUserId: 17, username: 'default' }
+2025-10-03 23:10:53.91
+6974bc1e
+User
+✅ BillingService: Admin user already exists, using existing {
+2025-10-03 23:10:53.94
+6974bc1e
+User
+✅ BillingService: Default user already exists, using existing { companyId: 6, existingDefaultUserId: 18, username: 'default' }
