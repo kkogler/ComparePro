@@ -113,41 +113,13 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
-  // CRITICAL: Set timezone globally before initializing schedulers
-  // This works around broken ICU/tzdata support in this environment
+  // Set timezone globally for consistent date/time handling
   process.env.TZ = "America/Los_Angeles";
   console.log('🌍 Global timezone set to:', process.env.TZ);
 
-  // DISABLED: Cron job schedulers removed due to reliability issues
-  // Now using Scheduled Deployments for reliable sync scheduling
-  // Manual sync functions remain available through the admin interface
-  
-  // // Initialize Sports South scheduler
-  // try {
-  //   const { sportsSouthScheduler } = await import('./sports-south-scheduler');
-  //   console.log('Sports South scheduler initialized');
-  // } catch (error) {
-  //   console.error('Failed to initialize Sports South scheduler:', error);
-  // }
-
-  // // Initialize Bill Hicks scheduler
-  // try {
-  //   const { initializeBillHicksSimpleScheduler } = await import('./bill-hicks-simple-scheduler');
-  //   await initializeBillHicksSimpleScheduler();
-  //   console.log('Bill Hicks simplified scheduler initialized');
-  // } catch (error) {
-  //   console.error('Failed to initialize Bill Hicks scheduler:', error);
-  // }
-
-  // // Initialize Chattanooga scheduler
-  // try {
-  //   const { chattanoogaScheduler } = await import('./chattanooga-scheduler');
-  //   console.log('Chattanooga scheduler initialized');
-  // } catch (error) {
-  //   console.error('Failed to initialize Chattanooga scheduler:', error);
-  // }
-
-  console.log('Cron job schedulers disabled - using Scheduled Deployments for reliable sync scheduling');
+  // NOTE: Cron-based schedulers were removed in favor of Scheduled Deployments
+  // Manual sync functions remain available through Admin UI
+  console.log('ℹ️  Using Scheduled Deployments for automated syncs (cron schedulers disabled)');
 
   console.log('Server initialization complete');
 

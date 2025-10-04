@@ -1,6 +1,7 @@
 /**
- * Bill Hicks Store-Specific Pricing Sync
+ * ✅ CURRENT IMPLEMENTATION - Bill Hicks Store-Specific Pricing Sync
  * 
+ * This is the ACTIVE implementation for store-level Bill Hicks pricing.
  * Downloads pricing/inventory data from individual store folders on Bill Hicks FTP
  * using each store's own credentials. This complements the admin master catalog sync.
  * 

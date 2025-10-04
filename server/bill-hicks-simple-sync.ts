@@ -1,6 +1,7 @@
 /**
- * SIMPLIFIED Bill Hicks Catalog Sync
+ * ✅ CURRENT IMPLEMENTATION - Bill Hicks Simple Sync (Master Catalog)
  * 
+ * This is the ACTIVE sync implementation for Bill Hicks master catalog.
  * Replaces the complex 3-tier system with a simple approach:
  * 1. Download CSV catalog from FTP
  * 2. Detect changes from previous version

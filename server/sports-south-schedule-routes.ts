@@ -1,7 +1,12 @@
+/**
+ * Sports South Schedule Management Routes
+ * 
+ * NOTE: Cron-based scheduling disabled - using Scheduled Deployments for automation
+ * These routes manage schedule settings in the database and trigger manual syncs
+ */
+
 import { Request, Response } from 'express';
 import { storage } from './storage.js';
-// DISABLED: Cron scheduler removed due to reliability issues - using Scheduled Deployments
-// import { sportsSouthScheduler } from './sports-south-scheduler.js';
 
 export function registerSportsSouthScheduleRoutes(app: any) {
   

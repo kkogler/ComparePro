@@ -1,3 +1,15 @@
+/**
+ * ✅ CURRENT IMPLEMENTATION - Sports South Simple Sync
+ * 
+ * This is the ACTIVE sync implementation used for manual syncs and scheduled deployments.
+ * Performs incremental catalog sync with the Sports South API.
+ * 
+ * Used by: routes.ts (manual sync trigger)
+ * Related files:
+ * - sports-south-catalog-sync.ts (legacy, used by disabled scheduler)
+ * - sports-south-unified-service.ts (experimental, not in use)
+ */
+
 import { storage } from './storage';
 import { createSportsSouthAPI, SportsSouthCredentials } from './sports-south-api';
 import { isMarketplace, DATA_UPDATE_RULES } from '../shared/vendor-type-config';

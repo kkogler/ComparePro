@@ -36,7 +36,7 @@ import { generateEnhancedFilename, generateFallbackFilename, getEmailSenderName,
 import { SportsSouthAPI } from "./sports-south-api";
 import { performSportsSouthCatalogSync } from './sports-south-simple-sync';
 import { companyVendorCredentials, vendorInventory, vendors } from "@shared/schema";
-import { updateBillHicksSchedule, triggerBillHicksSyncManually } from "./bill-hicks-simple-scheduler";
+import { runBillHicksSimpleSync } from "./bill-hicks-simple-sync";
 import { BILL_HICKS_CONFIG } from "../shared/bill-hicks-config";
 import { syncStoreSpecificBillHicksPricing } from "./bill-hicks-store-pricing-sync";
 import { invalidateVendorPriorityCache } from "./vendor-priority";
@@ -4847,13 +4847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update schedulers when Bill Hicks settings change
       const billHicksVendorIdForCompare = await storage.getBillHicksVendorId().catch(() => null);
       if (billHicksVendorIdForCompare && id === billHicksVendorIdForCompare && (updates.billHicksMasterCatalogSyncTime || updates.billHicksMasterCatalogSyncEnabled !== undefined)) {
-        console.log('BILL HICKS SCHEDULER: Settings changed, updating scheduler...');
-        try {
-          await updateBillHicksSchedule();
-          console.log('BILL HICKS SCHEDULER: Successfully updated scheduler with new settings');
-        } catch (error) {
-          console.error('BILL HICKS SCHEDULER: Failed to update scheduler:', error);
-        }
+        console.log('BILL HICKS: Scheduler settings updated in database (using Scheduled Deployments for automation)');
       }
 
       // Invalidate vendor priority cache when productRecordPriority is updated
@@ -5493,49 +5487,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
-  // Sports South Catalog Sync - Incremental Sync
-  app.post("/api/sports-south/catalog/sync-incremental", async (req, res) => {
-    try {
-      console.log('SPORTS SOUTH CATALOG: Starting incremental catalog sync...');
-      
-      // Get Sports South credentials
-      const supportedVendors = await storage.getAllSupportedVendors();
-      const sportsSouth = supportedVendors.find(v => v.name.toLowerCase().includes('sports south'));
-      
-      if (!sportsSouth || !sportsSouth.adminCredentials) {
-        return res.status(400).json({
-          success: false,
-          message: 'Sports South admin credentials not configured. Please configure credentials in Admin Panel > Supported Vendors.',
-          productsProcessed: 0,
-          newProducts: 0,
-          updatedProducts: 0,
-          errors: ['Admin credentials not configured'],
-          warnings: []
-        });
-      }
-      
-      const { SportsSouthCatalogSyncService } = await import('./sports-south-catalog-sync.js');
-      const catalogSync = new SportsSouthCatalogSyncService(sportsSouth.adminCredentials);
-      
-      const result = await catalogSync.performIncrementalSync();
-      
-      console.log('SPORTS SOUTH CATALOG: Incremental sync completed:', result);
-      res.json(result);
-    } catch (error) {
-      console.error('SPORTS SOUTH CATALOG: Incremental sync failed:', error);
-      res.status(500).json({
-        success: false,
-        message: `Incremental catalog sync failed: ${error.message}`,
-        productsProcessed: 0,
-        newProducts: 0,
-        updatedProducts: 0,
-        errors: [error.message],
-        warnings: []
-      });
-    }
-  });
-
   // Sports South - Live Item Test (UPC/SKU) using saved org-level credentials
   app.post("/org/:slug/api/sports-south/test-item", requireOrganizationAccess, async (req, res) => {
     try {

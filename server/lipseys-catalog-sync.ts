@@ -424,18 +424,31 @@ export class LipseysCatalogSyncService {
       const lipseysVendorId = await this.getLipseysVendorId();
       
       const updateData: any = {
+        // Lipsey-specific fields (used in sync settings dialog)
         lipseysCatalogSyncStatus: success ? 'success' : 'error',
         lipseysLastCatalogSync: new Date(),
         lipseysCatalogSyncError: errorMessage || null,
+        
+        // Generic fields (used for main table badge display)
+        catalogSyncStatus: success ? 'success' : 'error',
+        lastCatalogSync: new Date(),
+        catalogSyncError: errorMessage || null,
+        
         updatedAt: new Date()
       };
 
       if (stats) {
+        // Lipsey-specific stats
         updateData.lipseysRecordsAdded = stats.newProducts;
         updateData.lipseysRecordsUpdated = stats.updatedProducts;
         updateData.lipseysRecordsSkipped = stats.skippedProducts;
         updateData.lipseysRecordsFailed = stats.errors.length;
         updateData.lipseysTotalRecords = stats.productsProcessed;
+        
+        // Generic stats (for main table display)
+        updateData.lastSyncNewRecords = stats.newProducts;
+        updateData.lastSyncRecordsUpdated = stats.updatedProducts;
+        updateData.lastSyncRecordsSkipped = stats.skippedProducts;
       }
 
       await storage.updateSupportedVendor(lipseysVendorId, updateData);

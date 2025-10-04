@@ -151,6 +151,7 @@ export function registerLipseysScheduleRoutes(app: any) {
   // Clear sync error - admin only endpoint
   app.post("/api/admin/lipseys/schedule/clear-error", async (req: Request, res: Response) => {
     try {
+      console.log('🔍 LIPSEYS CLEAR ERROR: Starting...');
       const { storage } = await import('./storage.js');
       
       // Get Lipsey's vendor
@@ -158,17 +159,22 @@ export function registerLipseysScheduleRoutes(app: any) {
       const lipseys = supportedVendors.find(v => v.name.toLowerCase().includes('lipsey'));
       
       if (!lipseys) {
+        console.log('❌ LIPSEYS CLEAR ERROR: Vendor not found');
         return res.status(404).json({
           success: false,
           message: 'Lipsey\'s vendor not found'
         });
       }
       
-      // Clear the error
+      console.log('🔍 LIPSEYS CLEAR ERROR: Clearing error for vendor ID:', lipseys.id);
+      
+      // Clear both generic and Lipsey-specific error fields
       await storage.updateSupportedVendor(lipseys.id, {
-        lipseysCatalogSyncError: null,
-        lipseysCatalogSyncStatus: 'not_configured'
+        catalogSyncError: null,
+        lipseysCatalogSyncError: null
       });
+      
+      console.log('✅ LIPSEYS CLEAR ERROR: Error cleared successfully');
       
       res.json({
         success: true,

@@ -172,9 +172,9 @@ export class BillHicksAPI {
     
     console.log(`BILL HICKS API: Starting catalog sync for company ${companyId}`);
     
-    // Use the simplified sync function
-    const { triggerBillHicksSyncManually } = await import('./bill-hicks-simple-scheduler');
-    const result = await triggerBillHicksSyncManually();
+    // Use the simplified sync function directly
+    const { runBillHicksSimpleSync } = await import('./bill-hicks-simple-sync');
+    const result = await runBillHicksSimpleSync();
     
     if (result.success) {
       console.log(`BILL HICKS API: Catalog sync completed for company ${companyId}: ${result.message}`);

@@ -206,10 +206,11 @@ export class ChattanoogaAPI {
           console.log(`CHATTANOOGA API: Got CSV download URL: ${csvUrl}`);
           
           // Download the CSV file
+          // NOTE: Pre-signed URLs contain authentication in the URL itself
+          // Adding Authorization headers causes 403 Forbidden errors
           const csvResponse = await fetch(csvUrl, this.getFetchOptions({
             method: 'GET',
             headers: {
-              'Authorization': authHeader,
               'User-Agent': 'RetailPlatform/1.0'
             }
           }));

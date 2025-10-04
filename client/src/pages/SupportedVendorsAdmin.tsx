@@ -732,27 +732,32 @@ export default function SupportedVendorsAdmin() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <Badge 
-                        variant="outline"
-                        className={
-                          vendor.catalogSyncStatus === 'success' ? '!border-blue-500 !text-blue-700 !bg-transparent' :
-                          vendor.catalogSyncStatus === 'error' ? '!border-red-500 !text-red-700 !bg-transparent hover:!bg-red-50' :
-                          vendor.catalogSyncStatus === 'in_progress' ? '!border-gray-500 !text-gray-700 !bg-transparent' : '!border-gray-300 !text-gray-500 !bg-transparent'
-                        }
-                      >
-                        {vendor.catalogSyncStatus === 'never_synced' || !vendor.catalogSyncStatus ? 'Never Synced' : 
-                         vendor.catalogSyncStatus === 'success' ? 'Success' :
-                         vendor.catalogSyncStatus === 'in_progress' ? 'Syncing...' : 'Error'}
-                      </Badge>
-                      {vendor.lastCatalogSync && (
-                        <div className="text-xs text-gray-500">
-                          {new Date(vendor.lastCatalogSync).toLocaleDateString()}
-                        </div>
+                      {/* Generic sync status - hide for Bill Hicks since it has its own specific badges */}
+                      {!vendor.name.toLowerCase().includes('bill hicks') && (
+                        <>
+                          <Badge 
+                            variant="outline"
+                            className={
+                              vendor.catalogSyncStatus === 'success' ? '!border-blue-500 !text-blue-700 !bg-transparent' :
+                              vendor.catalogSyncStatus === 'error' ? '!border-red-500 !text-red-700 !bg-transparent hover:!bg-red-50' :
+                              vendor.catalogSyncStatus === 'in_progress' ? '!border-gray-500 !text-gray-700 !bg-transparent' : '!border-gray-300 !text-gray-500 !bg-transparent'
+                            }
+                          >
+                            {vendor.catalogSyncStatus === 'never_synced' || !vendor.catalogSyncStatus ? 'Never Synced' : 
+                             vendor.catalogSyncStatus === 'success' ? 'Success' :
+                             vendor.catalogSyncStatus === 'in_progress' ? 'Syncing...' : 'Error'}
+                          </Badge>
+                          {vendor.lastCatalogSync && (
+                            <div className="text-xs text-gray-500">
+                              {new Date(vendor.lastCatalogSync).toLocaleDateString()}
+                            </div>
+                          )}
+                        </>
                       )}
                       
                       {/* Bill Hicks Dual Sync Status */}
                       {vendor.name.toLowerCase().includes('bill hicks') && (
-                        <div className="mt-2 pt-2 border-t border-gray-200 space-y-2">
+                        <div className="space-y-2">
                           {/* Catalog Sync */}
                           <div>
                             <div className="text-xs font-medium text-gray-600 mb-1">Catalog Sync</div>
@@ -1604,50 +1609,6 @@ function SportsSouthCatalogManagement() {
     }
   };
 
-  const handleIncrementalSync = async () => {
-    setIsLoading(true);
-    toast({
-      title: "Incremental Sync Started",
-      description: "Checking for Sports South catalog updates...",
-    });
-
-    try {
-      const response = await apiRequest('/api/sports-south/catalog/sync-incremental', 'POST');
-      const result = await response.json();
-      
-      if (result.success) {
-        queryClient.invalidateQueries({ queryKey: ['/api/sports-south/catalog/info'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/admin/supported-vendors'] });
-        
-        if (result.productsProcessed === 0) {
-          toast({
-            title: "No Updates Found",
-            description: "No new updates found since last sync",
-          });
-        } else {
-          toast({
-            title: "Incremental Sync Completed",
-            description: `Processed ${result.productsProcessed} updates: ${result.newRecords} new, ${result.recordsUpdated} updated, ${result.recordsSkipped} skipped, ${result.imagesAdded} images added`,
-          });
-        }
-      } else {
-        toast({
-          title: "Sync Failed",
-          description: result.message || "Incremental sync failed",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Incremental sync error:', error);
-      toast({
-        title: "Sync Error",
-        description: "Failed to complete incremental sync",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (infoLoading) {
     return (
@@ -1703,26 +1664,15 @@ function SportsSouthCatalogManagement() {
         </div>
 
         {/* Sync Actions */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div>
           <Button
             onClick={handleFullSync}
             disabled={isLoading}
-            className="flex-1 btn-orange-action"
-            data-testid="button-sports-south-full-sync"
+            className="w-full btn-orange-action"
+            data-testid="button-sports-south-catalog-sync"
           >
             <Database className="h-4 w-4 mr-2" />
-            {isLoading ? 'Syncing...' : 'Full Catalog Sync'}
-          </Button>
-          
-          <Button
-            onClick={handleIncrementalSync}
-            disabled={isLoading || !catalogInfo?.vendor?.lastCatalogSync}
-            variant="outline"
-            className="flex-1"
-            data-testid="button-sports-south-incremental-sync"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {isLoading ? 'Syncing...' : 'Incremental Update'}
+            {isLoading ? 'Syncing...' : 'Manual Catalog Sync'}
           </Button>
         </div>
 
@@ -1730,9 +1680,8 @@ function SportsSouthCatalogManagement() {
         <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2">
           <div className="font-medium text-gray-700">Sync Information:</div>
           <ul className="text-gray-600 space-y-1">
-            <li>• <strong>Full Sync:</strong> Downloads complete Sports South catalog (10,000+ products)</li>
-            <li>• <strong>Incremental Update:</strong> Only downloads products updated since last sync</li>
-            <li>• <strong>Process Time:</strong> Full sync takes 10-15 minutes, incremental takes 1-3 minutes</li>
+            <li>• <strong>Catalog Sync:</strong> Downloads complete Sports South catalog (10,000+ products)</li>
+            <li>• <strong>Process Time:</strong> Sync typically takes 10-15 minutes</li>
             <li>• <strong>Products:</strong> Synced to Master Product Catalog with Sports South-specific fields</li>
           </ul>
         </div>
@@ -2215,31 +2164,19 @@ function SportsSouthSyncSettings({ onSync, isLoading, catalogInfo, onScheduleCha
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium mb-3">Manual Sync Controls</h4>
           <p className="text-sm text-gray-600 mb-4">
-            Use these buttons to manually trigger immediate syncs. Manual syncs run independently 
+            Use this button to manually trigger an immediate sync. Manual syncs run independently 
             of the automated Scheduled Deployments above.
           </p>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => onSync('full')}
-              disabled={isLoading}
-              variant="outline"
-              className="border-blue-300 bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 flex-1"
-              data-testid="button-sports-south-full-sync"
-            >
-              <Database className="h-4 w-4 mr-2" />
-              {isLoading ? 'Syncing...' : 'Manual Full Catalog Sync'}
-            </Button>
-            <Button 
-              onClick={() => onSync('incremental')}
-              disabled={isLoading}
-              variant="outline"
-              className="border-blue-300 bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 flex-1"
-              data-testid="button-sports-south-incremental-sync"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Manual Incremental Sync
-            </Button>
-          </div>
+          <Button 
+            onClick={() => onSync('full')}
+            disabled={isLoading}
+            variant="outline"
+            className="w-full border-blue-300 bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+            data-testid="button-sports-south-catalog-sync"
+          >
+            <Database className="h-4 w-4 mr-2" />
+            {isLoading ? 'Syncing...' : 'Manual Catalog Sync'}
+          </Button>
         </div>
         
         {isLoading && (
@@ -2742,6 +2679,29 @@ function LipseysSyncSettings({ onSync, isLoading, onScheduleChange }: { onSync: 
           <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
             <div className="flex items-center justify-between">
               <p className="text-sm text-red-700"><strong>Error:</strong> {(lipseysVendor as any).lipseysCatalogSyncError}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await apiRequest('/api/admin/lipseys/schedule/clear-error', 'POST');
+                    await queryClient.refetchQueries({ queryKey: ['/api/admin/supported-vendors'] });
+                    toast({
+                      title: "Error Cleared",
+                      description: "Lipsey's sync error has been cleared"
+                    });
+                  } catch (error) {
+                    console.error('Failed to clear error:', error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to clear error. Please try again.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+              >
+                Clear Error
+              </Button>
             </div>
           </div>
         )}

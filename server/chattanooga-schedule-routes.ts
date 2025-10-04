@@ -1,7 +1,13 @@
+/**
+ * Chattanooga Schedule Management Routes
+ * 
+ * NOTE: Cron-based scheduling disabled - using Scheduled Deployments for automation
+ * These routes manage schedule settings in the database and trigger manual syncs
+ */
+
 import { Request, Response } from 'express';
 import { storage } from './storage.js';
-// DISABLED: Cron scheduler removed due to reliability issues - using Scheduled Deployments
-// import { chattanoogaScheduler } from './chattanooga-scheduler.js';
+import { requireAdminAuth } from './auth.js';
 
 export function registerChattanoogaScheduleRoutes(app: any) {
   
@@ -221,26 +227,30 @@ export function registerChattanoogaScheduleRoutes(app: any) {
   });
 
   // Clear sync error - admin only endpoint
-  app.post("/api/chattanooga/schedule/clear-error", async (req: Request, res: Response) => {
+  app.post("/api/chattanooga/schedule/clear-error", requireAdminAuth, async (req: Request, res: Response) => {
     try {
-      const { storage } = await import('./storage.js');
+      console.log('CHATTANOOGA: Clear error endpoint called by admin');
       
       // Get Chattanooga vendor
       const supportedVendors = await storage.getAllSupportedVendors();
       const chattanooga = supportedVendors.find(v => v.name.toLowerCase().includes('chattanooga'));
       
       if (!chattanooga) {
+        console.error('CHATTANOOGA: Vendor not found in database');
         return res.status(404).json({
           success: false,
           message: 'Chattanooga vendor not found'
         });
       }
       
-      // Clear the error
+      console.log(`CHATTANOOGA: Clearing error for vendor ID ${chattanooga.id}`);
+      
+      // Clear the error and reset status
       await storage.updateSupportedVendor(chattanooga.id, {
-        chattanoogaCsvSyncError: null,
-        chattanoogaCsvSyncStatus: 'never_synced'
+        chattanoogaCsvSyncError: null
       });
+      
+      console.log('CHATTANOOGA: Error cleared successfully');
       
       res.json({
         success: true,
@@ -249,7 +259,7 @@ export function registerChattanoogaScheduleRoutes(app: any) {
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Chattanooga clear error:', error);
+      console.error('CHATTANOOGA: Clear error failed:', error);
       res.status(500).json({
         success: false,
         message: `Failed to clear error: ${errorMessage}`
