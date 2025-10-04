@@ -147,6 +147,70 @@ If a company name/slug already exists:
 - Ensures unique URLs
 - No manual intervention needed
 
+## 🛡️ Webhook Deduplication & Email Protection
+
+### Problem
+Zoho Billing sends multiple webhook events for a single subscription creation:
+- `customer_created`
+- `subscription_created`
+- `subscription_activation`
+- `subscription_activated`
+
+This could result in multiple welcome emails with different temporary passwords sent to the same customer.
+
+### Solution (Implemented October 4, 2025)
+
+**Two-Layer Deduplication:**
+
+1. **Event-Level Deduplication**
+   - Checks if a specific event ID was already processed
+   - Prevents processing the exact same webhook twice
+   - Uses `billing_events` table with `processed` flag
+
+2. **Subscription-Level Deduplication** ⭐ NEW
+   - Checks if a subscription ID was already processed (regardless of event type)
+   - Prevents duplicate provisioning when Zoho sends multiple event types
+   - Looks back 10 minutes for recent processing
+   - Compares subscription IDs across events
+
+3. **Email-Level Deduplication** ⭐ NEW
+   - Checks if welcome email was sent within last 10 minutes
+   - Prevents multiple emails with different passwords
+   - Tracks email sends in `billing_events` with type `welcome_email_sent`
+   - Only sends one email per company per 10-minute window
+
+**Implementation Details:**
+
+```typescript
+// In processZohoWebhook():
+if (subscriptionData && isSubscriptionEvent) {
+  const alreadyProcessed = await wasSubscriptionAlreadyProcessed(subscriptionId);
+  if (alreadyProcessed) {
+    return; // Skip duplicate
+  }
+}
+
+// In provisionCompanyOnboarding():
+const emailSentRecently = await wasWelcomeEmailSentRecently(companyId);
+if (emailSentRecently) {
+  console.log('Email already sent, skipping');
+  return;
+}
+```
+
+**Benefits:**
+- ✅ Customers receive exactly ONE welcome email
+- ✅ No confusion from multiple temporary passwords
+- ✅ System remains idempotent (safe to retry)
+- ✅ Works even if Zoho sends 10+ webhooks
+- ✅ 10-minute window allows legitimate re-sends if needed
+
+**Edge Cases Handled:**
+- Multiple webhooks arriving simultaneously → Only first processes
+- Network retries from Zoho → Safely ignored
+- Manual re-provisioning after 10 minutes → Allowed
+- Different subscriptions for same customer → Each gets one email
+
 ## 📧 Welcome Email Content
 
 ```
@@ -286,9 +350,12 @@ Potential improvements:
 
 ---
 
-**Last Updated:** October 3, 2025
-**Version:** 1.0
-**Status:** ✅ Complete & Ready for Testing
+**Last Updated:** October 4, 2025
+**Version:** 1.1
+**Status:** ✅ Complete & Production Ready
+
+**Recent Changes:**
+- Added webhook deduplication to prevent duplicate emails (Oct 4, 2025)
 
 
 
