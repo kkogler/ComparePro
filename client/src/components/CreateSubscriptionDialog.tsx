@@ -184,7 +184,7 @@ export function CreateSubscriptionDialog({ open, onOpenChange }: CreateSubscript
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-plans" disabled>
                     No plans configured - Go to Admin &gt; Plan Settings
                   </SelectItem>
                 )}
