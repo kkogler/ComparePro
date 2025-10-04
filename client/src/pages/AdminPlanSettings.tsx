@@ -442,6 +442,96 @@ export default function AdminPlanSettings() {
         </div>
       </div>
 
+      {/* Subscription Plan Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Subscription Plan Configuration
+          </CardTitle>
+          <CardDescription>
+            Configure features and limits for each subscription plan
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Plan</TableHead>
+                <TableHead>Trial Length</TableHead>
+                <TableHead>Max Users</TableHead>
+                <TableHead>Max Vendors</TableHead>
+                <TableHead>Online Ordering</TableHead>
+                <TableHead>ASN</TableHead>
+                <TableHead>Webhook/Export</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {planSettings?.map((plan: PlanSettings) => (
+                <TableRow key={plan.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{plan.planName}</div>
+                      <div className="text-sm text-gray-500">{plan.planId}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {plan.trialLengthDays ? (
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1 text-blue-500" />
+                        {plan.trialLengthDays} days
+                      </div>
+                    ) : (
+                      <span className="text-gray-500">No trial</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {formatLimit(plan.maxUsers, <Users className="h-4 w-4 text-green-500" />)}
+                  </TableCell>
+                  <TableCell>
+                    {formatLimit(plan.maxVendors, <Building className="h-4 w-4 text-purple-500" />)}
+                  </TableCell>
+                  <TableCell>
+                    {plan.onlineOrdering ? (
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        <ShoppingCart className="h-3 w-3 mr-1" />
+                        Yes
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">No</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {plan.asnProcessing ? (
+                      <Badge variant="default" className="bg-blue-100 text-blue-800">
+                        <FileText className="h-3 w-3 mr-1" />
+                        Yes
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">No</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {plan.webhookExport ? (
+                      <Badge variant="default" className="bg-orange-100 text-orange-800">
+                        <Webhook className="h-3 w-3 mr-1" />
+                        Yes
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">No</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <EditPlanDialog plan={plan} onUpdate={refetchData} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       {/* Default Pricing Configuration for New Subscriptions */}
       <Card>
         <CardHeader>
@@ -658,95 +748,6 @@ export default function AdminPlanSettings() {
               {updateDefaultPricingMutation.isPending ? 'Saving...' : 'Save Default Pricing'}
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Subscription Plan Configuration
-          </CardTitle>
-          <CardDescription>
-            Configure features and limits for each subscription plan
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Plan</TableHead>
-                <TableHead>Trial Length</TableHead>
-                <TableHead>Max Users</TableHead>
-                <TableHead>Max Vendors</TableHead>
-                <TableHead>Online Ordering</TableHead>
-                <TableHead>ASN</TableHead>
-                <TableHead>Webhook/Export</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {planSettings?.map((plan: PlanSettings) => (
-                <TableRow key={plan.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{plan.planName}</div>
-                      <div className="text-sm text-gray-500">{plan.planId}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {plan.trialLengthDays ? (
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1 text-blue-500" />
-                        {plan.trialLengthDays} days
-                      </div>
-                    ) : (
-                      <span className="text-gray-500">No trial</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {formatLimit(plan.maxUsers, <Users className="h-4 w-4 text-green-500" />)}
-                  </TableCell>
-                  <TableCell>
-                    {formatLimit(plan.maxVendors, <Building className="h-4 w-4 text-purple-500" />)}
-                  </TableCell>
-                  <TableCell>
-                    {plan.onlineOrdering ? (
-                      <Badge variant="default" className="bg-green-100 text-green-800">
-                        <ShoppingCart className="h-3 w-3 mr-1" />
-                        Yes
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">No</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {plan.asnProcessing ? (
-                      <Badge variant="default" className="bg-blue-100 text-blue-800">
-                        <FileText className="h-3 w-3 mr-1" />
-                        Yes
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">No</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {plan.webhookExport ? (
-                      <Badge variant="default" className="bg-orange-100 text-orange-800">
-                        <Webhook className="h-3 w-3 mr-1" />
-                        Yes
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">No</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <EditPlanDialog plan={plan} onUpdate={refetchData} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         </CardContent>
       </Card>
     </div>
