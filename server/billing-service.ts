@@ -38,99 +38,8 @@ export class BillingService {
   // Lock timeout: 30 seconds (prevents indefinite locks)
   private readonly LOCK_TIMEOUT_MS = 30 * 1000;
   
-  // Email deduplication window: 10 minutes
-  private readonly EMAIL_DEDUP_WINDOW_MS = 10 * 60 * 1000;
-  
   constructor() {
     // Database-based deduplication - no need for cache cleanup
-  }
-  
-  /**
-   * Check if a welcome email was sent recently for this company
-   * Returns true if an email was sent within the deduplication window
-   */
-  private async wasWelcomeEmailSentRecently(companyId: number): Promise<boolean> {
-    try {
-      const cutoffTime = new Date(Date.now() - this.EMAIL_DEDUP_WINDOW_MS);
-      
-      // Check billing_events for recent welcome_email_sent events
-      const [recentEmail] = await db
-        .select({ id: billingEvents.id, createdAt: billingEvents.createdAt })
-        .from(billingEvents)
-        .where(
-          and(
-            eq(billingEvents.eventType, 'welcome_email_sent'),
-            eq(billingEvents.billingProvider, 'zoho')
-          )
-        )
-        .orderBy(billingEvents.createdAt)
-        .limit(1);
-      
-      if (recentEmail && recentEmail.createdAt && recentEmail.createdAt > cutoffTime) {
-        console.log('⚠️ BillingService: Welcome email already sent recently', {
-          companyId,
-          lastSentAt: recentEmail.createdAt,
-          minutesAgo: Math.round((Date.now() - recentEmail.createdAt.getTime()) / 60000)
-        });
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('⚠️ BillingService: Error checking recent welcome email:', error);
-      return false; // On error, allow email to be sent
-    }
-  }
-  
-  /**
-   * Check if a subscription was already processed (by subscription ID, not event ID)
-   * This prevents duplicate processing when Zoho sends multiple events for the same subscription
-   */
-  private async wasSubscriptionAlreadyProcessed(subscriptionId: string): Promise<boolean> {
-    try {
-      const cutoffTime = new Date(Date.now() - this.EMAIL_DEDUP_WINDOW_MS);
-      
-      // Look for any subscription_created event with this subscription ID
-      const existingEvents = await db
-        .select({ 
-          id: billingEvents.id, 
-          eventType: billingEvents.eventType,
-          metadata: billingEvents.metadata,
-          createdAt: billingEvents.createdAt,
-          processed: billingEvents.processed
-        })
-        .from(billingEvents)
-        .where(
-          and(
-            eq(billingEvents.eventType, 'subscription_created'),
-            eq(billingEvents.processed, true)
-          )
-        )
-        .orderBy(billingEvents.createdAt)
-        .limit(10); // Check last 10 to find matching subscription ID
-      
-      for (const event of existingEvents) {
-        if (event.createdAt && event.createdAt > cutoffTime && event.metadata) {
-          const metadata = event.metadata as any;
-          const dataSubscriptionId = metadata?.subscription?.subscription_id || 
-                                     metadata?.subscription?.subscription_number ||
-                                     metadata?.data?.subscription?.subscription_id;
-          
-          if (dataSubscriptionId === subscriptionId) {
-            console.log('⚠️ BillingService: Subscription already processed recently', {
-              subscriptionId,
-              lastProcessedAt: event.createdAt
-            });
-            return true;
-          }
-        }
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('⚠️ BillingService: Error checking subscription processing:', error);
-      return false; // On error, allow processing
-    }
   }
   
   // Process Zoho Billing webhooks with enhanced error handling and deduplication
@@ -194,23 +103,6 @@ export class BillingService {
             timestamp: new Date().toISOString()
           });
           return; // Exit early - idempotent behavior
-        }
-        
-        // **SUBSCRIPTION-LEVEL DEDUPLICATION**: For subscription events, check if we already processed this subscription
-        if (subscriptionData && (eventType === 'subscription_created' || eventType === 'subscription_activation' || eventType === 'subscription_activated')) {
-          const subscriptionId = subscriptionData.subscription_id || subscriptionData.subscription_number;
-          if (subscriptionId) {
-            const alreadyProcessed = await this.wasSubscriptionAlreadyProcessed(subscriptionId);
-            if (alreadyProcessed) {
-              console.log('⚠️ BillingService: Subscription already processed, skipping duplicate event', {
-                eventType,
-                eventId,
-                subscriptionId,
-                timestamp: new Date().toISOString()
-              });
-              return; // Exit early - prevent duplicate provisioning and emails
-            }
-          }
         }
         
         // Create billing event record to claim this event (database-level deduplication)
@@ -1596,8 +1488,8 @@ export class BillingService {
           console.log('✅ BillingService: Default pricing configuration already exists');
         }
 
-        // Send invite email to admin user (both new and existing users)
-        if (adminUser && (adminUser as any).email) {
+        // Send invite email ONLY to NEW admin users (not on re-provisioning)
+        if (isNewAdminUser && adminUser && (adminUser as any).email && tempPasswordRaw) {
           try {
             const company = await tx.select().from(companies).where(eq(companies.id, companyId)).limit(1);
             if (company.length > 0) {
@@ -1610,69 +1502,35 @@ export class BillingService {
                                `admin-${companyId}@subscription.local`;
               const adminUsername = adminEmail; // Username = email per request
 
-              // For existing users, generate a new temporary password
-              if (!isNewAdminUser) {
-                tempPasswordRaw = randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
-                const hashedTempPassword = await hashPassword(tempPasswordRaw);
-                
-                // Update existing user with new temporary password
-                await tx
-                  .update(users)
-                  .set({ 
-                    password: hashedTempPassword,
-                    updatedAt: new Date()
-                  })
-                  .where(eq(users.id, adminUser.id));
-                  
-                console.log('🔄 BillingService: Generated new temporary password for existing admin user');
-              }
+              console.log('📧 BillingService: Sending welcome email to NEW admin user', {
+                email: adminEmail,
+                organizationName: company[0].name,
+                loginUrl,
+                userId: adminUser.id
+              });
 
-              // **EMAIL DEDUPLICATION**: Check if welcome email was sent recently
-              const emailSentRecently = await this.wasWelcomeEmailSentRecently(companyId);
-              
-              if (emailSentRecently) {
-                console.log('⚠️ BillingService: Welcome email already sent recently, skipping to prevent duplicates', {
-                  companyId,
-                  email: adminEmail
-                });
+              const emailSent = await sendInviteEmail(
+                adminEmail,
+                company[0].name,
+                adminUsername,
+                tempPasswordRaw,
+                loginUrl
+              );
+
+              if (emailSent) {
+                console.log('✅ BillingService: Welcome email sent successfully to new user');
               } else {
-                console.log('📧 BillingService: Sending welcome email to admin user', {
-                  email: adminEmail,
-                  organizationName: company[0].name,
-                  loginUrl,
-                  isNewUser: isNewAdminUser
-                });
-
-                const emailSent = await sendInviteEmail(
-                  adminEmail,
-                  company[0].name,
-                  adminUsername,
-                  tempPasswordRaw!,
-                  loginUrl
-                );
-
-                if (emailSent) {
-                  console.log('✅ BillingService: Welcome email sent successfully');
-                  
-                  // Track email send in billing events for deduplication
-                  try {
-                    await this.createBillingEventRecord({
-                      eventType: 'welcome_email_sent',
-                      eventId: `welcome-email-${companyId}-${Date.now()}`,
-                      billingProvider: 'zoho',
-                      data: { companyId, email: adminEmail, timestamp: new Date().toISOString() }
-                    });
-                  } catch (trackError) {
-                    console.error('⚠️ Failed to track email send (non-critical):', trackError);
-                  }
-                } else {
-                  console.log('⚠️ BillingService: Welcome email sending failed (non-blocking)');
-                }
+                console.log('⚠️ BillingService: Welcome email sending failed (non-blocking)');
               }
             }
           } catch (emailError) {
             console.error('⚠️ BillingService: Failed to send welcome email (non-blocking):', emailError);
           }
+        } else if (!isNewAdminUser && adminUser) {
+          console.log('ℹ️ BillingService: Admin user already exists, skipping welcome email', {
+            userId: adminUser.id,
+            companyId
+          });
         }
 
         // Provisioning completed - all components exist or were created

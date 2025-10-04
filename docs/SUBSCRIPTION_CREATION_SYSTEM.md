@@ -147,7 +147,7 @@ If a company name/slug already exists:
 - Ensures unique URLs
 - No manual intervention needed
 
-## 🛡️ Webhook Deduplication & Email Protection
+## 🛡️ Multiple Webhook Events & Email Protection
 
 ### Problem
 Zoho Billing sends multiple webhook events for a single subscription creation:
@@ -156,60 +156,48 @@ Zoho Billing sends multiple webhook events for a single subscription creation:
 - `subscription_activation`
 - `subscription_activated`
 
-This could result in multiple welcome emails with different temporary passwords sent to the same customer.
+The system processes all these events, and the provisioning code was sending welcome emails EVERY time it ran, even for existing users. This resulted in multiple emails with different temporary passwords.
 
 ### Solution (Implemented October 4, 2025)
 
-**Two-Layer Deduplication:**
+**Root Cause Fix: Only Send Email to NEW Users**
 
-1. **Event-Level Deduplication**
-   - Checks if a specific event ID was already processed
-   - Prevents processing the exact same webhook twice
-   - Uses `billing_events` table with `processed` flag
+The issue was in `provisionCompanyOnboarding()` - it was sending welcome emails for both new AND existing admin users. Since this is an **invitation email**, it should only be sent when creating a new user.
 
-2. **Subscription-Level Deduplication** ⭐ NEW
-   - Checks if a subscription ID was already processed (regardless of event type)
-   - Prevents duplicate provisioning when Zoho sends multiple event types
-   - Looks back 10 minutes for recent processing
-   - Compares subscription IDs across events
-
-3. **Email-Level Deduplication** ⭐ NEW
-   - Checks if welcome email was sent within last 10 minutes
-   - Prevents multiple emails with different passwords
-   - Tracks email sends in `billing_events` with type `welcome_email_sent`
-   - Only sends one email per company per 10-minute window
-
-**Implementation Details:**
+**Implementation:**
 
 ```typescript
-// In processZohoWebhook():
-if (subscriptionData && isSubscriptionEvent) {
-  const alreadyProcessed = await wasSubscriptionAlreadyProcessed(subscriptionId);
-  if (alreadyProcessed) {
-    return; // Skip duplicate
+// In provisionCompanyOnboarding():
+// OLD: Sent email to both new and existing users
+if (adminUser && adminUser.email) {
+  if (!isNewAdminUser) {
+    // Generate new password for existing user
+    tempPasswordRaw = randomBytes(12)...;
+    await updateUserPassword(...);
   }
+  await sendInviteEmail(...); // ❌ Sent to everyone
 }
 
-// In provisionCompanyOnboarding():
-const emailSentRecently = await wasWelcomeEmailSentRecently(companyId);
-if (emailSentRecently) {
-  console.log('Email already sent, skipping');
-  return;
+// NEW: Only send to NEW users
+if (isNewAdminUser && adminUser && adminUser.email && tempPasswordRaw) {
+  await sendInviteEmail(...); // ✅ Only new users
+} else if (!isNewAdminUser) {
+  console.log('Admin user already exists, skipping welcome email');
 }
 ```
 
-**Benefits:**
-- ✅ Customers receive exactly ONE welcome email
-- ✅ No confusion from multiple temporary passwords
-- ✅ System remains idempotent (safe to retry)
-- ✅ Works even if Zoho sends 10+ webhooks
-- ✅ 10-minute window allows legitimate re-sends if needed
+**Why This Works:**
+- ✅ First webhook creates user → sends welcome email
+- ✅ Subsequent webhooks see existing user → skip email
+- ✅ User receives exactly ONE email with ONE password
+- ✅ No deduplication logic needed - just proper business logic
+- ✅ Works regardless of how many webhooks Zoho sends
 
-**Edge Cases Handled:**
-- Multiple webhooks arriving simultaneously → Only first processes
-- Network retries from Zoho → Safely ignored
-- Manual re-provisioning after 10 minutes → Allowed
-- Different subscriptions for same customer → Each gets one email
+**Event-Level Deduplication (Existing):**
+- The system already has event-level deduplication
+- Checks if a specific event ID was already processed
+- Uses `billing_events` table with `processed` flag
+- Prevents processing the exact same webhook twice
 
 ## 📧 Welcome Email Content
 
