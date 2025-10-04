@@ -7013,16 +7013,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           requestId
         });
       }
-
-      // **TEMPORARY DEBUGGING**: Log signature verification attempt
-      console.log('🔐 SIGNATURE VERIFICATION ATTEMPT:', {
-        requestId,
-        hasSignature: !!signature,
-        hasAuthToken: !!authToken,
-        signatureLength: signature?.length,
-        authTokenLength: authToken?.length,
-        webhookSecretLength: webhookSecret.length
-      });
       
       // Get the signature/authorization from headers (Zoho may use various methods)
       // Get signature headers explicitly, handling undefined values
