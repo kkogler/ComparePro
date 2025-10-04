@@ -1710,6 +1710,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid vendor slug' });
       }
       
+      // Check vendor limits when ENABLING a vendor
+      if (enabled) {
+        const company = await storage.getCompany(companyId);
+        if (!company) {
+          return res.status(404).json({ error: 'Organization not found' });
+        }
+        
+        // Get plan limits from plan settings
+        const planSettingsRecord = await storage.getPlanSettings(company.plan);
+        const maxVendors = planSettingsRecord?.maxVendors;
+        
+        // Only enforce limit if maxVendors is set (not null/unlimited)
+        if (maxVendors !== null && maxVendors !== undefined) {
+          // Count currently enabled vendors
+          const allVendors = await storage.getVendorsByCompany(companyId);
+          const enabledVendorsCount = allVendors.filter(v => v.enabledForPriceComparison).length;
+          
+          console.log('🔄 VENDOR TOGGLE: Vendor limit check', {
+            currentEnabled: enabledVendorsCount,
+            maxAllowed: maxVendors,
+            plan: company.plan
+          });
+          
+          // Check if enabling would exceed the limit
+          if (enabledVendorsCount >= maxVendors) {
+            console.log('🔄 VENDOR TOGGLE: Vendor limit exceeded');
+            return res.status(402).json({
+              error: 'Vendor limit exceeded',
+              message: `Your current plan is limited to ${maxVendors} vendors. You currently have ${enabledVendorsCount} enabled. Please disable another vendor or upgrade your plan.`,
+              code: 'VENDOR_LIMIT_EXCEEDED',
+              currentEnabled: enabledVendorsCount,
+              maxAllowed: maxVendors
+            });
+          }
+        } else {
+          console.log('🔄 VENDOR TOGGLE: No vendor limit (unlimited)');
+        }
+      }
+      
       // Update the vendor's enabled status for price comparison
       await storage.updateVendorEnabledStatusBySlug(companyId, vendorSlug, enabled);
       

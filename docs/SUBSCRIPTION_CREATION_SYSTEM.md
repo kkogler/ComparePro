@@ -158,40 +158,41 @@ Zoho Billing sends multiple webhook events for a single subscription creation:
 
 The system processes all these events, and the provisioning code was sending welcome emails EVERY time it ran, even for existing users. This resulted in multiple emails with different temporary passwords.
 
-### Solution (Implemented October 4, 2025)
+### Solution (Implemented October 4, 2025 - Updated)
 
-**Root Cause Fix: Only Send Email to NEW Users**
+**Current Behavior: Send Email for Every New Store/Subscription**
 
-The issue was in `provisionCompanyOnboarding()` - it was sending welcome emails for both new AND existing admin users. Since this is an **invitation email**, it should only be sent when creating a new user.
+The system now sends a welcome email whenever a new company/store is provisioned, regardless of whether the admin user is new or already exists in the system.
+
+**Why This Approach:**
+- A new subscription/store is created → user should be notified
+- Even existing users need credentials for their new store
+- Ensures users are always informed when they get a new subscription
 
 **Implementation:**
 
 ```typescript
 // In provisionCompanyOnboarding():
-// OLD: Sent email to both new and existing users
-if (adminUser && adminUser.email) {
-  if (!isNewAdminUser) {
-    // Generate new password for existing user
-    tempPasswordRaw = randomBytes(12)...;
-    await updateUserPassword(...);
-  }
-  await sendInviteEmail(...); // ❌ Sent to everyone
+// For NEW admin users
+if (isNewAdminUser && adminUser && adminUser.email && tempPasswordRaw) {
+  await sendInviteEmail(...); // ✅ Send welcome email with temp password
 }
 
-// NEW: Only send to NEW users
-if (isNewAdminUser && adminUser && adminUser.email && tempPasswordRaw) {
-  await sendInviteEmail(...); // ✅ Only new users
-} else if (!isNewAdminUser) {
-  console.log('Admin user already exists, skipping welcome email');
+// For EXISTING admin users (new store/subscription)
+else if (!isNewAdminUser && adminUser) {
+  // Generate NEW temporary password for existing user
+  const newTempPasswordRaw = randomBytes(12)...;
+  await updateUserPassword(...);
+  await sendInviteEmail(...); // ✅ Send notification with new temp password
 }
 ```
 
-**Why This Works:**
-- ✅ First webhook creates user → sends welcome email
-- ✅ Subsequent webhooks see existing user → skip email
-- ✅ User receives exactly ONE email with ONE password
-- ✅ No deduplication logic needed - just proper business logic
-- ✅ Works regardless of how many webhooks Zoho sends
+**How It Works:**
+- ✅ New user + new store → welcome email sent
+- ✅ Existing user + new store → notification email sent with new temp password
+- ✅ User is always notified about new subscriptions
+- ✅ Event-level deduplication prevents duplicate processing
+- ✅ One email per subscription creation (not per webhook)
 
 **Event-Level Deduplication (Existing):**
 - The system already has event-level deduplication

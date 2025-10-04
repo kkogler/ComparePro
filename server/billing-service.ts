@@ -1527,10 +1527,66 @@ export class BillingService {
             console.error('⚠️ BillingService: Failed to send welcome email (non-blocking):', emailError);
           }
         } else if (!isNewAdminUser && adminUser) {
-          console.log('ℹ️ BillingService: Admin user already exists, skipping welcome email', {
+          // **SEND EMAIL FOR EXISTING USERS WITH NEW STORE/SUBSCRIPTION**
+          // Even if the admin user already exists, we should notify them about the new store/subscription
+          console.log('ℹ️ BillingService: Admin user already exists, sending new store notification email', {
             userId: adminUser.id,
             companyId
           });
+          
+          try {
+            // Get company info for email
+            const company = await tx
+              .select()
+              .from(companies)
+              .where(eq(companies.id, companyId))
+              .limit(1);
+
+            if (company.length > 0) {
+              // Generate a new temporary password for the existing user
+              const newTempPasswordRaw = randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+              const newHashedTempPassword = await hashPassword(newTempPasswordRaw);
+
+              // Update the user's password with the new temporary password
+              await tx
+                .update(users)
+                .set({ password: newHashedTempPassword })
+                .where(eq(users.id, adminUser.id));
+
+              console.log('🔑 BillingService: Generated new temporary password for existing user');
+
+              const loginUrl = process.env.VITE_APP_URL || 'http://localhost:3000';
+              const adminEmail = adminUser.email || 
+                               customerData?.email || 
+                               customerData?.customer_email || 
+                               customerData?.contact_email ||
+                               `admin-${companyId}@subscription.local`;
+              const adminUsername = adminUser.username;
+
+              console.log('📧 BillingService: Sending new store notification email to EXISTING admin user', {
+                email: adminEmail,
+                organizationName: company[0].name,
+                loginUrl,
+                userId: adminUser.id
+              });
+
+              const emailSent = await sendInviteEmail(
+                adminEmail,
+                company[0].name,
+                adminUsername,
+                newTempPasswordRaw,
+                loginUrl
+              );
+
+              if (emailSent) {
+                console.log('✅ BillingService: New store notification email sent successfully to existing user');
+              } else {
+                console.log('⚠️ BillingService: New store notification email sending failed (non-blocking)');
+              }
+            }
+          } catch (emailError) {
+            console.error('⚠️ BillingService: Failed to send new store notification email (non-blocking):', emailError);
+          }
         }
 
         // Provisioning completed - all components exist or were created

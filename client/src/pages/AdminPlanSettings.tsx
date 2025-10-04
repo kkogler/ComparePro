@@ -76,8 +76,8 @@ const planSettingsSchema = z.object({
   planName: z.string().min(1, "Plan name is required"),
   trialLengthDays: z.number().nullable(),
   planLengthDays: z.number().nullable(),
-  maxUsers: z.number().nullable(),
-  maxVendors: z.number().nullable(),
+  maxUsers: z.union([z.number().positive(), z.null()]),
+  maxVendors: z.union([z.number().positive(), z.null()]),
   onlineOrdering: z.boolean(),
   asnProcessing: z.boolean(),
   webhookExport: z.boolean(),
@@ -191,8 +191,11 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
                         type="number" 
                         placeholder="Leave empty for unlimited"
                         {...field}
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                        value={field.value === null ? '' : field.value}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          field.onChange(val === '' ? null : parseInt(val) || null);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -211,8 +214,11 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
                         type="number" 
                         placeholder="Leave empty for unlimited"
                         {...field}
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                        value={field.value === null ? '' : field.value}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          field.onChange(val === '' ? null : parseInt(val) || null);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />

@@ -351,30 +351,37 @@ class ChattanoogaScheduler {
         token: credentials.token
       });
 
-      // Simple retry logic (max 3 attempts)
-      let attempt = 0;
+      // Single attempt with no automatic retries to avoid rate limiting
+      // Chattanooga's API has strict rate limits - retrying causes "too many requests" errors
       let productFeedResult;
       
-      while (attempt < 3) {
-        attempt++;
-        console.log(`CHATTANOOGA SYNC: Attempting to get product feed (attempt ${attempt}/3)`);
+      console.log(`CHATTANOOGA SYNC: Attempting to get product feed...`);
+      productFeedResult = await api.getProductFeed();
+      
+      // Check if this is a rate limit error - don't retry these
+      if (!productFeedResult.success) {
+        const errorMsg = productFeedResult?.message || productFeedResult?.error || 'Unknown error';
+        const isRateLimitError = errorMsg.toLowerCase().includes('too many requests') || 
+                                 errorMsg.toLowerCase().includes('rate limit') ||
+                                 errorMsg.includes('429');
         
-        productFeedResult = await api.getProductFeed();
-        
-        if (productFeedResult.success && productFeedResult.data) {
-          break;
+        if (isRateLimitError) {
+          console.error('CHATTANOOGA SYNC: Rate limit detected - not retrying to avoid further rate limiting');
+          const rateLimitMsg = 'Chattanooga API rate limit reached. Please wait a few minutes before trying again.';
+          return { 
+            success: false, 
+            productsProcessed: 0, 
+            error: rateLimitMsg
+          };
         }
         
-        if (attempt < 3) {
-          const delay = attempt === 1 ? 5000 : 10000; // 5s first retry, 10s second retry
-          console.log(`CHATTANOOGA SYNC: Attempt ${attempt} failed, retrying in ${delay/1000} seconds...`);
-          console.log(`CHATTANOOGA SYNC: Error: ${productFeedResult?.message || 'Unknown error'}`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
+        // For non-rate-limit errors, log but don't retry to avoid hitting rate limits
+        console.error(`CHATTANOOGA SYNC: Product feed request failed: ${errorMsg}`);
+        console.log('CHATTANOOGA SYNC: Not retrying to avoid rate limiting');
       }
       
       if (!productFeedResult?.success || !productFeedResult.data) {
-        const errorMsg = `Failed to get product feed after 3 attempts. Last error: ${productFeedResult?.message || 'Unknown error'}`;
+        const errorMsg = `Failed to get product feed: ${productFeedResult?.message || productFeedResult?.error || 'Unknown error'}`;
         console.error('CHATTANOOGA SYNC:', errorMsg);
         return { success: false, productsProcessed: 0, error: errorMsg };
       }

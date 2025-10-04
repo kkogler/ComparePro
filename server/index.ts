@@ -60,6 +60,57 @@ app.use((req, res, next) => {
   } catch (e) {
     console.error('Failed to initialize vendor registry at startup:', e);
   }
+  
+  // Recover any stuck sync statuses from previous server crash/restart
+  try {
+    console.log('🔄 STARTUP RECOVERY: Checking for stuck sync statuses...');
+    const { storage } = await import('./storage');
+    const supportedVendors = await storage.getAllSupportedVendors();
+    
+    let recoveredCount = 0;
+    for (const vendor of supportedVendors) {
+      // Check for stuck catalog sync status
+      if (vendor.catalogSyncStatus === 'in_progress') {
+        console.log(`🚨 STARTUP RECOVERY: ${vendor.name} catalog sync stuck "in_progress" - resetting status`);
+        await storage.updateSupportedVendor(vendor.id, {
+          catalogSyncStatus: 'error',
+          catalogSyncError: 'Sync interrupted by server restart - auto-recovered on startup'
+        });
+        recoveredCount++;
+      }
+      
+      // Check for stuck Bill Hicks master catalog sync
+      if (vendor.name.toLowerCase().includes('bill hicks') && 
+          vendor.billHicksMasterCatalogSyncStatus === 'in_progress') {
+        console.log(`🚨 STARTUP RECOVERY: Bill Hicks master catalog sync stuck "in_progress" - resetting status`);
+        await storage.updateSupportedVendor(vendor.id, {
+          billHicksMasterCatalogSyncStatus: 'error',
+          billHicksMasterCatalogSyncError: 'Sync interrupted by server restart - auto-recovered on startup'
+        });
+        recoveredCount++;
+      }
+      
+      // Check for stuck Bill Hicks inventory sync
+      if (vendor.name.toLowerCase().includes('bill hicks') && 
+          vendor.billHicksInventorySyncStatus === 'in_progress') {
+        console.log(`🚨 STARTUP RECOVERY: Bill Hicks inventory sync stuck "in_progress" - resetting status`);
+        await storage.updateSupportedVendor(vendor.id, {
+          billHicksInventorySyncStatus: 'error',
+          billHicksInventorySyncError: 'Sync interrupted by server restart - auto-recovered on startup'
+        });
+        recoveredCount++;
+      }
+    }
+    
+    if (recoveredCount > 0) {
+      console.log(`✅ STARTUP RECOVERY: Recovered ${recoveredCount} stuck sync status(es)`);
+    } else {
+      console.log('✅ STARTUP RECOVERY: No stuck sync statuses found');
+    }
+  } catch (error) {
+    console.error('❌ STARTUP RECOVERY: Failed to check/recover sync statuses:', error);
+  }
+  
   const server = await registerRoutes(app);
 
   // CRITICAL: Set timezone globally before initializing schedulers

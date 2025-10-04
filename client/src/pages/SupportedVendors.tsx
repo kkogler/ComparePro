@@ -82,7 +82,24 @@ export default function SupportedVendors() {
       console.log('🔄 VENDOR TOGGLE: Frontend - slug:', slug);
       console.log('🔄 VENDOR TOGGLE: Frontend - vendorSlug:', vendorSlug);
       console.log('🔄 VENDOR TOGGLE: Frontend - vendorId:', vendorId);
-      return await apiRequest(url, 'PATCH', { enabled });
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        // Parse error details from response
+        const errorData = await response.json();
+        const error = new Error(errorData.message || 'Failed to update vendor status');
+        // Attach additional error details
+        Object.assign(error, errorData);
+        throw error;
+      }
+      
+      return await response.json();
     },
     onSuccess: (_, { vendorId, enabled }) => {
       // Update the specific vendor in the cache instead of invalidating the entire query
@@ -101,11 +118,26 @@ export default function SupportedVendors() {
       });
     },
     onError: (error: any) => {
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update vendor status",
-        variant: "destructive"
-      });
+      // Check if it's a vendor limit error
+      if (error.code === 'VENDOR_LIMIT_EXCEEDED' || error.message?.includes('Vendor limit exceeded')) {
+        const maxAllowed = error.maxAllowed || 'your plan limit';
+        const currentEnabled = error.currentEnabled || '';
+        
+        toast({
+          title: "Vendor Limit Reached",
+          description: error.message || `Your current plan is limited to ${maxAllowed} vendors. Please disable another vendor or upgrade your plan.`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Update Failed",
+          description: error.message || "Failed to update vendor status",
+          variant: "destructive"
+        });
+      }
+      
+      // Ensure UI stays in sync - refresh vendor list
+      queryClient.invalidateQueries({ queryKey: [`/org/${slug}/api/supported-vendors`] });
     }
   });
 
@@ -342,7 +374,6 @@ export default function SupportedVendors() {
       <ChattanoogaConfig
         vendor={selectedVendor}
         isOpen={chattanoogaConfigOpen}
-        organizationSlug={slug}
         onClose={() => {
           setChattanoogaConfigOpen(false);
           setSelectedVendor(null);
@@ -356,7 +387,7 @@ export default function SupportedVendors() {
         }}
       />
       
-      {selectedVendor && selectedVendor.name.toLowerCase().includes('gunbroker') && (
+      {selectedVendor && selectedVendor.name.toLowerCase().includes('gunbroker') && slug && (
         <GunBrokerConfig 
           vendor={selectedVendor} 
           isOpen={gunBrokerConfigOpen}
@@ -395,7 +426,7 @@ export default function SupportedVendors() {
         />
       )}
       
-      {selectedVendor && selectedVendor.name === 'Sports South' && (
+      {selectedVendor && selectedVendor.name === 'Sports South' && slug && (
         <SportsSouthConfig 
           vendor={selectedVendor} 
           isOpen={sportsSouthConfigOpen}
@@ -414,7 +445,7 @@ export default function SupportedVendors() {
         />
       )}
       
-      {billHicksConfigOpen && (
+      {billHicksConfigOpen && slug && (
         <BillHicksConfig 
           vendor={organizationVendors?.find(v => v.name === 'Bill Hicks & Co.')} 
           isOpen={billHicksConfigOpen}
