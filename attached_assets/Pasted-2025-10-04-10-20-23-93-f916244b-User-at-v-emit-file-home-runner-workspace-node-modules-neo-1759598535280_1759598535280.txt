@@ -1,0 +1,224 @@
+2025-10-04 10:20:23.93
+f916244b
+User
+' at v.emit (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:397:12)\n' +
+2025-10-04 10:20:23.93
+f916244b
+User
+' at WebSocket. (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:987:80)\n' +
+2025-10-04 10:20:23.93
+f916244b
+User
+' at callListener (/home/runner/workspace/node_modules/ws/lib/event-target.js:290:14)\n' +
+2025-10-04 10:20:23.93
+f916244b
+User
+' at WebSocket.onMessage (/home/runner/workspace/node_modules/ws/lib/event-target.js:209:9)\n' +
+2025-10-04 10:20:23.93
+f916244b
+User
+' at WebSocket.emit (node:events:524:28)\n' +
+2025-10-04 10:20:23.93
+f916244b
+User
+' at Receiver.receiverOnMessage (/home/runner/workspace/node_modules/ws/lib/websocket.js:1220:20)',
+2025-10-04 10:20:23.93
+f916244b
+User
+timestamp: '2025-10-04T17:20:23.935Z'
+2025-10-04 10:20:23.93
+f916244b
+User
+}
+2025-10-04 10:20:23.93
+f916244b
+User
+🔓 BillingService: Released provisioning lock for company 13
+2025-10-04 10:20:23.93
+f916244b
+User
+⚠️ Failed to provision onboarding for company 13: error: null value in column "store_address" of relation "settings" violates not-null constraint
+2025-10-04 10:20:23.93
+f916244b
+User
+at cn.parseErrorMessage (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1182:6)
+2025-10-04 10:20:23.93
+f916244b
+User
+at cn.handlePacket (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1143:13)
+2025-10-04 10:20:23.93
+f916244b
+User
+at cn.parse (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1127:36)
+2025-10-04 10:20:23.93
+f916244b
+User
+at v. (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1190:16)
+2025-10-04 10:20:23.93
+f916244b
+User
+at v.emit (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:397:12)
+2025-10-04 10:20:23.93
+f916244b
+User
+at WebSocket. (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:987:80)
+2025-10-04 10:20:23.93
+f916244b
+User
+at callListener (/home/runner/workspace/node_modules/ws/lib/event-target.js:290:14)
+2025-10-04 10:20:23.93
+f916244b
+User
+at WebSocket.onMessage (/home/runner/workspace/node_modules/ws/lib/event-target.js:209:9)
+2025-10-04 10:20:23.93
+f916244b
+User
+at WebSocket.emit (node:events:524:28)
+2025-10-04 10:20:23.93
+f916244b
+User
+at Receiver.receiverOnMessage (/home/runner/workspace/node_modules/ws/lib/websocket.js:1220:20) {
+2025-10-04 10:20:23.93
+f916244b
+User
+length: 299,
+2025-10-04 10:20:23.93
+f916244b
+User
+severity: 'ERROR',
+2025-10-04 10:20:23.93
+f916244b
+User
+code: '23502',
+2025-10-04 10:20:23.93
+f916244b
+User
+detail: 'Failing row contains (22, SUB-00121, null, null, null, t, f, t, 2025-10-04 17:20:22.873262, 13, f, , null, , , ).',
+2025-10-04 10:20:23.93
+f916244b
+User
+hint: undefined,
+2025-10-04 10:20:23.93
+f916244b
+User
+position: undefined,
+2025-10-04 10:20:23.93
+f916244b
+User
+internalPosition: undefined,
+2025-10-04 10:20:23.93
+f916244b
+User
+internalQuery: undefined,
+2025-10-04 10:20:23.93
+f916244b
+User
+where: undefined,
+2025-10-04 10:20:23.93
+f916244b
+User
+schema: 'public',
+2025-10-04 10:20:23.93
+f916244b
+User
+table: 'settings',
+2025-10-04 10:20:23.93
+f916244b
+User
+column: 'store_address',
+2025-10-04 10:20:23.93
+f916244b
+User
+dataType: undefined,
+2025-10-04 10:20:23.93
+f916244b
+User
+constraint: undefined,
+2025-10-04 10:20:23.93
+f916244b
+User
+file: 'execMain.c',
+2025-10-04 10:20:23.93
+f916244b
+User
+line: '2021',
+2025-10-04 10:20:23.93
+f916244b
+User
+routine: 'ExecConstraints'
+2025-10-04 10:20:23.93
+f916244b
+User
+}
+2025-10-04 10:20:24.00
+f916244b
+User
+🗺️ Plan mapping: "free-plan-v1" -> "free" (was mapped)
+2025-10-04 10:20:24.00
+f916244b
+User
+✅ BillingService: Subscription SUB-00121 with plan free already exists for company Timm Shooting, skipping update
+2025-10-04 10:20:24.00
+f916244b
+User
+🔓 Released webhook lock for customer 4899864000001960185
+2025-10-04 10:20:24.00
+f916244b
+User
+✅ Successfully processed subscription_created
+2025-10-04 10:20:24.11
+f916244b
+User
+📝 Created billing event record for 4899864000001960183
+2025-10-04 10:20:24.11
+f916244b
+User
+✅ BillingService: Created billing event record after processing
+2025-10-04 10:20:24.14
+f916244b
+User
+✅ Marked billing event 59 as processed in database
+2025-10-04 10:20:24.14
+f916244b
+User
+✅ BillingService: Webhook processed successfully {
+2025-10-04 10:20:24.14
+f916244b
+User
+eventType: 'subscription_created',
+2025-10-04 10:20:24.14
+f916244b
+User
+eventId: '4899864000001960183',
+2025-10-04 10:20:24.14
+f916244b
+User
+processingTimeMs: 3138,
+2025-10-04 10:20:24.14
+f916244b
+User
+timestamp: '2025-10-04T17:20:24.143Z'
+2025-10-04 10:20:24.14
+f916244b
+User
+}
+2025-10-04 10:20:24.14
+f916244b
+User
+✅ WEBHOOK PROCESSING COMPLETED {
+2025-10-04 10:20:24.14
+f916244b
+User
+requestId: '95c8854e-1583-4034-9a41-cccdd8f6906f',
+2025-10-04 10:20:24.14
+f916244b
+User
+eventId: '4899864000001960183'
+2025-10-04 10:20:24.14
+f916244b
+User
+}
+2025-10-04 10:20:24.14
+f916244b
+User
+10:20:24 AM [express] POST /api/webhooks/zoho 200 in 3151ms :: {"status":"success","processed":true,"…
