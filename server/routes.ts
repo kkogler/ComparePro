@@ -7041,8 +7041,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Find the first non-empty signature or authorization
-      let signature = null;
-      let authToken = null;
+      let signature: string | null = null;
+      let authToken: string | null = null;
 
       if (zohoSig && typeof zohoSig === 'string' && zohoSig.trim() !== '') {
         signature = zohoSig.trim();
@@ -7073,7 +7073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           authTokenPrefix: authToken?.substring(0, 4)
         });
       }
-      
+
       const normalizedSignature = signature;
       const normalizedAuthToken = authToken;
 
