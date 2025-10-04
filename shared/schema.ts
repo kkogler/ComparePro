@@ -677,6 +677,16 @@ export const adminSettings = pgTable("admin_settings", {
   zohoBillingRefreshToken: text("zoho_billing_refresh_token"),
   zohoBillingOrgId: text("zoho_billing_org_id"),
   zohoBillingBaseUrl: text("zoho_billing_base_url"),
+  // Default pricing configuration for new subscriptions
+  defaultPricingStrategy: text("default_pricing_strategy").default("msrp"), // 'map', 'msrp', 'cost_markup', 'cost_margin', 'map_premium', 'msrp_discount'
+  defaultPricingMarkupPercentage: decimal("default_pricing_markup_percentage", { precision: 5, scale: 2 }), // For cost_markup
+  defaultPricingMarginPercentage: decimal("default_pricing_margin_percentage", { precision: 5, scale: 2 }), // For cost_margin
+  defaultPricingPremiumAmount: decimal("default_pricing_premium_amount", { precision: 10, scale: 2 }), // For map_premium
+  defaultPricingDiscountPercentage: decimal("default_pricing_discount_percentage", { precision: 5, scale: 2 }), // For msrp_discount
+  defaultPricingRoundingRule: text("default_pricing_rounding_rule").default("none"), // 'none', 'up_99', 'down_99', 'up_95', 'down_95', 'up_10cent', 'down_10cent', 'nearest_dollar', 'up_dollar'
+  defaultPricingFallbackStrategy: text("default_pricing_fallback_strategy").default("map"), // 'none', 'map', 'msrp', 'cost_markup', 'cost_margin'
+  defaultPricingFallbackMarkupPercentage: decimal("default_pricing_fallback_markup_percentage", { precision: 5, scale: 2 }), // For fallback cost_markup/cost_margin
+  defaultPricingUseCrossVendorFallback: boolean("default_pricing_use_cross_vendor_fallback").default(false), // Use highest MSRP/MAP from other vendors
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

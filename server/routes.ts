@@ -5837,19 +5837,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         testCredentials = companyVendorCreds;
       }
       
-      // Check if vendor has credentials (allow vendorRegistry to handle if missing)
-      if (!testCredentials && !companyVendorCreds) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'No credentials configured for this vendor' 
-        });
-      }
-      
       // Special case: GunBroker uses admin-level shared credentials for all stores
       let testResult;
       if (supportedVendor.name.toLowerCase().includes('gunbroker')) {
         testResult = await vendorRegistry.testVendorConnection('gunbroker', 'admin', undefined, (req as any).user?.id || 0);
       } else {
+        // Check if vendor has credentials (allow vendorRegistry to handle if missing)
+        if (!testCredentials && !companyVendorCreds) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'No credentials configured for this vendor' 
+          });
+        }
         // Test the connection using the vendor registry with store-level credentials
         // Use slug normalization to handle legacy format conversions (sports_south -> sports-south)
         const { getStandardizedSlug } = await import('./slug-utils');

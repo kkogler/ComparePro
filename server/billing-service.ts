@@ -1104,17 +1104,29 @@ export class BillingService {
           tempPasswordRaw = randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
           const hashedTempPassword = await hashPassword(tempPasswordRaw);
 
+        // Extract firstName and lastName from Zoho webhook data
+        // Zoho provides first_name and last_name in customer object and contactpersons array
+        const firstName = provider === 'zoho' ? 
+          (customerData.first_name || customerData.contactpersons?.[0]?.first_name || customerData.display_name?.split(' ')[0]) : 
+          customerData.first_name;
+        const lastName = provider === 'zoho' ? 
+          (customerData.last_name || customerData.contactpersons?.[0]?.last_name || customerData.display_name?.split(' ').slice(1).join(' ')) : 
+          customerData.last_name;
+        
+        // Generate displayName as first initial + last name, lowercase (e.g., "bsmith" for Bob Smith)
+        const generatedDisplayName = (firstName && lastName) ? 
+          `${firstName.charAt(0)}${lastName}`.toLowerCase().replace(/[^a-z0-9]/g, '') : 
+          username;
+
         const adminUserData: InsertUser = {
           companyId,
           username: email ? email : username,
           email: email || `admin@company-${companyId}.local`,
           password: hashedTempPassword,
           role: 'admin',
-          firstName: provider === 'zoho' ? 
-            customerData.display_name?.split(' ')[0] : customerData.first_name,
-          lastName: provider === 'zoho' ? 
-            customerData.display_name?.split(' ').slice(1).join(' ') : customerData.last_name,
-          displayName: displayName || 'Admin User',
+          firstName: firstName || 'Admin',
+          lastName: lastName || 'User',
+          displayName: generatedDisplayName,
           isAdmin: true,
           status: 'active',
           activationToken: null,
@@ -1165,6 +1177,8 @@ export class BillingService {
           const defaultTempPasswordRaw = randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
           const defaultHashedTempPassword = await hashPassword(defaultTempPasswordRaw);
 
+          // Create default user as inactive to hide it from Users screen
+          // This user is for internal system operations only
           const defaultUserData: InsertUser = {
             companyId,
             username: defaultUsername,
@@ -1175,10 +1189,10 @@ export class BillingService {
             lastName: 'User',
             displayName: 'Default',
             isAdmin: false,
-            status: 'active',
+            status: 'inactive',
             activationToken: null,
             activationTokenExpires: null,
-            isActive: true
+            isActive: false
           };
 
           console.log('👤 BillingService: Creating default user', {
@@ -1389,6 +1403,90 @@ export class BillingService {
             eq(users.companyId, companyId),
             isNull(users.defaultStoreId)
           ));
+
+        // 8. Check and create company settings if missing
+        const { settings: settingsTable } = await import('@shared/schema');
+        const existingSettings = await tx
+          .select({ id: settingsTable.id })
+          .from(settingsTable)
+          .where(eq(settingsTable.companyId, companyId))
+          .limit(1);
+
+        if (existingSettings.length === 0) {
+          console.log('🔧 BillingService: Creating company settings');
+          
+          // Get company record to fetch billingSubscriptionId for platformAccountNumber
+          const company = await tx
+            .select()
+            .from(companies)
+            .where(eq(companies.id, companyId))
+            .limit(1);
+
+          const settingsData = {
+            companyId,
+            platformAccountNumber: company[0]?.billingSubscriptionId || `ACCT-${companyId}`,
+            storeAddress1: customerData?.address1 || 'Address not provided',
+            storeAddress2: customerData?.address2 || null,
+            storeCity: customerData?.city || 'City not provided',
+            storeState: customerData?.state || 'State not provided',
+            storeZipCode: customerData?.zipCode || customerData?.zip || 'Zip not provided',
+            microbizEnabled: false,
+            showVendorCosts: true,
+            autoRefreshResults: false,
+            includeUnmatchedUpcs: true
+          };
+
+          await tx.insert(settingsTable).values(settingsData);
+          console.log('✅ BillingService: Company settings created with account number:', settingsData.platformAccountNumber);
+        } else {
+          console.log('✅ BillingService: Company settings already exist');
+        }
+
+        // 9. Check and create default pricing configuration if missing
+        const { pricingConfigurations, adminSettings: adminSettingsTable } = await import('@shared/schema');
+        const existingPricingConfig = await tx
+          .select({ id: pricingConfigurations.id })
+          .from(pricingConfigurations)
+          .where(and(
+            eq(pricingConfigurations.companyId, companyId),
+            eq(pricingConfigurations.isDefault, true)
+          ))
+          .limit(1);
+
+        if (existingPricingConfig.length === 0) {
+          console.log('💰 BillingService: Creating default pricing configuration from admin settings');
+          
+          // Fetch admin settings to get default pricing strategy and all related settings
+          const [adminSettings] = await tx
+            .select()
+            .from(adminSettingsTable)
+            .limit(1);
+          
+          const defaultStrategy = adminSettings?.defaultPricingStrategy || 'msrp';
+          const defaultFallback = adminSettings?.defaultPricingFallbackStrategy || 'map';
+          
+          const pricingConfigData = {
+            companyId,
+            name: 'Default Pricing Rule',
+            description: `Use ${defaultStrategy.toUpperCase()} with ${defaultFallback.toUpperCase()} as fallback`,
+            strategy: defaultStrategy,
+            markupPercentage: adminSettings?.defaultPricingMarkupPercentage || null,
+            marginPercentage: adminSettings?.defaultPricingMarginPercentage || null,
+            premiumAmount: adminSettings?.defaultPricingPremiumAmount || null,
+            discountPercentage: adminSettings?.defaultPricingDiscountPercentage || null,
+            roundingRule: adminSettings?.defaultPricingRoundingRule || 'none',
+            fallbackStrategy: defaultFallback,
+            fallbackMarkupPercentage: adminSettings?.defaultPricingFallbackMarkupPercentage || null,
+            useCrossVendorFallback: adminSettings?.defaultPricingUseCrossVendorFallback || false,
+            isDefault: true,
+            isActive: true
+          };
+
+          await tx.insert(pricingConfigurations).values(pricingConfigData);
+          console.log(`✅ BillingService: Default pricing configuration created (${defaultStrategy.toUpperCase()} with ${defaultFallback.toUpperCase()} fallback)`);
+        } else {
+          console.log('✅ BillingService: Default pricing configuration already exists');
+        }
 
         // Send invite email to admin user (both new and existing users)
         if (adminUser && (adminUser as any).email) {

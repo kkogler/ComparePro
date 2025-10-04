@@ -37,10 +37,8 @@ const createStoreSchemaBase = z.object({
   status: z.enum(["active", "inactive", "archived"]).optional(),
 });
 
-// Schema that requires FFL Number for firearms vertical
-const createStoreSchemaFirearms = createStoreSchemaBase.extend({
-  fflNumber: z.string().min(1, "FFL Number is required for firearms stores"),
-});
+// FFL Number is now optional for all stores (including firearms)
+const createStoreSchemaFirearms = createStoreSchemaBase;
 
 const createStoreSchema = createStoreSchemaBase;
 
@@ -566,7 +564,7 @@ export default function StoreManagement() {
                     <FormItem>
                       <FormLabel>Street Address</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="123 Main Street" data-testid="input-store-address1" />
+                        <Input {...field} placeholder="Enter street address (e.g., 123 Main Street)" data-testid="input-store-address1" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -646,7 +644,7 @@ export default function StoreManagement() {
                       name="fflNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>FFL Number <span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>FFL Number (Optional)</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="FFL-123456" data-testid="input-store-ffl" />
                           </FormControl>
@@ -983,7 +981,7 @@ export default function StoreManagement() {
                         name="fflNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>FFL Number <span className="text-red-500">*</span></FormLabel>
+                            <FormLabel>FFL Number (Optional)</FormLabel>
                             <FormControl>
                               <Input {...field} placeholder="FFL-123456" data-testid="input-edit-store-ffl" />
                             </FormControl>
@@ -1026,7 +1024,7 @@ export default function StoreManagement() {
                   <FormItem>
                     <FormLabel>Street Address</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="123 Main Street" data-testid="input-edit-store-address1" />
+                      <Input {...field} placeholder="Enter street address (e.g., 123 Main Street)" data-testid="input-edit-store-address1" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1259,7 +1257,7 @@ export default function StoreManagement() {
                     name="fflNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>FFL Number <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>FFL Number (Optional)</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="FFL-123456" data-testid="input-store-ffl" />
                         </FormControl>

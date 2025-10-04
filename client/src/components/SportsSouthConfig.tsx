@@ -21,7 +21,7 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
   const [credentials, setCredentials] = useState({
     userName: vendor?.credentials?.userName || '',
     password: vendor?.credentials?.password || '',
-    source: vendor?.credentials?.source || 'BSTPRC',
+    source: vendor?.credentials?.source || '',
     customerNumber: vendor?.credentials?.customerNumber || ''
   });
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -163,7 +163,7 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4" autoComplete="off">
+        <div className="space-y-4">
           {/* Autofill traps */}
           <div style={{ position: 'absolute', left: '-9999px', height: 0, overflow: 'hidden' }}>
             <input type="text" name="fake-username" autoComplete="username" />
@@ -241,7 +241,7 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
               type="text"
               value={credentials.source}
               onChange={(e) => setCredentials({ ...credentials, source: e.target.value })}
-              placeholder="Source Code (e.g., BSTPRC)"
+              placeholder="Enter your own short name or code for your store"
               autoComplete="off"
             />
           </div>

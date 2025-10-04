@@ -105,7 +105,10 @@ export default function CompanyUsers() {
   });
 
   // Filter users based on role - non-admins can only see themselves
-  const visibleUsers = isCurrentUserAdmin ? users : users.filter(user => user.id === currentUser?.id);
+  // Also filter out inactive/system users (like 'Default' user created for internal operations)
+  const visibleUsers = isCurrentUserAdmin 
+    ? users.filter(user => user.isActive !== false) 
+    : users.filter(user => user.id === currentUser?.id && user.isActive !== false);
 
   // Fetch stores for assignment
   const { data: stores = [] } = useQuery<Store[]>({
