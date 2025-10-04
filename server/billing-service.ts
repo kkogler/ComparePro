@@ -1088,8 +1088,19 @@ export class BillingService {
         // Generate username from email (part before @)
         const username = email ? email.split('@')[0] : 'admin';
         
-        // 1. Check and create admin user if missing
-        const existingAdmins = await tx
+        // 1. Check if user exists GLOBALLY by email (Option 1: Global email uniqueness)
+        let existingUserGlobally;
+        if (email) {
+          const globalUsers = await tx
+            .select()
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
+          existingUserGlobally = globalUsers[0];
+        }
+
+        // 2. Check if this user is already an admin for THIS company
+        const existingAdminsInCompany = await tx
           .select({ id: users.id, username: users.username, email: users.email })
           .from(users)
           .where(and(
@@ -1099,17 +1110,79 @@ export class BillingService {
           .limit(1);
 
         let adminUser;
-        let tempPasswordRaw: string | null = null; // Declare in proper scope
+        let tempPasswordRaw: string | null = null;
         let isNewAdminUser = false;
+        let isExistingUserNewCompany = false; // User exists but new to this company
         
-        if (existingAdmins.length > 0) {
-          console.log('✅ BillingService: Admin user already exists, using existing', {
+        if (existingAdminsInCompany.length > 0) {
+          // Admin already exists for THIS company
+          console.log('✅ BillingService: Admin user already exists for this company', {
             companyId,
-            existingAdminId: existingAdmins[0].id,
-            username: existingAdmins[0].username
+            existingAdminId: existingAdminsInCompany[0].id,
+            username: existingAdminsInCompany[0].username
           });
-          adminUser = existingAdmins[0];
+          adminUser = existingAdminsInCompany[0];
+        } else if (existingUserGlobally) {
+          // User exists globally but not as admin for THIS company - add them
+          console.log('🔄 BillingService: User exists globally, adding to new company', {
+            userId: existingUserGlobally.id,
+            email: existingUserGlobally.email,
+            newCompanyId: companyId,
+            originalCompanyId: existingUserGlobally.companyId
+          });
+          
+          // Create a new admin user record for this company
+          // Note: This creates a separate user record because our schema has companyId as part of the user
+          isExistingUserNewCompany = true;
+          isNewAdminUser = true; // Treat as new for this company
+          
+          // Generate new temporary password for the new company
+          tempPasswordRaw = randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+          const hashedTempPassword = await hashPassword(tempPasswordRaw);
+
+          const firstName = provider === 'zoho' ? 
+            (customerData.first_name || customerData.contactpersons?.[0]?.first_name || customerData.display_name?.split(' ')[0]) : 
+            customerData.first_name;
+          const lastName = provider === 'zoho' ? 
+            (customerData.last_name || customerData.contactpersons?.[0]?.last_name || customerData.display_name?.split(' ').slice(1).join(' ')) : 
+            customerData.last_name;
+          
+          const generatedDisplayName = (firstName && lastName) ? 
+            `${firstName.charAt(0)}${lastName}`.toLowerCase().replace(/[^a-z0-9]/g, '') : 
+            username;
+
+          const adminUserData: InsertUser = {
+            companyId,
+            username: email ? email : username,
+            email: email || `admin@company-${companyId}.local`,
+            password: hashedTempPassword,
+            role: 'admin',
+            firstName: firstName || existingUserGlobally.firstName || 'Admin',
+            lastName: lastName || existingUserGlobally.lastName || 'User',
+            displayName: generatedDisplayName,
+            isAdmin: true,
+            status: 'active',
+            activationToken: null,
+            activationTokenExpires: null,
+            isActive: true
+          };
+
+          console.log('👤 BillingService: Creating admin user for new company (existing user)', {
+            username: adminUserData.username,
+            email: adminUserData.email,
+            displayName: adminUserData.displayName
+          });
+
+          const [newAdminUser] = await tx.insert(users).values(adminUserData).returning();
+          adminUser = newAdminUser;
+          
+          console.log('✅ BillingService: Admin user created for new company', {
+            userId: adminUser.id,
+            username: adminUser.username,
+            companyId
+          });
         } else {
+          // Brand new user - never seen before
           isNewAdminUser = true;
           
           // Create admin user with temporary password and active status
