@@ -1435,18 +1435,18 @@ export class BillingService {
             .where(eq(companies.id, companyId))
             .limit(1);
 
-          const settingsData = {
+          const settingsData: any = {
             companyId,
             platformAccountNumber: company[0]?.billingSubscriptionId || `ACCT-${companyId}`,
-            storeAddress1: customerData?.address1 || 'Address not provided',
-            storeAddress2: customerData?.address2 || null,
-            storeCity: customerData?.city || 'City not provided',
-            storeState: customerData?.state || 'State not provided',
-            storeZipCode: customerData?.zipCode || customerData?.zip || 'Zip not provided',
-            microbizEnabled: false,
-            showVendorCosts: true,
-            autoRefreshResults: false,
-            includeUnmatchedUpcs: true
+            // NOTE: Database has 'store_address' not 'store_address1' - using raw insert
+            store_address: customerData?.address1 || 'Address not provided',
+            store_city: customerData?.city || 'City not provided',
+            store_state: customerData?.state || 'State not provided',
+            store_zip_code: customerData?.zipCode || customerData?.zip || 'Zip not provided',
+            microbiz_enabled: false,
+            show_vendor_costs: true,
+            auto_refresh_results: false,
+            include_unmatched_upcs: true
           };
 
           await tx.insert(settingsTable).values(settingsData);
