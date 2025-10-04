@@ -35,6 +35,9 @@ export class BillingService {
   // Concurrency locks to prevent race conditions (still needed for customer-level locking)
   private webhookLocks = new Map<string, WebhookLock>();
   
+  // Company-level provisioning locks to prevent duplicate provisioning
+  private concurrencyLocks = new Set<string>();
+  
   // Lock timeout: 30 seconds (prevents indefinite locks)
   private readonly LOCK_TIMEOUT_MS = 30 * 1000;
   
