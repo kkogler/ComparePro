@@ -504,6 +504,7 @@ export class BillingService {
     const [newCompany] = await db.insert(companies).values({
       name,
       slug,
+      email, // Store signup email for admin dashboard
       billingProvider: provider,
       billingCustomerId: customerId,
       status: 'active',
@@ -673,9 +674,16 @@ export class BillingService {
                          fallbackCustomerData.name ||
                          `Company-${customerId}`;
       
+      // Extract email for signup tracking
+      const companyEmail = fallbackCustomerData.email || 
+                          subscription.customer_email ||
+                          subscription.email ||
+                          null;
+      
       const minimalCompanyData = {
         name: companyName,
         slug: `company-${customerId}`.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+        email: companyEmail, // Store signup email for admin dashboard
         plan: planCode || 'free',
         billingProvider: provider,
         billingCustomerId: customerId,
