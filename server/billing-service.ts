@@ -1348,15 +1348,31 @@ export class BillingService {
           phone: customerData?.phone || customerData?.billing_address?.phone || null
         };
 
-          console.log('🏪 BillingService: Creating default store');
-          const [newDefaultStore] = await tx.insert(stores).values(defaultStoreData).returning();
-          defaultStore = newDefaultStore;
-          
-          console.log('✅ BillingService: Default store created successfully', {
-            storeId: defaultStore.id,
-            storeName: defaultStore.name,
-            storeSlug: defaultStore.slug
+          console.log('🏪 BillingService: Creating default store', { 
+            companyId, 
+            storeName: defaultStoreData.name,
+            storeSlug: defaultStoreData.slug 
           });
+          
+          try {
+            const [newDefaultStore] = await tx.insert(stores).values(defaultStoreData).returning();
+            defaultStore = newDefaultStore;
+            
+            console.log('✅ BillingService: Default store created successfully', {
+              storeId: defaultStore.id,
+              storeName: defaultStore.name,
+              storeSlug: defaultStore.slug
+            });
+          } catch (storeError: any) {
+            console.error('❌ BillingService: Failed to create store:', {
+              error: storeError.message,
+              code: storeError.code,
+              detail: storeError.detail,
+              constraint: storeError.constraint,
+              storeData: defaultStoreData
+            });
+            throw storeError;
+          }
         }
 
         // 4. Check and create user-store mappings if missing
@@ -1511,19 +1527,39 @@ export class BillingService {
           const settingsData = {
             companyId,
             platformAccountNumber: company[0]?.billingSubscriptionId || `ACCT-${companyId}`,
-            storeAddress1: customerData?.address1 || 'Address not provided',
-            storeAddress2: customerData?.address2 || null,
-            storeCity: customerData?.city || 'City not provided',
-            storeState: customerData?.state || 'State not provided',
-            storeZipCode: customerData?.zipCode || customerData?.zip || 'Zip not provided',
+            storeAddress1: customerData?.address1 || customerData?.billing_address?.street || 'Address not provided',
+            storeAddress2: customerData?.address2 || customerData?.billing_address?.street2 || null,
+            storeCity: customerData?.city || customerData?.billing_address?.city || 'City not provided',
+            storeState: customerData?.state || customerData?.billing_address?.state || 'State not provided',
+            storeZipCode: customerData?.zipCode || customerData?.zip || customerData?.billing_address?.zip || 'Zip not provided',
             microbizEnabled: false,
             showVendorCosts: true,
             autoRefreshResults: false,
             includeUnmatchedUpcs: true
           };
 
-          await tx.insert(settingsTable).values(settingsData);
-          console.log('✅ BillingService: Company settings created with account number:', settingsData.platformAccountNumber);
+          console.log('📝 BillingService: Settings data to insert:', {
+            companyId: settingsData.companyId,
+            storeAddress1: settingsData.storeAddress1,
+            storeCity: settingsData.storeCity,
+            storeState: settingsData.storeState,
+            storeZipCode: settingsData.storeZipCode
+          });
+
+          try {
+            await tx.insert(settingsTable).values(settingsData);
+            console.log('✅ BillingService: Company settings created with account number:', settingsData.platformAccountNumber);
+          } catch (settingsError: any) {
+            console.error('❌ BillingService: Failed to insert settings:', {
+              error: settingsError.message,
+              code: settingsError.code,
+              detail: settingsError.detail,
+              constraint: settingsError.constraint,
+              column: settingsError.column,
+              settingsData: settingsData
+            });
+            throw settingsError;
+          }
         } else {
           console.log('✅ BillingService: Company settings already exist');
         }
