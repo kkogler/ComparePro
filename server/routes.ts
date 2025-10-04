@@ -7229,9 +7229,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId: normalized.customer?.customer_id
       });
       
+      console.log('📦 IMPORTING BillingService...', { requestId });
+      
       // Import and use BillingService for clean architecture
       const { BillingService } = await import('./billing-service');
+      
+      console.log('✅ BillingService imported, creating instance...', { requestId });
       const billingService = new BillingService();
+      
+      console.log('✅ BillingService instance created, calling processZohoWebhook...', { requestId });
       
       try {
         await billingService.processZohoWebhook(normalized);
@@ -7270,7 +7276,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventId: normalized.eventId
       });
     } catch (error: any) {
-      console.error('ZOHO WEBHOOK ERROR:', error);
+      console.error('🚨 ZOHO WEBHOOK ERROR (OUTER CATCH):', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        fullError: String(error)
+      });
       res.status(500).json({ error: error.message });
     }
   });

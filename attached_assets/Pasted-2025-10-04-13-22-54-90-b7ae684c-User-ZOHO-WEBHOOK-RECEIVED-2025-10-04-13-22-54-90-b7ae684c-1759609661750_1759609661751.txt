@@ -1,0 +1,232 @@
+2025-10-04 13:22:54.90
+b7ae684c
+User
+🔔 ZOHO WEBHOOK RECEIVED {
+2025-10-04 13:22:54.90
+b7ae684c
+User
+url: '/api/webhooks/zoho',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+method: 'POST',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+bodyKeys: [ 'subscription' ],
+2025-10-04 13:22:54.90
+b7ae684c
+User
+headers: {
+2025-10-04 13:22:54.90
+b7ae684c
+User
+'x-zoho-webhook-signature': 'present',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+'x-signature': 'missing'
+2025-10-04 13:22:54.90
+b7ae684c
+User
+authMethod: 'signature',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+rawBodyExists: true,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+🔐 WEBHOOK AUTH: Signature provided {
+2025-10-04 13:22:54.90
+b7ae684c
+User
+requestId: '3faf42ad-c84f-48d6-b004-f142ad7f6830',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+signatureLength: 64
+2025-10-04 13:22:54.90
+b7ae684c
+User
+}
+2025-10-04 13:22:54.90
+b7ae684c
+User
+🔍 RAW BODY DEBUG: {
+2025-10-04 13:22:54.90
+b7ae684c
+User
+requestId: '3faf42ad-c84f-48d6-b004-f142ad7f6830',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+rawBodyExists: true,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+rawBodyLength: 5357,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+rawBodyPreview: '{"subscription":{"next_shipment_day":"","updated_time":"2025-10-04T13:22:50-0700","zcrm_potential_id":"","trial_extended_count":0,"addons":[],"next_bi',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+updated_time: '2025-10-04T13:22:50-0700',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+trial_extended_count: 0,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+addons: [],
+2025-10-04 13:22:54.90
+b7ae684c
+User
+next_billing_at: '2025-11-04',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+taxes: [],
+2025-10-04 13:22:54.90
+b7ae684c
+User
+discount: 0,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+line_items: [Array],
+2025-10-04 13:22:54.90
+b7ae684c
+User
+end_of_term: false,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+shipping_interval_unit: 'months',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+invoice_notes: 'Thanks for your business.',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+notes: [],
+2025-10-04 13:22:54.90
+b7ae684c
+User
+reference_id: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+max_date_for_in_term: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+coupon_duration: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+is_in_term_reactivation_scheduled: false,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+last_modified_by_id: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+created_time: '2025-10-04T13:22:49-0700',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+is_inclusive_tax: false,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+custom_fields: [],
+2025-10-04 13:22:54.90
+b7ae684c
+User
+last_child_inv_status: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+last_shipment_at: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+product_name: 'FFL BestPrice',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+can_invoice_prorated_amount: true,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+tax_id: '4899864000000087009',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+activated_at: '2025-10-04',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+name: 'FFL BestPrice-Free Plan',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+zcrm_potential_name: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+created_by_id: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+billing_mode: 'prepaid',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+last_child_inv_balance: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+channel_reference_id: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+shipping_interval: 1,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+is_item_subscriptions: false,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+scheduled_cancellation_date: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+last_shipment_day: '',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+bcy_discount_total: 0,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+amount: 0,
+2025-10-04 13:22:54.90
+b7ae684c
+User
+current_term_starts_at: '2025-10-04',
+2025-10-04 13:22:54.90
+b7ae684c
+User
+🔍 WEBHOOK NORMALIZED {
+
+Wrap
+
+Colors
