@@ -1061,6 +1061,16 @@ export class BillingService {
       timestamp: new Date().toISOString()
     });
 
+    // **CRITICAL FIX**: Acquire company-level lock to prevent concurrent provisioning
+    const lockKey = `provision-company-${companyId}`;
+    if (this.concurrencyLocks.has(lockKey)) {
+      console.log(`⏳ BillingService: Provisioning already in progress for company ${companyId}, skipping duplicate request`);
+      return;
+    }
+    
+    this.concurrencyLocks.add(lockKey);
+    console.log(`🔒 BillingService: Acquired provisioning lock for company ${companyId}`);
+
     try {
       // Start a database transaction to ensure atomicity
       await db.transaction(async (tx) => {
@@ -1612,6 +1622,10 @@ export class BillingService {
         timestamp: new Date().toISOString()
       });
       throw error; // Re-throw to let caller handle
+    } finally {
+      // **RELEASE LOCK**: Always release the provisioning lock
+      this.concurrencyLocks.delete(lockKey);
+      console.log(`🔓 BillingService: Released provisioning lock for company ${companyId}`);
     }
   }
 
