@@ -1181,14 +1181,44 @@ export class BillingService {
             displayName: adminUserData.displayName
           });
 
-          const [newAdminUser] = await tx.insert(users).values(adminUserData).returning();
-          adminUser = newAdminUser;
-          
-          console.log('✅ BillingService: Admin user created for new company', {
-            userId: adminUser.id,
-            username: adminUser.username,
-            companyId
-          });
+          try {
+            const [newAdminUser] = await tx.insert(users).values(adminUserData).returning();
+            adminUser = newAdminUser;
+            
+            console.log('✅ BillingService: Admin user created for new company', {
+              userId: adminUser.id,
+              username: adminUser.username,
+              companyId
+            });
+          } catch (userError: any) {
+            console.error('❌ BillingService: Admin user creation failed, attempting recovery:', {
+              error: userError.message,
+              code: userError.code
+            });
+            
+            // **RECOVERY**: If duplicate key error, query for existing admin
+            if (userError.message?.includes('duplicate key') || userError.code === '23505') {
+              console.log('🔄 BillingService: Duplicate admin user detected, querying for existing...');
+              const existingAdminRetry = await tx
+                .select()
+                .from(users)
+                .where(and(eq(users.companyId, companyId), eq(users.role, 'admin')))
+                .limit(1);
+              
+              if (existingAdminRetry.length > 0) {
+                adminUser = existingAdminRetry[0];
+                isNewAdminUser = false; // Not new if it already existed
+                tempPasswordRaw = null; // Clear temp password - don't send email on recovery
+                console.log('✅ BillingService: Recovered by using existing admin user', {
+                  userId: adminUser.id
+                });
+              } else {
+                throw userError;
+              }
+            } else {
+              throw userError;
+            }
+          }
         } else {
           // Brand new user - never seen before
           isNewAdminUser = true;
@@ -1234,13 +1264,43 @@ export class BillingService {
           displayName: adminUserData.displayName
         });
 
-          const [newAdminUser] = await tx.insert(users).values(adminUserData).returning();
-          adminUser = newAdminUser;
-          
-          console.log('✅ BillingService: Admin user created successfully', {
-            userId: adminUser.id,
-            username: adminUser.username
-          });
+          try {
+            const [newAdminUser] = await tx.insert(users).values(adminUserData).returning();
+            adminUser = newAdminUser;
+            
+            console.log('✅ BillingService: Admin user created successfully', {
+              userId: adminUser.id,
+              username: adminUser.username
+            });
+          } catch (userError: any) {
+            console.error('❌ BillingService: Admin user creation failed, attempting recovery:', {
+              error: userError.message,
+              code: userError.code
+            });
+            
+            // **RECOVERY**: If duplicate key error, query for existing admin
+            if (userError.message?.includes('duplicate key') || userError.code === '23505') {
+              console.log('🔄 BillingService: Duplicate admin user detected, querying for existing...');
+              const existingAdminRetry = await tx
+                .select()
+                .from(users)
+                .where(and(eq(users.companyId, companyId), eq(users.role, 'admin')))
+                .limit(1);
+              
+              if (existingAdminRetry.length > 0) {
+                adminUser = existingAdminRetry[0];
+                isNewAdminUser = false; // Not new if it already existed
+                tempPasswordRaw = null; // Clear temp password - don't send email on recovery
+                console.log('✅ BillingService: Recovered by using existing admin user', {
+                  userId: adminUser.id
+                });
+              } else {
+                throw userError;
+              }
+            } else {
+              throw userError;
+            }
+          }
         }
 
         // 2. Check and create default user if missing
@@ -1295,13 +1355,45 @@ export class BillingService {
             displayName: defaultUserData.displayName
           });
 
-          const [newDefaultUser] = await tx.insert(users).values(defaultUserData).returning();
-          defaultUser = newDefaultUser;
-          
-          console.log('✅ BillingService: Default user created successfully', {
-            userId: defaultUser.id,
-            username: defaultUser.username
-          });
+          try {
+            const [newDefaultUser] = await tx.insert(users).values(defaultUserData).returning();
+            defaultUser = newDefaultUser;
+            
+            console.log('✅ BillingService: Default user created successfully', {
+              userId: defaultUser.id,
+              username: defaultUser.username
+            });
+          } catch (defaultUserError: any) {
+            console.error('❌ BillingService: Default user creation failed, attempting recovery:', {
+              error: defaultUserError.message,
+              code: defaultUserError.code
+            });
+            
+            // **RECOVERY**: If duplicate key error, query for existing default user
+            if (defaultUserError.message?.includes('duplicate key') || defaultUserError.code === '23505') {
+              console.log('🔄 BillingService: Duplicate default user detected, querying for existing...');
+              const existingDefaultRetry = await tx
+                .select()
+                .from(users)
+                .where(and(
+                  eq(users.companyId, companyId),
+                  eq(users.role, 'user'),
+                  eq(users.username, defaultUsername)
+                ))
+                .limit(1);
+              
+              if (existingDefaultRetry.length > 0) {
+                defaultUser = existingDefaultRetry[0];
+                console.log('✅ BillingService: Recovered by using existing default user', {
+                  userId: defaultUser.id
+                });
+              } else {
+                throw defaultUserError;
+              }
+            } else {
+              throw defaultUserError;
+            }
+          }
         }
 
         // 3. Check and create default store if missing
@@ -1372,14 +1464,37 @@ export class BillingService {
               storeSlug: defaultStore.slug
             });
           } catch (storeError: any) {
-            console.error('❌ BillingService: Failed to create store:', {
+            console.error('❌ BillingService: Store creation failed, attempting recovery:', {
               error: storeError.message,
               code: storeError.code,
               detail: storeError.detail,
-              constraint: storeError.constraint,
-              storeData: defaultStoreData
+              constraint: storeError.constraint
             });
-            throw storeError;
+            
+            // **RECOVERY**: If duplicate key error, the store was created by another process
+            // Query again to get the existing store
+            if (storeError.message?.includes('duplicate key') || storeError.code === '23505') {
+              console.log('🔄 BillingService: Duplicate store detected, querying for existing store...');
+              const existingStoreRetry = await tx
+                .select()
+                .from(stores)
+                .where(eq(stores.companyId, companyId))
+                .limit(1);
+              
+              if (existingStoreRetry.length > 0) {
+                defaultStore = existingStoreRetry[0];
+                console.log('✅ BillingService: Recovered by using existing store', {
+                  storeId: defaultStore.id,
+                  storeName: defaultStore.name
+                });
+              } else {
+                console.error('❌ BillingService: Could not recover - no existing store found after duplicate error');
+                throw storeError;
+              }
+            } else {
+              // Non-duplicate error, can't recover
+              throw storeError;
+            }
           }
         }
 
