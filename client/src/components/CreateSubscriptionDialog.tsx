@@ -36,7 +36,6 @@ export function CreateSubscriptionDialog({ open, onOpenChange }: CreateSubscript
     email: '',
     phone: '',
     address1: '',
-    address2: '',
     city: '',
     state: '',
     zipCode: '',
@@ -110,7 +109,6 @@ export function CreateSubscriptionDialog({ open, onOpenChange }: CreateSubscript
         email: '',
         phone: '',
         address1: '',
-        address2: '',
         city: '',
         state: '',
         zipCode: '',
@@ -316,15 +314,6 @@ export function CreateSubscriptionDialog({ open, onOpenChange }: CreateSubscript
                   id="address1"
                   value={formData.address1}
                   onChange={(e) => setFormData({ ...formData, address1: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address2">Address Line 2</Label>
-                <Input
-                  id="address2"
-                  value={formData.address2}
-                  onChange={(e) => setFormData({ ...formData, address2: e.target.value })}
                 />
               </div>
 
