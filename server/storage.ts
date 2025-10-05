@@ -263,70 +263,66 @@ export class DatabaseStorage implements IStorage {
 
   async getAllCompaniesWithStats(): Promise<any[]> {
     try {
-      const companiesData = await db.select().from(companies);
-      
-      // Get stats for each company
-      const companiesWithStats = await Promise.all(
-        companiesData.map(async (company) => {
-          // Get store count for this company
-          const storeCount = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(stores)
-            .where(eq(stores.companyId, company.id));
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
 
-          // Get monthly orders count (orders created this month)
-          const startOfMonth = new Date();
-          startOfMonth.setDate(1);
-          startOfMonth.setHours(0, 0, 0, 0);
-          
-          const monthlyOrders = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(orders)
-            .where(
-              and(
-                eq(orders.companyId, company.id),
-                gte(orders.createdAt, startOfMonth)
-              )
-            );
+      const result = await db.execute(sql`
+        SELECT 
+          c.*,
+          COALESCE(store_counts.count, 0) as store_count,
+          COALESCE(order_counts.count, 0) as monthly_orders,
+          user_stats.last_login,
+          sub_events.subscription_created_at,
+          COALESCE(c.email, admin_users.email) as signup_email
+        FROM companies c
+        LEFT JOIN (
+          SELECT company_id, COUNT(*) as count
+          FROM stores
+          GROUP BY company_id
+        ) store_counts ON c.id = store_counts.company_id
+        LEFT JOIN (
+          SELECT company_id, COUNT(*) as count
+          FROM orders
+          WHERE created_at >= ${startOfMonth}
+          GROUP BY company_id
+        ) order_counts ON c.id = order_counts.company_id
+        LEFT JOIN (
+          SELECT company_id, MAX(last_login) as last_login
+          FROM users
+          GROUP BY company_id
+        ) user_stats ON c.id = user_stats.company_id
+        LEFT JOIN (
+          SELECT DISTINCT ON (company_id) company_id, created_at as subscription_created_at
+          FROM billing_events
+          WHERE event_type = 'subscription_created'
+          ORDER BY company_id, created_at ASC
+        ) sub_events ON c.id = sub_events.company_id
+        LEFT JOIN (
+          SELECT DISTINCT ON (company_id) company_id, email
+          FROM users
+          WHERE role = 'admin'
+          ORDER BY company_id, id ASC
+        ) admin_users ON c.id = admin_users.company_id
+        ORDER BY c.id
+      `);
 
-          // Get most recent login for this company
-          const lastLogin = await db
-            .select({ lastLogin: sql<Date>`max(last_login)` })
-            .from(users)
-            .where(eq(users.companyId, company.id));
-
-          // Get subscription creation date from earliest subscription_created billing event
-          const subscriptionCreatedEvent = await db
-            .select({ createdAt: billingEvents.createdAt })
-            .from(billingEvents)
-            .where(
-              and(
-                eq(billingEvents.companyId, company.id),
-                eq(billingEvents.eventType, 'subscription_created')
-              )
-            )
-            .orderBy(asc(billingEvents.createdAt))
-            .limit(1);
-
-          // Fallback signup email: use admin user's email if company email missing
-          const [adminUser] = await db
-            .select({ email: users.email })
-            .from(users)
-            .where(and(eq(users.companyId, company.id), eq(users.role, 'admin')))
-            .limit(1);
-
-          return {
-            ...company,
-            storeCount: storeCount[0]?.count || 0,
-            monthlyOrders: monthlyOrders[0]?.count || 0,
-            lastLogin: lastLogin[0]?.lastLogin || null,
-            subscriptionCreatedAt: subscriptionCreatedEvent[0]?.createdAt || null,
-            signupEmail: company.email || adminUser?.email || null
-          };
-        })
-      );
-
-      return companiesWithStats;
+      return result.rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        status: row.status,
+        plan: row.plan,
+        email: row.email,
+        billingEmail: row.billing_email,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        storeCount: parseInt(row.store_count || '0'),
+        monthlyOrders: parseInt(row.monthly_orders || '0'),
+        lastLogin: row.last_login,
+        subscriptionCreatedAt: row.subscription_created_at,
+        signupEmail: row.signup_email
+      }));
     } catch (error) {
       console.error('Error getting companies with stats:', error);
       return [];
