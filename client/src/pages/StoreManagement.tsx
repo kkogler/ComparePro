@@ -1030,19 +1030,6 @@ export default function StoreManagement() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={editStoreForm.control}
-                name="address2"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address Line 2</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Suite, unit, building, floor, etc." data-testid="input-edit-store-address2" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <div className="grid grid-cols-4 gap-4">
                 <FormField
                   control={editStoreForm.control}
