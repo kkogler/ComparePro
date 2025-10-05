@@ -157,16 +157,42 @@ export class CredentialVaultService {
       if (vendorNameNormalized.includes('bill') && vendorNameNormalized.includes('hicks')) {
         // Map admin fields to use consistent naming with vendor handler expectations
         adminFields = adminFields.map(field => {
-          if (field.name === 'ftpHost') {
+          const normalizedName = field.name.toLowerCase().replace(/_/g, '');
+          if (normalizedName === 'ftphost' || normalizedName === 'ftpserver') {
             return { ...field, name: 'ftpHost' }; // Keep as ftpHost for admin
+          }
+          if (normalizedName === 'ftpusername') {
+            return { ...field, name: 'ftpUsername' };
+          }
+          if (normalizedName === 'ftppassword') {
+            return { ...field, name: 'ftpPassword' };
+          }
+          if (normalizedName === 'ftpport') {
+            return { ...field, name: 'ftpPort' };
+          }
+          if (normalizedName === 'ftpbasepath') {
+            return { ...field, name: 'ftpBasePath' };
           }
           return field;
         });
         
-        // Map store fields to match database schema but add alias support
+        // Map store fields to match database schema (ftp_server, not ftpHost)
         storeFields = storeFields.map(field => {
-          if (field.name === 'ftpHost') {
-            return { ...field, name: 'ftpServer' }; // Use ftpServer for store (matches DB schema)
+          const normalizedName = field.name.toLowerCase().replace(/_/g, '');
+          if (normalizedName === 'ftphost' || normalizedName === 'ftpserver') {
+            return { ...field, name: 'ftp_server' }; // Use ftp_server for store (matches DB column)
+          }
+          if (normalizedName === 'ftpusername') {
+            return { ...field, name: 'ftp_username' };
+          }
+          if (normalizedName === 'ftppassword') {
+            return { ...field, name: 'ftp_password' };
+          }
+          if (normalizedName === 'ftpport') {
+            return { ...field, name: 'ftp_port' };
+          }
+          if (normalizedName === 'ftpbasepath') {
+            return { ...field, name: 'ftp_base_path' };
           }
           return field;
         });
@@ -474,14 +500,30 @@ export class CredentialVaultService {
    * Supports both snake_case (schema) and camelCase (frontend) field names
    */
   private validateCredentials(credentials: Record<string, string>, schema: CredentialField[]): void {
-    // Helper to convert snake_case to camelCase
-    const snakeToCamel = (str: string) => str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    // Helper to convert snake_case to camelCase (handles uppercase letters)
+    const snakeToCamel = (str: string) => {
+      return str.toLowerCase().replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    };
     
     for (const field of schema) {
-      // Check both snake_case and camelCase versions of the field name
+      // Check multiple variations of the field name
       const snakeCaseName = field.name;
       const camelCaseName = snakeToCamel(field.name);
-      const value = credentials[snakeCaseName] || credentials[camelCaseName];
+      const lowerCaseName = field.name.toLowerCase();
+      
+      // Try to find the value in credentials using various name formats
+      let value = credentials[snakeCaseName] || credentials[camelCaseName];
+      
+      // If not found, try case-insensitive match
+      if (!value) {
+        const credentialKey = Object.keys(credentials).find(key => 
+          key.toLowerCase() === lowerCaseName || 
+          key.toLowerCase().replace(/_/g, '') === lowerCaseName.replace(/_/g, '')
+        );
+        if (credentialKey) {
+          value = credentials[credentialKey];
+        }
+      }
       
       if (field.required && (!value || value.trim() === '')) {
         throw new Error(`Required field missing: ${field.label}`);

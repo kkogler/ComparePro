@@ -802,36 +802,59 @@ export class BillingService {
     // **CRITICAL FIX**: Provision admin user and default store for subscription creation
     // Only run if provisioning wasn't already completed (prevents duplicate calls and duplicate emails)
     if (finalOrg && !provisioningCompleted) {
-      console.log('🔄 BillingService: Running deferred provisioning (company existed or first provisioning failed)');
-      try {
-        const customerForProvisioning = customer || subscription.customer || subscription.contactpersons?.[0];
-        
-        // Extract and map retail vertical from Zoho custom fields
-        if (provider === 'zoho' && customerForProvisioning) {
-          const retailVerticalField = customerForProvisioning.cf_retail_vertical || 
-                                      customerForProvisioning.custom_fields?.retail_vertical ||
-                                      customerForProvisioning.custom_fields?.find((f: any) => 
-                                        f.label?.toLowerCase().includes('retail') && 
-                                        f.label?.toLowerCase().includes('vertical')
-                                      )?.value;
+      console.log('🔄 BillingService: Checking if provisioning already completed...');
+      
+      // **DATABASE CHECK**: See if this company was already provisioned
+      // Check for existing admin users and stores as indicators of completed provisioning
+      const [existingAdminUsers, existingStores] = await Promise.all([
+        db.select({ id: users.id })
+          .from(users)
+          .where(and(
+            eq(users.companyId, finalOrg.id),
+            eq(users.role, 'admin')
+          ))
+          .limit(1),
+        db.select({ id: stores.id })
+          .from(stores)
+          .where(eq(stores.companyId, finalOrg.id))
+          .limit(1)
+      ]);
+      
+      if (existingAdminUsers.length > 0 && existingStores.length > 0) {
+        console.log('✅ BillingService: Provisioning already completed (admin user and store exist), skipping duplicate provisioning');
+        provisioningCompleted = true; // Update flag for consistency
+      } else {
+        console.log('🔄 BillingService: Running provisioning (company existed or first provisioning failed)');
+        try {
+          const customerForProvisioning = customer || subscription.customer || subscription.contactpersons?.[0];
           
-          if (retailVerticalField) {
-            console.log(`📋 Extracting retail vertical from Zoho: "${retailVerticalField}"`);
-            const retailVerticalId = await this.mapRetailVerticalToId(retailVerticalField);
-            if (retailVerticalId) {
-              customerForProvisioning.retailVerticalId = retailVerticalId;
+          // Extract and map retail vertical from Zoho custom fields
+          if (provider === 'zoho' && customerForProvisioning) {
+            const retailVerticalField = customerForProvisioning.cf_retail_vertical || 
+                                        customerForProvisioning.custom_fields?.retail_vertical ||
+                                        customerForProvisioning.custom_fields?.find((f: any) => 
+                                          f.label?.toLowerCase().includes('retail') && 
+                                          f.label?.toLowerCase().includes('vertical')
+                                        )?.value;
+            
+            if (retailVerticalField) {
+              console.log(`📋 Extracting retail vertical from Zoho: "${retailVerticalField}"`);
+              const retailVerticalId = await this.mapRetailVerticalToId(retailVerticalField);
+              if (retailVerticalId) {
+                customerForProvisioning.retailVerticalId = retailVerticalId;
+              }
             }
           }
+          
+          await this.provisionCompanyOnboarding(finalOrg.id, customerForProvisioning, provider);
+        } catch (provisioningError) {
+          console.error('⚠️ BillingService: Failed to provision company onboarding (subscription continues)', {
+            companyId: finalOrg.id,
+            companyName: finalOrg.name,
+            error: provisioningError instanceof Error ? provisioningError.message : String(provisioningError)
+          });
+          // Don't fail the webhook - subscription processing continues even if provisioning fails
         }
-        
-        await this.provisionCompanyOnboarding(finalOrg.id, customerForProvisioning, provider);
-      } catch (provisioningError) {
-        console.error('⚠️ BillingService: Failed to provision company onboarding (subscription continues)', {
-          companyId: finalOrg.id,
-          companyName: finalOrg.name,
-          error: provisioningError instanceof Error ? provisioningError.message : String(provisioningError)
-        });
-        // Don't fail the webhook - subscription processing continues even if provisioning fails
       }
     } else if (provisioningCompleted) {
       console.log('✅ BillingService: Skipping duplicate provisioning - already completed successfully');

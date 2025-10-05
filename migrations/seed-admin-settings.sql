@@ -39,10 +39,10 @@ INSERT INTO admin_settings (
   NOW()
 )
 ON CONFLICT (id) DO UPDATE SET
-  -- Only update if the pricing defaults are NULL (preserve existing admin settings)
-  default_pricing_strategy = COALESCE(admin_settings.default_pricing_strategy, 'msrp'),
-  default_pricing_fallback_strategy = COALESCE(admin_settings.default_pricing_fallback_strategy, 'cost_markup'),
-  default_pricing_fallback_markup_percentage = COALESCE(admin_settings.default_pricing_fallback_markup_percentage, 55.00),
+  -- Force update pricing defaults to ensure consistency (can be changed in Admin UI later)
+  default_pricing_strategy = 'msrp',
+  default_pricing_fallback_strategy = 'cost_markup',
+  default_pricing_fallback_markup_percentage = 55.00,
   updated_at = NOW();
 
 -- Verify the admin settings

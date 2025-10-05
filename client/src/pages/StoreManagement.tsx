@@ -910,7 +910,9 @@ export default function StoreManagement() {
                                 maxLength={8}
                                 data-testid="input-edit-store-shortname"
                                 onChange={(e) => {
-                                  field.onChange(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+                                  // Allow alphanumeric only, convert to uppercase, limit to 8 chars
+                                  const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 8);
+                                  field.onChange(value);
                                 }}
                               />
                             </FormControl>
@@ -1064,7 +1066,7 @@ export default function StoreManagement() {
                     <FormItem>
                       <FormLabel>Zip Code</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="12345" data-testid="input-edit-store-zip" />
+                        <Input {...field} placeholder="Zip" data-testid="input-edit-store-zip" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1091,7 +1093,7 @@ export default function StoreManagement() {
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="(555) 123-4567" data-testid="input-edit-store-phone" />
+                      <Input {...field} placeholder="phone" data-testid="input-edit-store-phone" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
