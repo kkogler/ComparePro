@@ -1,6 +1,6 @@
 import { db } from './db';
-import { companies, billingEvents, usageMetrics, users, stores, userStores, vendors, supportedVendors } from '@shared/schema';
-import { eq, and, or, isNull } from 'drizzle-orm';
+import { companies, billingEvents, usageMetrics, users, stores, userStores, vendors, supportedVendors, retailVerticals } from '@shared/schema';
+import { eq, and, or, isNull, sql } from 'drizzle-orm';
 import { storage } from './storage';
 import { hashPassword } from './auth';
 import type { InsertUser, InsertStore, InsertUserStore } from '@shared/schema';
@@ -643,6 +643,24 @@ export class BillingService {
             
             // Auto-provision admin user and default store for newly created company
             try {
+              // Extract and map retail vertical from Zoho custom fields
+              if (provider === 'zoho' && customerToUse) {
+                const retailVerticalField = customerToUse.cf_retail_vertical || 
+                                            customerToUse.custom_fields?.retail_vertical ||
+                                            customerToUse.custom_fields?.find((f: any) => 
+                                              f.label?.toLowerCase().includes('retail') && 
+                                              f.label?.toLowerCase().includes('vertical')
+                                            )?.value;
+                
+                if (retailVerticalField) {
+                  console.log(`📋 Extracting retail vertical from Zoho: "${retailVerticalField}"`);
+                  const retailVerticalId = await this.mapRetailVerticalToId(retailVerticalField);
+                  if (retailVerticalId) {
+                    customerToUse.retailVerticalId = retailVerticalId;
+                  }
+                }
+              }
+              
               await this.provisionCompanyOnboarding(newOrg.id, customerToUse, provider);
               provisioningCompleted = true; // Mark as completed to prevent duplicate calls
               console.log('✅ BillingService: Initial provisioning completed successfully');
@@ -787,6 +805,25 @@ export class BillingService {
       console.log('🔄 BillingService: Running deferred provisioning (company existed or first provisioning failed)');
       try {
         const customerForProvisioning = customer || subscription.customer || subscription.contactpersons?.[0];
+        
+        // Extract and map retail vertical from Zoho custom fields
+        if (provider === 'zoho' && customerForProvisioning) {
+          const retailVerticalField = customerForProvisioning.cf_retail_vertical || 
+                                      customerForProvisioning.custom_fields?.retail_vertical ||
+                                      customerForProvisioning.custom_fields?.find((f: any) => 
+                                        f.label?.toLowerCase().includes('retail') && 
+                                        f.label?.toLowerCase().includes('vertical')
+                                      )?.value;
+          
+          if (retailVerticalField) {
+            console.log(`📋 Extracting retail vertical from Zoho: "${retailVerticalField}"`);
+            const retailVerticalId = await this.mapRetailVerticalToId(retailVerticalField);
+            if (retailVerticalId) {
+              customerForProvisioning.retailVerticalId = retailVerticalId;
+            }
+          }
+        }
+        
         await this.provisionCompanyOnboarding(finalOrg.id, customerForProvisioning, provider);
       } catch (provisioningError) {
         console.error('⚠️ BillingService: Failed to provision company onboarding (subscription continues)', {
@@ -1066,6 +1103,34 @@ export class BillingService {
 
     console.log(`🗺️ Plan mapping: "${planCode}" -> "${planMapping[planCode] || 'free'}" (was ${planMapping[planCode] ? 'mapped' : 'default'})`);
     return planMapping[planCode] || 'free'; // Default to free plan instead of basic
+  }
+
+  // Helper: Map retail vertical name from Zoho to database ID
+  private async mapRetailVerticalToId(retailVerticalName: string): Promise<number | null> {
+    if (!retailVerticalName) return null;
+    
+    try {
+      // Normalize the input
+      const normalizedName = retailVerticalName.toLowerCase().trim();
+      
+      // Query retail_verticals table
+      const [vertical] = await db
+        .select()
+        .from(retailVerticals)
+        .where(sql`LOWER(name) = ${normalizedName}`)
+        .limit(1);
+      
+      if (vertical) {
+        console.log(`✅ Mapped retail vertical "${retailVerticalName}" to ID ${vertical.id}`);
+        return vertical.id;
+      } else {
+        console.log(`⚠️ No retail vertical found for "${retailVerticalName}"`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`❌ Error mapping retail vertical "${retailVerticalName}":`, error);
+      return null;
+    }
   }
 
   // Auto-provision admin user and default store for new company
