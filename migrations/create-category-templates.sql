@@ -33,14 +33,14 @@ BEGIN
   IF firearms_vertical_id IS NOT NULL THEN
     -- Insert Firearms category templates
     INSERT INTO category_templates (retail_vertical_id, name, slug, display_name, description, sort_order) VALUES
-      (firearms_vertical_id, 'Firearms', 'firearms', 'Firearms', 'Handguns, Rifles, Shotguns, and other firearms', 1),
-      (firearms_vertical_id, 'Ammunition', 'ammunition', 'Ammunition', 'Ammunition for all calibers and gauges', 2),
-      (firearms_vertical_id, 'Scopes', 'scopes', 'Scopes', 'Rifle scopes and magnification optics', 3),
-      (firearms_vertical_id, 'Accessories', 'accessories', 'Accessories', 'General firearm accessories', 4),
-      (firearms_vertical_id, 'Optics', 'optics', 'Optics', 'Red dots, holographic sights, and other optics', 5),
-      (firearms_vertical_id, 'Parts', 'parts', 'Parts', 'OEM and replacement parts', 6),
-      (firearms_vertical_id, 'Aftermarket Parts', 'aftermarket-parts', 'Aftermarket Parts', 'Third-party and aftermarket parts', 7),
-      (firearms_vertical_id, 'Nursery and Garden', 'nursery-and-garden', 'Nursery and Garden', 'Outdoor and garden supplies', 8)
+      (firearms_vertical_id, 'Firearms', 'firearms', 'Firearms', 'Firearms, handguns, rifles, shotguns', 1),
+      (firearms_vertical_id, 'Ammunition', 'ammunition', 'Ammunition', 'Ammunition and reloading supplies', 2),
+      (firearms_vertical_id, 'Scopes & Optics', 'scopes-optics', 'Scopes & Optics', 'Scopes, red dots, optics, and sights', 3),
+      (firearms_vertical_id, 'Accessories', 'accessories', 'Accessories', 'Firearm accessories and parts', 4),
+      (firearms_vertical_id, 'Knives & Tools', 'knives-tools', 'Knives & Tools', 'Knives, multi-tools, and field gear', 5),
+      (firearms_vertical_id, 'Apparel', 'apparel', 'Apparel', 'Clothing, hats, and tactical apparel', 6),
+      (firearms_vertical_id, 'Cleaning & Maintenance', 'cleaning-maintenance', 'Cleaning & Maintenance', 'Cleaning supplies and maintenance products', 7),
+      (firearms_vertical_id, 'Safety & Hearing Protection', 'safety-hearing', 'Safety & Hearing Protection', 'Eye and ear protection, safety equipment', 8)
     ON CONFLICT (retail_vertical_id, slug) DO NOTHING;
     
     RAISE NOTICE 'Seeded % category templates for Firearms vertical', 8;
