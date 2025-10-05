@@ -2198,6 +2198,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's store assignments
+  app.get("/org/:slug/api/users/:id/stores", requireOrganizationAccess, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const organizationId = (req as any).organizationId;
+      
+      // Verify user belongs to organization
+      const user = await storage.getUser(userId);
+      if (!user || user.companyId !== organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const userStores = await storage.getUserStores(userId);
+      res.json(userStores);
+    } catch (error) {
+      console.error('Failed to get user stores:', error);
+      res.status(500).json({ message: "Failed to get user stores" });
+    }
+  });
+
+  // Assign user to store
+  app.post("/org/:slug/api/stores/:storeId/users", requireOrganizationAccess, async (req, res) => {
+    try {
+      const storeId = parseInt(req.params.storeId);
+      const organizationId = (req as any).organizationId;
+      const { userId, role, permissions } = req.body;
+      
+      // Verify store belongs to organization
+      const store = await storage.getStore(storeId);
+      if (!store || store.companyId !== organizationId) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      // Verify user belongs to organization
+      const user = await storage.getUser(userId);
+      if (!user || user.companyId !== organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const assignment = await storage.assignUserToStore({
+        userId,
+        storeId,
+        role: role || 'employee',
+        permissions: permissions || [],
+        isActive: true
+      });
+      
+      res.status(201).json(assignment);
+    } catch (error) {
+      console.error('Failed to assign user to store:', error);
+      res.status(500).json({ message: "Failed to assign user to store" });
+    }
+  });
+
+  // Remove user from store
+  app.delete("/org/:slug/api/stores/:storeId/users/:userId", requireOrganizationAccess, async (req, res) => {
+    try {
+      const storeId = parseInt(req.params.storeId);
+      const userId = parseInt(req.params.userId);
+      const organizationId = (req as any).organizationId;
+      
+      // Verify store belongs to organization
+      const store = await storage.getStore(storeId);
+      if (!store || store.companyId !== organizationId) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      // Verify user belongs to organization
+      const user = await storage.getUser(userId);
+      if (!user || user.companyId !== organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const success = await storage.removeUserFromStore(userId, storeId);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to remove user from store" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Failed to remove user from store:', error);
+      res.status(500).json({ message: "Failed to remove user from store" });
+    }
+  });
+
   // Pricing Configuration endpoints
   app.get("/org/:slug/api/pricing-configurations", requireOrganizationAccess, async (req, res) => {
     try {
