@@ -529,6 +529,9 @@ export class BillingService {
       provider
     });
     
+    // Track if provisioning was already completed to prevent duplicate calls
+    let provisioningCompleted = false;
+    
     // Enhanced logging for debugging
     console.log('🔍 SUBSCRIPTION DATA:', JSON.stringify(subscription, null, 2));
     console.log('🔍 CUSTOMER DATA:', JSON.stringify(customer, null, 2));
@@ -641,6 +644,8 @@ export class BillingService {
             // Auto-provision admin user and default store for newly created company
             try {
               await this.provisionCompanyOnboarding(newOrg.id, customerToUse, provider);
+              provisioningCompleted = true; // Mark as completed to prevent duplicate calls
+              console.log('✅ BillingService: Initial provisioning completed successfully');
             } catch (provisionError) {
               console.error(`⚠️ Failed to provision onboarding for company ${newOrg.id}:`, provisionError);
               // Don't throw - company and subscription creation succeeded, provisioning can be retried later
@@ -776,9 +781,10 @@ export class BillingService {
       // Don't fail the webhook - subscription update succeeded
     }
 
-    // **CRITICAL FIX**: Always provision admin user and default store for subscription creation
-    // regardless of whether company already existed - fixes Tide FFL and similar cases
-    if (finalOrg) {
+    // **CRITICAL FIX**: Provision admin user and default store for subscription creation
+    // Only run if provisioning wasn't already completed (prevents duplicate calls and duplicate emails)
+    if (finalOrg && !provisioningCompleted) {
+      console.log('🔄 BillingService: Running deferred provisioning (company existed or first provisioning failed)');
       try {
         const customerForProvisioning = customer || subscription.customer || subscription.contactpersons?.[0];
         await this.provisionCompanyOnboarding(finalOrg.id, customerForProvisioning, provider);
@@ -790,6 +796,8 @@ export class BillingService {
         });
         // Don't fail the webhook - subscription processing continues even if provisioning fails
       }
+    } else if (provisioningCompleted) {
+      console.log('✅ BillingService: Skipping duplicate provisioning - already completed successfully');
     } else {
       console.error(`⚠️ BillingService: No company available for onboarding provisioning for subscription ${subscriptionId}`);
     }
