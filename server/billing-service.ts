@@ -1116,6 +1116,17 @@ export class BillingService {
             eq(users.role, 'admin')
           ))
           .limit(1);
+        
+        // 2b. Also check if the USERNAME already exists in this company (any role)
+        // This prevents constraint violations on users_username_org_unique
+        const existingUsernameInCompany = email ? await tx
+          .select({ id: users.id, username: users.username, role: users.role })
+          .from(users)
+          .where(and(
+            eq(users.companyId, companyId),
+            eq(users.username, email) // username is set to email
+          ))
+          .limit(1) : [];
 
         let adminUser;
         let tempPasswordRaw: string | null = null;
@@ -1130,6 +1141,33 @@ export class BillingService {
             username: existingAdminsInCompany[0].username
           });
           adminUser = existingAdminsInCompany[0];
+        } else if (existingUsernameInCompany.length > 0) {
+          // Username exists in this company but user is not an admin - promote to admin
+          console.log('🔄 BillingService: Username exists in company (non-admin), promoting to admin', {
+            userId: existingUsernameInCompany[0].id,
+            currentRole: existingUsernameInCompany[0].role,
+            username: existingUsernameInCompany[0].username
+          });
+          
+          // Update existing user to admin role
+          const [updatedUser] = await tx
+            .update(users)
+            .set({ 
+              role: 'admin', 
+              isAdmin: true, 
+              updatedAt: new Date() 
+            })
+            .where(eq(users.id, existingUsernameInCompany[0].id))
+            .returning();
+          
+          adminUser = updatedUser;
+          isNewAdminUser = false; // Not new, just promoted
+          tempPasswordRaw = null; // Don't send email for promotion
+          
+          console.log('✅ BillingService: User promoted to admin successfully', {
+            userId: adminUser.id,
+            username: adminUser.username
+          });
         } else if (existingUserGlobally) {
           // User exists globally but not as admin for THIS company - add them
           console.log('🔄 BillingService: User exists globally, adding to new company', {
