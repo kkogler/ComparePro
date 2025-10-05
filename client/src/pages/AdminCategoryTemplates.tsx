@@ -36,6 +36,7 @@ interface RetailVertical {
 export default function AdminCategoryTemplates() {
   const { id } = useParams();
   const retailVerticalId = parseInt(id || '0');
+  console.log('AdminCategoryTemplates - URL param id:', id, 'retailVerticalId:', retailVerticalId);
   const { toast } = useToast();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CategoryTemplate | null>(null);
@@ -59,9 +60,17 @@ export default function AdminCategoryTemplates() {
   const currentVertical = retailVerticals.find(v => v.id === retailVerticalId);
 
   // Fetch category templates
-  const { data: templates = [], isLoading } = useQuery<CategoryTemplate[]>({
+  const { data: templates = [], isLoading, error } = useQuery<CategoryTemplate[]>({
     queryKey: [`/api/admin/retail-verticals/${retailVerticalId}/category-templates`],
     enabled: retailVerticalId > 0,
+  });
+
+  console.log('Category Templates Query:', {
+    retailVerticalId,
+    isLoading,
+    templatesCount: templates?.length,
+    templates,
+    error
   });
 
   // Create template mutation
