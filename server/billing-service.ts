@@ -1785,6 +1785,24 @@ export class BillingService {
           console.log('✅ BillingService: Default pricing configuration already exists');
         }
 
+        // 10. Copy category templates if retail vertical is specified
+        if (customerData?.retailVerticalId) {
+          console.log(`📋 BillingService: Copying category templates for retail vertical ${customerData.retailVerticalId}`);
+          try {
+            const categoriesCopied = await storage.copyCategoryTemplatesToCompany(companyId, customerData.retailVerticalId);
+            if (categoriesCopied > 0) {
+              console.log(`✅ BillingService: Copied ${categoriesCopied} category templates to company`);
+            } else {
+              console.log(`ℹ️ BillingService: No category templates found for retail vertical ${customerData.retailVerticalId}`);
+            }
+          } catch (categoryError) {
+            console.error('⚠️ BillingService: Failed to copy category templates (non-critical):', categoryError);
+            // Don't fail provisioning if category copying fails
+          }
+        } else {
+          console.log('ℹ️ BillingService: No retail vertical specified, skipping category template copying');
+        }
+
         // Send invite email ONLY to NEW admin users (not on re-provisioning)
         if (isNewAdminUser && adminUser && (adminUser as any).email && tempPasswordRaw) {
           try {

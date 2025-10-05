@@ -1,11 +1,11 @@
 import { 
-  users, products, supportedVendors, vendors, vendorProducts, orders, orderItems, asns, asnItems, settings, integrationSettings, companies, orgDomains, billingEvents, adminSettings, searchHistory, retailVerticals, stores, userStores, poSequences, pricingConfigurations, vendorProductMappings, categories, supportedVendorRetailVerticals, subscriptions, subscriptionPayments, subscriptionPlanChanges, subscriptionWebhookEvents, subscriptionUsage, planSettings, vendorFieldMappings, organizationStatusAuditLog,
+  users, products, supportedVendors, vendors, vendorProducts, orders, orderItems, asns, asnItems, settings, integrationSettings, companies, orgDomains, billingEvents, adminSettings, searchHistory, retailVerticals, stores, userStores, poSequences, pricingConfigurations, vendorProductMappings, categories, categoryTemplates, supportedVendorRetailVerticals, subscriptions, subscriptionPayments, subscriptionPlanChanges, subscriptionWebhookEvents, subscriptionUsage, planSettings, vendorFieldMappings, organizationStatusAuditLog,
   type User, type InsertUser, type Product, type InsertProduct, type SupportedVendor, type InsertSupportedVendor,
   type Vendor, type InsertVendor, type VendorProduct, type InsertVendorProduct, type Order, type InsertOrder, type OrderItem, type InsertOrderItem,
   type ASN, type InsertASN, type ASNItem, type InsertASNItem, type Settings, type InsertSettings, type IntegrationSettings, type InsertIntegrationSettings,
   type Company, type InsertCompany, type AdminSettings, type InsertAdminSettings, type SearchHistory, type InsertSearchHistory,
   type RetailVertical, type InsertRetailVertical, type Store, type InsertStore, type UserStore, type InsertUserStore, type PoSequence, type InsertPoSequence,
-  type PricingConfiguration, type InsertPricingConfiguration, type VendorProductMapping, type InsertVendorProductMapping, type Category, type InsertCategory, type SupportedVendorRetailVertical, type InsertSupportedVendorRetailVertical,
+  type PricingConfiguration, type InsertPricingConfiguration, type VendorProductMapping, type InsertVendorProductMapping, type Category, type InsertCategory, type CategoryTemplate, type InsertCategoryTemplate, type SupportedVendorRetailVertical, type InsertSupportedVendorRetailVertical,
   type Subscription, type InsertSubscription, type SubscriptionPayment, type InsertSubscriptionPayment, type SubscriptionPlanChange, type InsertSubscriptionPlanChange, type SubscriptionWebhookEvent, type InsertSubscriptionWebhookEvent, type SubscriptionUsage, type InsertSubscriptionUsage, type PlanSettings, type InsertPlanSettings,
   type VendorFieldMapping, type InsertVendorFieldMapping, type OrganizationStatusAuditLog, type InsertOrganizationStatusAuditLog
 } from "@shared/schema";
@@ -217,6 +217,13 @@ export interface IStorage {
   updateCategorySortOrder(id: number, sortOrder: number): Promise<boolean>;
   deleteCategory(id: number, reassignToId?: number): Promise<boolean>;
   getProductCountByCategory(categorySlug: string): Promise<number>;
+
+  // Category Template methods
+  getCategoryTemplatesByRetailVertical(retailVerticalId: number): Promise<any[]>;
+  createCategoryTemplate(template: any): Promise<any>;
+  updateCategoryTemplate(id: number, updates: any): Promise<any>;
+  deleteCategoryTemplate(id: number): Promise<boolean>;
+  copyCategoryTemplatesToCompany(companyId: number, retailVerticalId: number): Promise<number>;
 
   // Subscription methods
   getSubscription(id: number): Promise<Subscription | undefined>;
@@ -2606,6 +2613,76 @@ export class DatabaseStorage implements IStorage {
       .from(products)
       .where(eq(products.category, categorySlug));
     return result[0]?.count || 0;
+  }
+
+  // Category Template methods implementation
+  async getCategoryTemplatesByRetailVertical(retailVerticalId: number): Promise<CategoryTemplate[]> {
+    return await db
+      .select()
+      .from(categoryTemplates)
+      .where(eq(categoryTemplates.retailVerticalId, retailVerticalId))
+      .orderBy(asc(categoryTemplates.sortOrder), asc(categoryTemplates.displayName));
+  }
+
+  async createCategoryTemplate(template: InsertCategoryTemplate): Promise<CategoryTemplate> {
+    const result = await db
+      .insert(categoryTemplates)
+      .values(template)
+      .returning();
+    return result[0];
+  }
+
+  async updateCategoryTemplate(id: number, updates: Partial<CategoryTemplate>): Promise<CategoryTemplate | undefined> {
+    const result = await db
+      .update(categoryTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(categoryTemplates.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteCategoryTemplate(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(categoryTemplates)
+        .where(eq(categoryTemplates.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting category template:', error);
+      return false;
+    }
+  }
+
+  async copyCategoryTemplatesToCompany(companyId: number, retailVerticalId: number): Promise<number> {
+    try {
+      // Get all templates for this retail vertical
+      const templates = await this.getCategoryTemplatesByRetailVertical(retailVerticalId);
+      
+      if (templates.length === 0) {
+        console.log(`No category templates found for retail vertical ${retailVerticalId}`);
+        return 0;
+      }
+
+      // Convert templates to company categories
+      const categoriesToCreate: InsertCategory[] = templates.map(template => ({
+        companyId,
+        name: template.name,
+        slug: template.slug,
+        displayName: template.displayName,
+        description: template.description,
+        isActive: template.isActive,
+        sortOrder: template.sortOrder
+      }));
+
+      // Insert all categories
+      await db.insert(categories).values(categoriesToCreate);
+
+      console.log(`✅ Copied ${templates.length} category templates to company ${companyId}`);
+      return templates.length;
+    } catch (error) {
+      console.error(`❌ Error copying category templates to company ${companyId}:`, error);
+      throw error;
+    }
   }
 
   // Subscription methods implementation

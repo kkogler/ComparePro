@@ -936,6 +936,33 @@ export type InsertCategory = typeof categories.$inferInsert;
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertCategoryData = z.infer<typeof insertCategorySchema>;
 
+// Category Templates table for retail vertical-specific category templates
+// Admin-managed templates that get copied to new companies based on their retail vertical
+export const categoryTemplates = pgTable("category_templates", {
+  id: serial("id").primaryKey(),
+  retailVerticalId: integer("retail_vertical_id").references(() => retailVerticals.id).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  slug: varchar("slug", { length: 100 }).notNull(),
+  displayName: varchar("display_name", { length: 100 }).notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    retailVerticalSlugUnique: unique("retail_vertical_category_slug_unique").on(table.retailVerticalId, table.slug),
+    retailVerticalNameUnique: unique("retail_vertical_category_name_unique").on(table.retailVerticalId, table.name),
+  };
+});
+
+export type CategoryTemplate = typeof categoryTemplates.$inferSelect;
+export type InsertCategoryTemplate = typeof categoryTemplates.$inferInsert;
+
+// Zod schemas for category templates
+export const insertCategoryTemplateSchema = createInsertSchema(categoryTemplates).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCategoryTemplateData = z.infer<typeof insertCategoryTemplateSchema>;
+
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type SupportedVendor = typeof supportedVendors.$inferSelect;
