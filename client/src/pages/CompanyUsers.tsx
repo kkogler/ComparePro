@@ -466,27 +466,6 @@ export default function CompanyUsers() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="displayName">Display Name</Label>
-                  <Input
-                    id="displayName"
-                    value={formData.displayName}
-                    onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                    placeholder="Optional display name"
-                    data-testid="input-display-name"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    data-testid="input-username"
-                  />
-                </div>
-                
-                <div>
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
@@ -498,7 +477,32 @@ export default function CompanyUsers() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="displayName">Display Name</Label>
+                  <Input
+                    id="displayName"
+                    value={formData.displayName}
+                    onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                    placeholder="Optional display name"
+                    data-testid="input-display-name"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="username">
+                    Username <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="username"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    data-testid="input-username"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="password">
+                    Password {!editingUser && <span className="text-red-500">*</span>}
+                  </Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -526,20 +530,6 @@ export default function CompanyUsers() {
                 <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Permissions & Settings</h3>
                 
                 <div>
-                  <Label htmlFor="role">Role</Label>
-                  <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                    <SelectTrigger data-testid="select-role">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
                   <Label htmlFor="status">Status</Label>
                   <Select 
                     value={formData.isActive ? 'active' : 'disabled'} 
@@ -551,6 +541,22 @@ export default function CompanyUsers() {
                     <SelectContent>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="disabled">Disabled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="role">
+                    Role <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                    <SelectTrigger data-testid="select-role">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -567,7 +573,9 @@ export default function CompanyUsers() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="defaultStore">Default Store for Orders</Label>
+                  <Label htmlFor="defaultStore">
+                    Default Store for Orders <span className="text-red-500">*</span>
+                  </Label>
                   <Select 
                     value={formData.defaultStoreId} 
                     onValueChange={(value) => setFormData({ ...formData, defaultStoreId: value })}
@@ -590,7 +598,9 @@ export default function CompanyUsers() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="stores">Store Assignments</Label>
+                  <Label htmlFor="stores">
+                    Store Assignments <span className="text-red-500">*</span>
+                  </Label>
                   <MultiSelect
                     options={stores.map((store: any) => ({
                       value: store.id.toString(),
@@ -610,6 +620,9 @@ export default function CompanyUsers() {
                   )}
                 </div>
               </div>
+            </div>
+            <div className="mt-4 pt-4 border-t text-xs text-gray-500">
+              <span className="text-red-500">*</span> Required
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => {
