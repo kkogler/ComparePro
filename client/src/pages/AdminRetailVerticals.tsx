@@ -43,7 +43,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Tag } from 'lucide-react';
+import { Plus, Edit, Trash2, Tag, List } from 'lucide-react';
+import { Link } from 'wouter';
 
 interface RetailVertical {
   id: number;
@@ -433,6 +434,16 @@ export default function AdminRetailVerticals() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      <Link href={`/admin/retail-verticals/${vertical.id}/category-templates`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          title="Manage Category Templates"
+                          data-testid={`button-categories-vertical-${vertical.id}`}
+                        >
+                          <List className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button
                         variant="outline"
                         size="sm"

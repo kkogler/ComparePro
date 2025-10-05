@@ -5110,6 +5110,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Category Template endpoints
+  app.get('/api/admin/retail-verticals/:id/category-templates', requireAdminAuth, async (req, res) => {
+    try {
+      const retailVerticalId = parseInt(req.params.id);
+      const templates = await storage.getCategoryTemplatesByRetailVertical(retailVerticalId);
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching category templates:', error);
+      res.status(500).json({ message: "Failed to fetch category templates" });
+    }
+  });
+
+  app.post('/api/admin/category-templates', requireAdminAuth, async (req, res) => {
+    try {
+      const template = await storage.createCategoryTemplate(req.body);
+      res.status(201).json(template);
+    } catch (error: any) {
+      console.error('Error creating category template:', error);
+      if (error.message?.includes('duplicate key')) {
+        res.status(400).json({ message: "Category template with this name or slug already exists for this retail vertical" });
+      } else {
+        res.status(500).json({ message: "Failed to create category template" });
+      }
+    }
+  });
+
+  app.put('/api/admin/category-templates/:id', requireAdminAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await storage.updateCategoryTemplate(id, req.body);
+      if (!template) {
+        return res.status(404).json({ message: "Category template not found" });
+      }
+      res.json(template);
+    } catch (error: any) {
+      console.error('Error updating category template:', error);
+      if (error.message?.includes('duplicate key')) {
+        res.status(400).json({ message: "Category template with this name or slug already exists for this retail vertical" });
+      } else {
+        res.status(500).json({ message: "Failed to update category template" });
+      }
+    }
+  });
+
+  app.delete('/api/admin/category-templates/:id', requireAdminAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCategoryTemplate(id);
+      if (!success) {
+        return res.status(404).json({ message: "Category template not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting category template:', error);
+      res.status(500).json({ message: "Failed to delete category template" });
+    }
+  });
+
   app.get('/api/admin/master-catalog', requireAdminAuth, async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;

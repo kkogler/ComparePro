@@ -19,6 +19,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminUsers from "@/pages/AdminUsers";
 import SupportedVendorsAdmin from "@/pages/SupportedVendorsAdmin";
 import AdminRetailVerticals from "@/pages/AdminRetailVerticals";
+import AdminCategoryTemplates from "@/pages/AdminCategoryTemplates";
 import AdminPlanSettings from "@/pages/AdminPlanSettings";
 import AdminSettings from "@/pages/AdminSettings";
 import AdminIntegrations from "@/pages/AdminIntegrations";
@@ -66,6 +67,7 @@ function Router() {
       <ProtectedRoute path="/admin/integrations" component={() => <Layout><AdminIntegrations /></Layout>} />
       <ProtectedRoute path="/admin/supported-vendors" component={() => <Layout><SupportedVendorsAdmin /></Layout>} />
       <ProtectedRoute path="/admin/retail-verticals" component={() => <Layout><AdminRetailVerticals /></Layout>} />
+      <ProtectedRoute path="/admin/retail-verticals/:id/category-templates" component={() => <Layout><AdminCategoryTemplates /></Layout>} />
       <ProtectedRoute path="/admin/master-catalog" component={() => <Layout><MasterProductCatalog /></Layout>} />
       <ProtectedRoute path="/admin/import" component={() => <Layout><MasterCatalogImport /></Layout>} />
       <ProtectedRoute path="/admin/plan-settings" component={() => <Layout><AdminPlanSettings /></Layout>} />
