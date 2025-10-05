@@ -1707,28 +1707,34 @@ export class BillingService {
             .from(adminSettingsTable)
             .limit(1);
           
-          const defaultStrategy = adminSettings?.defaultPricingStrategy || 'msrp';
-          const defaultFallback = adminSettings?.defaultPricingFallbackStrategy || 'map';
+          // **REQUIRE admin settings to be configured - no hardcoded fallbacks**
+          if (!adminSettings) {
+            throw new Error('Admin settings not configured. Run migrations/seed-admin-settings.sql to initialize.');
+          }
+          
+          if (!adminSettings.defaultPricingStrategy || !adminSettings.defaultPricingFallbackStrategy) {
+            throw new Error('Admin pricing defaults not configured. Please configure in Admin > Settings.');
+          }
           
           const pricingConfigData = {
             companyId,
             name: 'Default Pricing Rule',
-            description: `Use ${defaultStrategy.toUpperCase()} with ${defaultFallback.toUpperCase()} as fallback`,
-            strategy: defaultStrategy,
-            markupPercentage: adminSettings?.defaultPricingMarkupPercentage || null,
-            marginPercentage: adminSettings?.defaultPricingMarginPercentage || null,
-            premiumAmount: adminSettings?.defaultPricingPremiumAmount || null,
-            discountPercentage: adminSettings?.defaultPricingDiscountPercentage || null,
-            roundingRule: adminSettings?.defaultPricingRoundingRule || 'none',
-            fallbackStrategy: defaultFallback,
-            fallbackMarkupPercentage: adminSettings?.defaultPricingFallbackMarkupPercentage || null,
-            useCrossVendorFallback: adminSettings?.defaultPricingUseCrossVendorFallback || false,
+            description: `Use ${adminSettings.defaultPricingStrategy.toUpperCase()} with ${adminSettings.defaultPricingFallbackStrategy.toUpperCase()} as fallback`,
+            strategy: adminSettings.defaultPricingStrategy,
+            markupPercentage: adminSettings.defaultPricingMarkupPercentage || null,
+            marginPercentage: adminSettings.defaultPricingMarginPercentage || null,
+            premiumAmount: adminSettings.defaultPricingPremiumAmount || null,
+            discountPercentage: adminSettings.defaultPricingDiscountPercentage || null,
+            roundingRule: adminSettings.defaultPricingRoundingRule || 'none',
+            fallbackStrategy: adminSettings.defaultPricingFallbackStrategy,
+            fallbackMarkupPercentage: adminSettings.defaultPricingFallbackMarkupPercentage || null,
+            useCrossVendorFallback: adminSettings.defaultPricingUseCrossVendorFallback || false,
             isDefault: true,
             isActive: true
           };
 
           await tx.insert(pricingConfigurations).values(pricingConfigData);
-          console.log(`✅ BillingService: Default pricing configuration created (${defaultStrategy.toUpperCase()} with ${defaultFallback.toUpperCase()} fallback)`);
+          console.log(`✅ BillingService: Default pricing configuration created (${adminSettings.defaultPricingStrategy.toUpperCase()} with ${adminSettings.defaultPricingFallbackStrategy.toUpperCase()} fallback, ${adminSettings.defaultPricingFallbackMarkupPercentage}% markup)`);
         } else {
           console.log('✅ BillingService: Default pricing configuration already exists');
         }

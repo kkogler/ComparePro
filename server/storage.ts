@@ -348,20 +348,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Helper method to create default pricing configuration
+  // NOTE: This is now handled by BillingService.provisionCompanyOnboarding()
+  // which reads from admin_settings instead of using hardcoded values.
+  // This method is kept for backward compatibility but should not be used.
   private async createDefaultPricingConfiguration(companyId: number): Promise<void> {
-    const defaultConfig = {
-      companyId,
-      name: "Default Pricing",
-      description: "Default pricing configuration for new companies",
-      isDefault: true,
-      isActive: true,
-      strategy: "msrp",
-      roundingRule: "none",
-      fallbackStrategy: "cost_markup",
-      fallbackMarkupPercentage: "50.00"
-    };
-
-    await db.insert(pricingConfigurations).values(defaultConfig);
+    console.warn('⚠️ DEPRECATED: createDefaultPricingConfiguration() should not be used. Pricing configs are created by BillingService using admin_settings.');
+    // Do nothing - pricing configs should be created via provisioning
   }
 
   async updateCompany(id: number, updates: any): Promise<Company | undefined> {
