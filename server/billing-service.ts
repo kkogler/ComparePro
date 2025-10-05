@@ -1806,7 +1806,10 @@ export class BillingService {
 
               console.log('🔑 BillingService: Generated new temporary password for existing user');
 
-              const loginUrl = process.env.VITE_APP_URL || 'http://localhost:3000';
+              // Build login URL dynamically from company slug and environment
+              const baseUrl = process.env.VITE_APP_URL || 'https://pricecomparehub.com';
+              const companySlug = company[0].slug;
+              const loginUrl = `${baseUrl}/org/${companySlug}/auth`;
               const adminEmail = adminUser.email || 
                                customerData?.email || 
                                customerData?.customer_email || 
