@@ -234,8 +234,8 @@ export function Sidebar() {
         </div>
       </div>
       
-      <nav className="mt-6 flex-1">
-        <ul className="space-y-1 px-3">
+      <nav className="mt-6 flex-1 overflow-y-auto">
+        <ul className="space-y-1 px-3 pb-6">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
