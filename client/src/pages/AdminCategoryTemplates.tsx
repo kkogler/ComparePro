@@ -87,13 +87,13 @@ export default function AdminCategoryTemplates() {
       resetForm();
       toast({
         title: 'Success',
-        description: 'Category template created successfully',
+        description: 'Product category created successfully',
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create category template',
+        description: error.message || 'Failed to create product category',
         variant: 'destructive',
       });
     },
@@ -110,13 +110,13 @@ export default function AdminCategoryTemplates() {
       resetForm();
       toast({
         title: 'Success',
-        description: 'Category template updated successfully',
+        description: 'Product category updated successfully',
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update category template',
+        description: error.message || 'Failed to update product category',
         variant: 'destructive',
       });
     },
@@ -132,13 +132,13 @@ export default function AdminCategoryTemplates() {
       setDeleteTemplate(null);
       toast({
         title: 'Success',
-        description: 'Category template deleted successfully',
+        description: 'Product category deleted successfully',
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete category template',
+        description: error.message || 'Failed to delete product category',
         variant: 'destructive',
       });
     },
@@ -202,9 +202,9 @@ export default function AdminCategoryTemplates() {
 
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Category Templates</h1>
+          <h1 className="text-3xl font-bold">Product Categories</h1>
           <p className="text-gray-600 mt-1">
-            {currentVertical?.name || 'Unknown Retail Vertical'} - Manage category templates for new companies
+            {currentVertical?.name || 'Unknown Retail Vertical'} - Manage product categories for new companies
           </p>
         </div>
 
@@ -218,18 +218,18 @@ export default function AdminCategoryTemplates() {
           <DialogTrigger asChild>
             <Button onClick={() => setIsCreateModalOpen(true)} className="btn-orange-action">
               <Plus className="h-4 w-4 mr-2" />
-              New Category Template
+              New Product Category
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingTemplate ? 'Edit Category Template' : 'Add New Category Template'}
+                {editingTemplate ? 'Edit Product Category' : 'Add New Product Category'}
               </DialogTitle>
               <DialogDescription>
                 {editingTemplate 
-                  ? 'Update the category template details' 
-                  : 'Create a new category template that will be copied to new companies'}
+                  ? 'Update the product category details' 
+                  : 'Create a new product category that will be copied to new companies'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -300,7 +300,7 @@ export default function AdminCategoryTemplates() {
                 onClick={handleSubmit} 
                 disabled={!formData.name || createTemplate.isPending || updateTemplate.isPending}
               >
-                {editingTemplate ? 'Update' : 'Create'} Template
+                {editingTemplate ? 'Update' : 'Create'} Category
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -311,7 +311,7 @@ export default function AdminCategoryTemplates() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <List className="h-5 w-5" />
-            Category Templates ({templates.length})
+            Product Categories ({templates.length})
           </CardTitle>
           <CardDescription>
             These categories will be automatically copied to new companies with this retail vertical
@@ -320,7 +320,7 @@ export default function AdminCategoryTemplates() {
         <CardContent>
           {templates.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No category templates configured. Click "New Category Template" to add one.
+              No product categories configured. Click "New Product Category" to add one.
             </div>
           ) : (
             <Table>
@@ -384,7 +384,7 @@ export default function AdminCategoryTemplates() {
       <AlertDialog open={!!deleteTemplate} onOpenChange={() => setDeleteTemplate(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Category Template</AlertDialogTitle>
+            <AlertDialogTitle>Delete Product Category</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{deleteTemplate?.name}"? This will not affect existing companies, only future ones.
             </AlertDialogDescription>
