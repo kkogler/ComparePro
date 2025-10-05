@@ -4358,9 +4358,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = req.body;
 
       // Validate required fields
-      if (!companyName || !firstName || !lastName || !email || !plan) {
+      if (!companyName || !firstName || !lastName || !email || !plan || !retailVerticalId) {
         return res.status(400).json({ 
-          message: "Missing required fields: companyName, firstName, lastName, email, and plan are required" 
+          message: "Missing required fields: companyName, firstName, lastName, email, plan, and retailVerticalId are required" 
         });
       }
 
