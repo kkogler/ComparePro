@@ -18,6 +18,7 @@ interface OrderItemForExport {
   vendorMsrp: string | null;
   vendorMapPrice: string | null;
   retailPrice: string | null;
+  category: string | null; // Manually selected category from Add to Order modal
   product: {
     name: string;
     upc: string | null;
@@ -121,8 +122,8 @@ export class CSVExportService {
         // Brand > Manufacturer (decode HTML entities)
         this.escapeCSVField(this.stripHtmlTags(item.product.brand || '')),
         
-        // Main Category > Category
-        this.escapeCSVField(item.product.category || ''),
+        // Main Category > Use manually selected category from order item (NOT from Master Product Catalog)
+        this.escapeCSVField(item.category || ''),
         
         // Sub-Category > Subcategory 1
         this.escapeCSVField(item.product.subcategory1 || ''),

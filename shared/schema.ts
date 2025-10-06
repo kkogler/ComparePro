@@ -518,6 +518,10 @@ export const orderItems = pgTable("order_items", {
   retailPrice: decimal("retail_price", { precision: 10, scale: 2 }), // Final retail price after applying pricing rules
   pricingStrategy: varchar("pricing_strategy", { length: 50 }), // Which pricing strategy was used (e.g., 'msrp', 'cost_markup')
   
+  // Store manually selected category from Add to Order modal (NOT from Master Product Catalog)
+  // This category comes from Store > Settings > Product Categories and is selected by the user
+  category: varchar("category", { length: 100 }), // User-selected category for this order item
+  
   // Chattanooga API: Customer reference for tracking individual items
   customerReference: text("customer_reference"), // Optional tracking reference per item
   vendorProductId: integer("vendor_product_id").references(() => vendorProducts.id),

@@ -733,6 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         vendorMapPrice: parsedVendorMapPrice, // Store MAP from vendor API
         retailPrice: retailPrice.toString(), // Store calculated retail price
         pricingStrategy: pricingStrategy, // Store which pricing strategy was used
+        category: category || null, // Store manually selected category from Add to Order modal
         status: DEFAULT_ORDER_ITEM_STATUS.value
       });
       

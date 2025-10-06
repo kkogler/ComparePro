@@ -245,7 +245,7 @@ export class WebhookService {
               manufacturer: product.manufacturer || vendorProduct?.manufacturer || '',
               model: product.model || vendorProduct?.model || '',
               caliber: product.caliber || vendorProduct?.caliber || '',
-              type: product.category || vendorProduct?.category || '',
+              type: item.category || '', // Use manually selected category from order item (NOT from Master Product Catalog)
               condition: 'new',
               mpn: product.partNumber || product.sku || '',
               location: '',
