@@ -558,18 +558,39 @@ export class CredentialVaultService {
     // Helper to convert snake_case to camelCase
     const snakeToCamel = (str: string) => str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
     
+    // Helper to normalize field names for comparison (lowercase, no underscores/spaces)
+    const normalizeForComparison = (str: string) => 
+      str.toLowerCase().replace(/[_\s]/g, '');
+    
     // Normalize credentials to include both naming conventions for compatibility
     const normalized: Record<string, string> = {};
     
     for (const field of schema) {
-      const snakeCaseName = field.name;
-      const camelCaseName = snakeToCamel(field.name);
-      const value = credentials[snakeCaseName] || credentials[camelCaseName];
+      const schemaFieldNorm = normalizeForComparison(field.name);
+      let foundValue: string | undefined = undefined;
+      let foundKey: string | undefined = undefined;
       
-      if (value !== undefined) {
+      // Try to find matching credential key using flexible matching
+      for (const [credKey, credValue] of Object.entries(credentials)) {
+        if (normalizeForComparison(credKey) === schemaFieldNorm) {
+          foundValue = credValue;
+          foundKey = credKey;
+          break;
+        }
+      }
+      
+      if (foundValue !== undefined) {
+        const snakeCaseName = field.name;
+        const camelCaseName = snakeToCamel(field.name);
+        
         // Store in both formats for maximum compatibility
-        normalized[snakeCaseName] = value;
-        normalized[camelCaseName] = value;
+        normalized[snakeCaseName] = foundValue;
+        normalized[camelCaseName] = foundValue;
+        
+        // Also preserve the original key name if different
+        if (foundKey && foundKey !== snakeCaseName && foundKey !== camelCaseName) {
+          normalized[foundKey] = foundValue;
+        }
       }
     }
     
