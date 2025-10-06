@@ -101,7 +101,7 @@ export interface IStorage {
   updateVendorEnabledStatusBySlug(companyId: number, vendorSlug: string, enabled: boolean): Promise<void>;
   updateVendorCredentials(id: number, companyId: number, credentials: any): Promise<Vendor | undefined>;
   updateVendorLogo(vendorId: number, logoUrl: string, companyId: number): Promise<Vendor | undefined>;
-  createVendorsFromSupported(companyId: number): Promise<void>;
+  createVendorsFromSupported(companyId: number, retailVerticalId?: number): Promise<void>;
 
   // Vendor product methods
   getVendorProduct(id: number): Promise<VendorProduct | undefined>;
@@ -1743,13 +1743,22 @@ export class DatabaseStorage implements IStorage {
     return result || undefined;
   }
 
-  async createVendorsFromSupported(companyId: number): Promise<void> {
+  async createVendorsFromSupported(companyId: number, retailVerticalId?: number): Promise<void> {
     // Check subscription limits before creating vendors
     const { canAddMoreVendors } = await import('./subscription-gates');
     const currentVendors = await this.getVendorsByCompany(companyId);
     
     const supportedVendorsList = await this.getAllSupportedVendors();
-    const enabledVendors = supportedVendorsList.filter(v => v.isEnabled);
+    let enabledVendors = supportedVendorsList.filter(v => v.isEnabled);
+    
+    // Filter by retail vertical if specified
+    if (retailVerticalId) {
+      console.log(`VENDOR CREATION: Filtering vendors by retail vertical ID: ${retailVerticalId}`);
+      enabledVendors = enabledVendors.filter(v => 
+        v.retailVerticals && v.retailVerticals.some(rv => rv.id === retailVerticalId)
+      );
+      console.log(`VENDOR CREATION: ${enabledVendors.length} vendors match retail vertical (before subscription limits)`);
+    }
     
     // Check if adding these vendors would exceed the limit
     let vendorsToAdd = 0;

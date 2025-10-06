@@ -3336,20 +3336,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const organizationId = (req as any).organizationId;
       
+      // Get company to check retail vertical
+      const company = await storage.getCompany(organizationId);
+      const companyRetailVerticalId = company?.retailVerticalId;
+      console.log('SUPPORTED VENDORS: Company retail vertical ID:', companyRetailVerticalId);
+      
       // Get organization-specific vendors with their credentials
       let organizationVendors = await storage.getVendorsByCompany(organizationId);
       console.log('SUPPORTED VENDORS: organizationVendors:', organizationVendors.map(v => ({ id: v.id, name: v.name, supportedVendorId: v.supportedVendorId })));
       
-      // If no vendors exist for this organization, create them from supported vendors
+      // If no vendors exist for this organization, create them from supported vendors (filtered by retail vertical)
       if (organizationVendors.length === 0) {
         console.log('SUPPORTED VENDORS: No vendors found for organization, creating from supported vendors...');
-        await storage.createVendorsFromSupported(organizationId);
+        await storage.createVendorsFromSupported(organizationId, companyRetailVerticalId || undefined);
         organizationVendors = await storage.getVendorsByCompany(organizationId);
         console.log('SUPPORTED VENDORS: Created vendors:', organizationVendors.map(v => ({ id: v.id, name: v.name, supportedVendorId: v.supportedVendorId })));
       }
       
-      // Get admin-level supported vendors for reference
-      const supportedVendors = await storage.getAllSupportedVendors();
+      // Get admin-level supported vendors for reference (filtered by retail vertical if set)
+      const allSupportedVendors = await storage.getAllSupportedVendors();
+      const supportedVendors = companyRetailVerticalId 
+        ? allSupportedVendors.filter(sv => 
+            sv.retailVerticals && sv.retailVerticals.some(rv => rv.id === companyRetailVerticalId)
+          )
+        : allSupportedVendors;
+      
+      console.log('SUPPORTED VENDORS: Filtered supported vendors count:', supportedVendors.length);
+      if (companyRetailVerticalId) {
+        console.log('SUPPORTED VENDORS: Filtering by retail vertical ID:', companyRetailVerticalId);
+      }
       
       // Get Bill Hicks vendor IDs (both old and new)
       let billHicksVendorId = 5; // Default to legacy ID
@@ -3395,8 +3410,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('SUPPORTED VENDORS: No Bill Hicks vendor found in organizationVendors');
       }
 
+      // Filter organization vendors by retail vertical (only show vendors that match)
+      const filteredOrganizationVendors = companyRetailVerticalId
+        ? organizationVendors.filter(orgVendor => {
+            const supportedVendor = allSupportedVendors.find(sv => sv.id === orgVendor.supportedVendorId);
+            return supportedVendor?.retailVerticals && supportedVendor.retailVerticals.some(rv => rv.id === companyRetailVerticalId);
+          })
+        : organizationVendors;
+      
+      console.log('SUPPORTED VENDORS: Filtered organization vendors count:', filteredOrganizationVendors.length);
+      
       // Create a comprehensive view combining both
-      const vendorsWithMetadata = await Promise.all(organizationVendors.map(async (orgVendor) => {
+      const vendorsWithMetadata = await Promise.all(filteredOrganizationVendors.map(async (orgVendor) => {
         const supportedVendor = supportedVendors.find(sv => sv.id === orgVendor.supportedVendorId);
         
         // Get credentials from company_vendor_credentials table for all vendors
