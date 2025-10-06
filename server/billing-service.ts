@@ -483,9 +483,34 @@ export class BillingService {
   }
 
   private async handleCustomerCreated(customer: any, provider: 'zoho' | 'recurly'): Promise<void> {
+    // Validate customer data exists
+    if (!customer) {
+      console.warn('⚠️ handleCustomerCreated: No customer data provided, skipping customer creation');
+      return;
+    }
+
     const customerId = provider === 'zoho' ? customer.customer_id : customer.account_code;
     const email = provider === 'zoho' ? customer.email : customer.email;
     const name = provider === 'zoho' ? customer.display_name : customer.company_name || customer.first_name + ' ' + customer.last_name;
+
+    // Validate required fields
+    if (!customerId) {
+      console.warn('⚠️ handleCustomerCreated: No customer ID found in customer data, skipping customer creation', {
+        provider,
+        customerKeys: Object.keys(customer || {})
+      });
+      return;
+    }
+
+    if (!email || !name) {
+      console.warn('⚠️ handleCustomerCreated: Missing required fields (email or name), skipping customer creation', {
+        provider,
+        customerId,
+        hasEmail: !!email,
+        hasName: !!name
+      });
+      return;
+    }
 
     // Check if company already exists
     const [existingOrg] = await db
