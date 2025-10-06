@@ -58,6 +58,20 @@ export default function VendorComparison() {
     staleTime: 60000, // 1 minute
   });
 
+  // Fetch product categories for the dropdown
+  const { data: productCategories = [] } = useQuery({
+    queryKey: [`/org/${orgSlug}/api/categories`],
+    queryFn: async () => {
+      const response = await fetch(`/org/${orgSlug}/api/categories`, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    enabled: !!orgSlug,
+    staleTime: 60000, // 1 minute
+  });
+
   // Get pricing configurations to show correct footnote
   const { data: pricingConfigurations } = useQuery({
     queryKey: [`/org/${orgSlug}/api/pricing-configurations`],
@@ -93,7 +107,6 @@ export default function VendorComparison() {
   const requireCategory = organization?.settings?.requireCategoryOnVendorOrders ?? true;
   
   console.log('🔍 VENDOR COMPARISON: requireCategory =', requireCategory, ', organization.settings =', organization?.settings);
-  
   
 
   const { data: vendorComparison, isLoading, error } = useQuery({
@@ -371,10 +384,11 @@ export default function VendorComparison() {
       totalCost: `$${totalCost}`
     });
     setOrderQuantity(quantity);
-    // Set initial category from product data
-    const initialCategory = vendorComparison.product?.category || '';
-    console.log('🔍 MODAL OPENING: Setting initial category to:', initialCategory, ', requireCategory:', requireCategory);
-    setSelectedCategory(initialCategory);
+    
+    // Reset category selection - user must manually choose
+    setSelectedCategory('');
+    console.log('🔍 MODAL OPENING: Category cleared, user must select. requireCategory:', requireCategory);
+    
     setSelectedOrderId("new"); // Reset to new order
     setSelectedStoreId(getDefaultStoreId()); // Set smart default for store selection
     setManualPriceMode(false); // Reset to automatic pricing
@@ -1069,14 +1083,20 @@ export default function VendorComparison() {
                       <SelectValue placeholder={requireCategory ? "Category required - Select one..." : "Select category..."} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="firearms">Firearms</SelectItem>
-                      <SelectItem value="ammunition">Ammunition</SelectItem>
-                      <SelectItem value="accessories">Accessories</SelectItem>
-                      <SelectItem value="optics">Optics</SelectItem>
-                      <SelectItem value="parts">Parts</SelectItem>
-                      <SelectItem value="safety">Safety</SelectItem>
-                      <SelectItem value="training">Training</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {productCategories && productCategories.length > 0 ? (
+                        productCategories
+                          .filter((cat: any) => cat.isActive !== false)
+                          .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+                          .map((category: any) => (
+                            <SelectItem key={category.slug} value={category.slug}>
+                              {category.displayName}
+                            </SelectItem>
+                          ))
+                      ) : (
+                        <SelectItem value="no-categories" disabled>
+                          No categories available - Add categories in Store Settings
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   
