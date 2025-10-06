@@ -206,11 +206,13 @@ export class ChattanoogaAPI {
           console.log(`CHATTANOOGA API: Got CSV download URL: ${csvUrl}`);
           
           // Download the CSV file
-          // NOTE: Pre-signed URLs contain authentication in the URL itself
-          // Adding Authorization headers causes 403 Forbidden errors
+          // NOTE: CSV download URL requires same authentication as main API
+          console.log(`CHATTANOOGA API: Downloading CSV with authentication...`);
           const csvResponse = await fetch(csvUrl, this.getFetchOptions({
             method: 'GET',
             headers: {
+              'Authorization': this.createBasicAuth(),
+              'Accept': 'text/csv, text/plain, */*',
               'User-Agent': 'RetailPlatform/1.0'
             }
           }));
@@ -1362,13 +1364,16 @@ export class ChattanoogaAPI {
       const csvUrl = data.product_feed.url;
       console.log(`CHATTANOOGA API: Got CSV download URL: ${csvUrl}`);
 
-      // Download the CSV file from the provided URL
-      const csvResponse = await fetch(csvUrl, {
+      // Download the CSV file from the provided URL with authentication
+      console.log(`CHATTANOOGA API: Downloading CSV with authentication...`);
+      const csvResponse = await fetch(csvUrl, this.getFetchOptions({
         method: 'GET',
         headers: {
+          'Authorization': this.createBasicAuth(),
+          'Accept': 'text/csv, text/plain, */*',
           'User-Agent': 'RetailPlatform/1.0'
         }
-      });
+      }));
 
       if (!csvResponse.ok) {
         console.error(`CHATTANOOGA API: CSV download failed - ${csvResponse.status}`);
