@@ -238,6 +238,16 @@ export function registerCredentialManagementRoutes(app: Express): void {
       const stringVendorId = vendorSlug;
       console.log(`🔄 CREDENTIAL SAVE: Using vendor slug ${stringVendorId}`);
       
+      // Special case: GunBroker uses admin-level shared credentials for all stores
+      // Match both 'gunbroker' and 'gunbroker-123' patterns
+      if (stringVendorId.toLowerCase().startsWith('gunbroker')) {
+        console.log(`🔍 CREDENTIAL SAVE: GunBroker detected, rejecting store-level credential save`);
+        return res.json({
+          success: true,
+          message: 'GunBroker uses shared admin credentials. No store-level configuration needed.'
+        });
+      }
+      
       // Enhanced debugging for Chattanooga credentials
       if (stringVendorId.toLowerCase().includes('chattanooga')) {
         console.log('🔍 CHATTANOOGA CREDENTIAL SAVE DEBUG:');
@@ -316,7 +326,9 @@ export function registerCredentialManagementRoutes(app: Express): void {
       console.log(`🔄 CONNECTION TEST: Using vendor slug ${stringVendorId}`);
 
       // Special case: GunBroker uses admin-level shared credentials for all stores
-      if (stringVendorId.toLowerCase() === 'gunbroker') {
+      // Match both 'gunbroker' and 'gunbroker-123' patterns
+      if (stringVendorId.toLowerCase().startsWith('gunbroker')) {
+        console.log(`🔍 CONNECTION TEST: GunBroker detected, using admin credentials`);
         const result = await vendorRegistry.testVendorConnection('gunbroker', 'admin', undefined, userId);
         return res.status(result.success ? 200 : 400).json({
           success: result.success,
@@ -359,7 +371,16 @@ export function registerCredentialManagementRoutes(app: Express): void {
       const companyId = (req as any).organizationId;
       // Use vendor slug directly - no conversion needed
       const stringVendorId = vendorSlug;
-      const credentials = await credentialVault.getRedactedCredentials(stringVendorId, 'store', companyId);
+      
+      // Special case: GunBroker uses admin-level shared credentials for all stores
+      // Match both 'gunbroker' and 'gunbroker-123' patterns
+      let credentials;
+      if (stringVendorId.toLowerCase().startsWith('gunbroker')) {
+        console.log(`🔍 GET CREDENTIALS: GunBroker detected, fetching admin credentials`);
+        credentials = await credentialVault.getRedactedCredentials('gunbroker', 'admin');
+      } else {
+        credentials = await credentialVault.getRedactedCredentials(stringVendorId, 'store', companyId);
+      }
       
       res.json({
         success: true,
