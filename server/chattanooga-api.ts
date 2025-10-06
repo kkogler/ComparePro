@@ -206,14 +206,15 @@ export class ChattanoogaAPI {
           console.log(`CHATTANOOGA API: Got CSV download URL: ${csvUrl}`);
           
           // Download the CSV file
-          // NOTE: CSV URL is a pre-signed URL - adding auth headers causes 403!
-          console.log(`CHATTANOOGA API: Downloading CSV (no auth headers - pre-signed URL)...`);
-          const csvResponse = await fetch(csvUrl, this.getFetchOptions({
+          // NOTE: CSV URL is a pre-signed URL - NO proxy, NO auth headers!
+          console.log(`CHATTANOOGA API: Downloading CSV directly (bypassing proxy for pre-signed URL)...`);
+          const csvResponse = await fetch(csvUrl, {
             method: 'GET',
             headers: {
               'User-Agent': 'RetailPlatform/1.0'
             }
-          }));
+            // No proxy, no auth - pre-signed URL handles everything
+          });
           
           if (!csvResponse.ok) {
             throw new Error(`Failed to download CSV: ${csvResponse.status} ${csvResponse.statusText}`);
@@ -1363,13 +1364,14 @@ export class ChattanoogaAPI {
       console.log(`CHATTANOOGA API: Got CSV download URL: ${csvUrl}`);
 
       // Download the CSV file from the provided URL (pre-signed, no auth needed)
-      console.log(`CHATTANOOGA API: Downloading CSV (no auth headers - pre-signed URL)...`);
-      const csvResponse = await fetch(csvUrl, this.getFetchOptions({
+      console.log(`CHATTANOOGA API: Downloading CSV directly (bypassing proxy for pre-signed URL)...`);
+      const csvResponse = await fetch(csvUrl, {
         method: 'GET',
         headers: {
           'User-Agent': 'RetailPlatform/1.0'
         }
-      }));
+        // No proxy, no auth - pre-signed URL handles everything
+      });
 
       if (!csvResponse.ok) {
         console.error(`CHATTANOOGA API: CSV download failed - ${csvResponse.status}`);
