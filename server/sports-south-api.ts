@@ -1202,10 +1202,22 @@ export class SportsSouthAPI {
       }
 
       const products: SportsSouthProduct[] = tables.map((table: any) => {
-        // Helper function to extract values from potentially nested arrays
+        // Helper function to extract values from potentially nested arrays or objects
         const getValue = (field: any): string | undefined => {
           if (Array.isArray(field) && field.length > 0) {
             return field[0];
+          }
+          // Handle objects that shouldn't be objects (XML parser bugs)
+          if (field && typeof field === 'object' && !Array.isArray(field)) {
+            // If it has a _text property, use that (common XML parser pattern)
+            if (field._text) return String(field._text);
+            if (field.text) return String(field.text);
+            // If it has a single key, use that value
+            const keys = Object.keys(field);
+            if (keys.length === 1) return String(field[keys[0]]);
+            // Last resort: return undefined to avoid "[object Object]"
+            console.warn(`SPORTS SOUTH: Unexpected object in field, returning undefined to avoid "[object Object]"`, JSON.stringify(field).substring(0, 100));
+            return undefined;
           }
           return field;
         };
@@ -1301,10 +1313,22 @@ export class SportsSouthAPI {
       console.log(`SPORTS SOUTH API: Found ${tables.length} table entries`);
 
       const products: SportsSouthProduct[] = tables.map((table: any) => {
-        // Helper function to extract values from potentially nested arrays
+        // Helper function to extract values from potentially nested arrays or objects
         const getValue = (field: any): string | undefined => {
           if (Array.isArray(field) && field.length > 0) {
             return field[0];
+          }
+          // Handle objects that shouldn't be objects (XML parser bugs)
+          if (field && typeof field === 'object' && !Array.isArray(field)) {
+            // If it has a _text property, use that (common XML parser pattern)
+            if (field._text) return String(field._text);
+            if (field.text) return String(field.text);
+            // If it has a single key, use that value
+            const keys = Object.keys(field);
+            if (keys.length === 1) return String(field[keys[0]]);
+            // Last resort: return undefined to avoid "[object Object]"
+            console.warn(`SPORTS SOUTH: Unexpected object in field, returning undefined to avoid "[object Object]"`, JSON.stringify(field).substring(0, 100));
+            return undefined;
           }
           return field;
         };
