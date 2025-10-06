@@ -206,13 +206,11 @@ export class ChattanoogaAPI {
           console.log(`CHATTANOOGA API: Got CSV download URL: ${csvUrl}`);
           
           // Download the CSV file
-          // NOTE: CSV download URL requires same authentication as main API
-          console.log(`CHATTANOOGA API: Downloading CSV with authentication...`);
+          // NOTE: CSV URL is a pre-signed URL - adding auth headers causes 403!
+          console.log(`CHATTANOOGA API: Downloading CSV (no auth headers - pre-signed URL)...`);
           const csvResponse = await fetch(csvUrl, this.getFetchOptions({
             method: 'GET',
             headers: {
-              'Authorization': this.createBasicAuth(),
-              'Accept': 'text/csv, text/plain, */*',
               'User-Agent': 'RetailPlatform/1.0'
             }
           }));
@@ -1364,13 +1362,11 @@ export class ChattanoogaAPI {
       const csvUrl = data.product_feed.url;
       console.log(`CHATTANOOGA API: Got CSV download URL: ${csvUrl}`);
 
-      // Download the CSV file from the provided URL with authentication
-      console.log(`CHATTANOOGA API: Downloading CSV with authentication...`);
+      // Download the CSV file from the provided URL (pre-signed, no auth needed)
+      console.log(`CHATTANOOGA API: Downloading CSV (no auth headers - pre-signed URL)...`);
       const csvResponse = await fetch(csvUrl, this.getFetchOptions({
         method: 'GET',
         headers: {
-          'Authorization': this.createBasicAuth(),
-          'Accept': 'text/csv, text/plain, */*',
           'User-Agent': 'RetailPlatform/1.0'
         }
       }));
