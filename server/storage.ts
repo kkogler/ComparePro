@@ -2923,15 +2923,14 @@ export class DatabaseStorage implements IStorage {
    * @returns Bill Hicks vendor ID or throws error if not found
    */
   async getBillHicksVendorId(): Promise<number> {
-    // Try common short code variants first
-    const aliases = ['bill-hicks', 'BillHicks', 'billhicks', 'bh', 'bill_hicks', 'bill hicks'];
-    for (const alias of aliases) {
-      const byShort = await this.getSupportedVendorByShortCode(alias);
-      if (byShort) return byShort.id;
-    }
-    // Try name-based lookup (case-insensitive, partial)
+    // Use canonical short code (enforced standard: bill-hicks)
+    const vendor = await this.getSupportedVendorByShortCode('bill-hicks');
+    if (vendor) return vendor.id;
+    
+    // Fallback to name-based lookup if shortCode not set
     const byName = await this.getSupportedVendorByName('bill hicks');
     if (byName) return byName.id;
+    
     throw new Error('Bill Hicks vendor not found in supported vendors');
   }
 
@@ -2939,17 +2938,12 @@ export class DatabaseStorage implements IStorage {
    * Get Bill Hicks vendor record robustly (by short code or name, normalized)
    */
   async getBillHicksVendor(): Promise<SupportedVendor | undefined> {
-    const vendors = await this.getAllSupportedVendors();
-    const normalize = (s: string | null | undefined) => (s || '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '');
-    const matches = (v: SupportedVendor) => {
-      const name = normalize(v.name);
-      const code = normalize(v.vendorShortCode || '');
-      const hasBillHicks = (str: string) => str.includes('bill') && str.includes('hicks');
-      return hasBillHicks(name) || hasBillHicks(code) || code === 'billhicks' || code === 'bill-hicks';
-    };
-    return vendors.find(matches);
+    // Use canonical short code (enforced standard: bill-hicks)
+    const vendor = await this.getSupportedVendorByShortCode('bill-hicks');
+    if (vendor) return vendor;
+    
+    // Fallback to name-based lookup if shortCode not set
+    return await this.getSupportedVendorByName('bill hicks');
   }
   
   /**

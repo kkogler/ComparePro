@@ -21,11 +21,11 @@ CREATE UNIQUE INDEX idx_vendors_slug ON vendors(slug);
 **Current Vendor Slugs:**
 | Company ID | Vendor Name | **Slug** | Short Code |
 |------------|-------------|----------|------------|
-| 5 | Bill Hicks & Co. | **bill_hicks** | bill_hicks |
+| 5 | Bill Hicks & Co. | **bill-hicks** | bill-hicks |
 | 5 | Chattanooga Shooting Supplies Inc. | **chattanooga** | chattanooga |
 | 5 | GunBroker.com LLC | **gunbroker** | gunbroker |
 | 5 | Lipsey's Inc. | **lipseys** | lipseys |
-| 5 | Sports South | **sports_south** | sports_south |
+| 5 | Sports South | **sports-south** | sports-south |
 
 ### **2. Automatic Slug Generation**
 **File**: `server/slug-utils.ts`

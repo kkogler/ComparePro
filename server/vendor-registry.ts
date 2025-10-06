@@ -59,9 +59,20 @@ export class VendorRegistry {
     if (!vendorName) return undefined;
     const normalized = vendorName.toLowerCase();
     
+    // Normalize function: treats hyphens and underscores as equivalent
+    const normalize = (str: string) => str.toLowerCase().replace(/[-_]/g, '');
+    
     // Try exact match first
     let handler = this.handlers.get(normalized);
     if (handler) return handler;
+
+    // Try with normalized hyphens/underscores
+    const normalizedKey = normalize(vendorName);
+    for (const [key, h] of this.handlers.entries()) {
+      if (normalize(key) === normalizedKey) {
+        return h;
+      }
+    }
 
     // Try partial matching for flexibility
     for (const [key, h] of this.handlers.entries()) {
