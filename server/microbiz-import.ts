@@ -117,7 +117,7 @@ export async function processMicroBizCatalog(companyId: number, catalogProducts:
           category: product['Main Category']?.trim() || null,
           subcategory: product['Sub-Category']?.trim() || null,
           description: product['Product Name'].trim(),
-          source: 'Bill Hicks & Co.',
+          source: 'bill-hicks', // Using vendor slug for consistent priority matching
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date()

@@ -42,7 +42,8 @@ export async function getVendorRecordPriority(vendorSlug: string): Promise<numbe
   }
 
   try {
-    // Query database for vendor priority using vendorShortCode (slug)
+    // Query database for vendor priority using vendorShortCode (slug) OR name
+    // This handles both "sports-south" and "Sports South" lookups
     const [result] = await db
       .select({ 
         productRecordPriority: supportedVendors.productRecordPriority,
@@ -50,13 +51,16 @@ export async function getVendorRecordPriority(vendorSlug: string): Promise<numbe
         name: supportedVendors.name 
       })
       .from(supportedVendors)
-      .where(sql`lower(trim(${supportedVendors.vendorShortCode})) = lower(trim(${vendorSlug}))`);
+      .where(
+        sql`lower(trim(${supportedVendors.vendorShortCode})) = lower(trim(${vendorSlug})) 
+            OR lower(trim(${supportedVendors.name})) = lower(trim(${vendorSlug}))`
+      );
 
     let priority: number;
 
     if (!result) {
       // Vendor not found in supportedVendors table
-      console.log(`VENDOR PRIORITY: Vendor slug "${vendorSlug}" not found in supportedVendors table, using default priority ${DEFAULT_PRIORITY}`);
+      console.log(`VENDOR PRIORITY: Vendor "${vendorSlug}" not found in supportedVendors table (searched by short code and name), using default priority ${DEFAULT_PRIORITY}`);
       priority = DEFAULT_PRIORITY;
     } else if (result.productRecordPriority === null || result.productRecordPriority === undefined) {
       // Vendor found but priority not set

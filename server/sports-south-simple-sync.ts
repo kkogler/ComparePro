@@ -291,7 +291,7 @@ export async function performSportsSouthCatalogSync(
             imageSource: imageUrl ? 'Sports South' : null,
             serialized: false, // Universal compliance field
             retailVerticalId: 1, // Universal retail vertical assignment
-            source: 'Sports South',
+            source: 'sports-south', // Using vendor slug for consistent priority matching
             status: 'active'
           };
 
