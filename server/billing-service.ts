@@ -670,21 +670,43 @@ export class BillingService {
             try {
               // Extract and map retail vertical from Zoho custom fields
               if (provider === 'zoho' && customerToUse) {
+                console.log('🔍 BillingService: Checking for retail vertical in customer data', {
+                  'cf_retail_vertical': customerToUse.cf_retail_vertical,
+                  'custom_fields': customerToUse.custom_fields,
+                  'allKeys': Object.keys(customerToUse)
+                });
+                
                 const retailVerticalField = customerToUse.cf_retail_vertical || 
                                             customerToUse.custom_fields?.retail_vertical ||
                                             customerToUse.custom_fields?.find((f: any) => 
                                               f.label?.toLowerCase().includes('retail') && 
                                               f.label?.toLowerCase().includes('vertical')
-                                            )?.value;
+                                            )?.value ||
+                                            customerToUse.retailVertical ||
+                                            customerToUse.retail_vertical;
                 
                 if (retailVerticalField) {
-                  console.log(`📋 Extracting retail vertical from Zoho: "${retailVerticalField}"`);
+                  console.log(`📋 BillingService: Extracting retail vertical from Zoho: "${retailVerticalField}"`);
                   const retailVerticalId = await this.mapRetailVerticalToId(retailVerticalField);
                   if (retailVerticalId) {
                     customerToUse.retailVerticalId = retailVerticalId;
+                    console.log(`✅ BillingService: Mapped retail vertical "${retailVerticalField}" to ID: ${retailVerticalId}`);
+                  } else {
+                    console.warn(`⚠️ BillingService: Could not map retail vertical "${retailVerticalField}" to an ID`);
                   }
+                } else {
+                  console.warn('⚠️ BillingService: No retail vertical found in customer data, using default Firearms vertical');
+                  // Default to Firearms (ID: 1) if no retail vertical is specified
+                  customerToUse.retailVerticalId = 1;
                 }
               }
+              
+              console.log('🚀 BillingService: Starting provisioning with customer data:', {
+                hasRetailVerticalId: !!customerToUse.retailVerticalId,
+                retailVerticalId: customerToUse.retailVerticalId,
+                hasPhone: !!customerToUse.phone,
+                hasEmail: !!customerToUse.email
+              });
               
               await this.provisionCompanyOnboarding(newOrg.id, customerToUse, provider);
               provisioningCompleted = true; // Mark as completed to prevent duplicate calls
@@ -1587,6 +1609,23 @@ export class BillingService {
           .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
         
         // Create default store using company name and customer data
+        // Enhanced phone extraction with extensive fallbacks for Zoho webhook formats
+        const extractedPhone = customerData?.phone || 
+                               customerData?.billing_address?.phone || 
+                               customerData?.cf_phone ||
+                               customerData?.contact_phone ||
+                               customerData?.contactpersons?.[0]?.phone ||
+                               null;
+        
+        console.log('📞 BillingService: Phone extraction debug', {
+          'customerData.phone': customerData?.phone,
+          'customerData.billing_address.phone': customerData?.billing_address?.phone,
+          'customerData.cf_phone': customerData?.cf_phone,
+          'customerData.contact_phone': customerData?.contact_phone,
+          'extractedPhone': extractedPhone,
+          'allCustomerDataKeys': customerData ? Object.keys(customerData) : []
+        });
+        
         const defaultStoreData: InsertStore = {
           companyId,
           name: companyName,
@@ -1604,7 +1643,7 @@ export class BillingService {
           state: customerData?.state || customerData?.billing_address?.state || null,
           zipCode: customerData?.zipCode || customerData?.zip || customerData?.billing_address?.zip || null,
           country: customerData?.country || customerData?.billing_address?.country || 'US',
-          phone: customerData?.phone || customerData?.billing_address?.phone || null
+          phone: extractedPhone
         };
 
           console.log('🏪 BillingService: Creating default store', { 
@@ -1734,6 +1773,9 @@ export class BillingService {
           .from(supportedVendors)
           .where(eq(supportedVendors.isEnabled, true));
         
+        console.log(`🔍 BillingService: Found ${supportedVendorsResult.length} enabled supported vendors:`, 
+          supportedVendorsResult.map(v => ({ id: v.id, name: v.name })));
+        
         if (supportedVendorsResult.length > 0) {
           // Check which vendors are already enabled
           const existingVendors = await tx
@@ -1741,6 +1783,7 @@ export class BillingService {
             .from(vendors)
             .where(eq(vendors.companyId, companyId));
           
+          console.log(`🔍 BillingService: Company already has ${existingVendors.length} vendors enabled`);
           const existingVendorIds = new Set(existingVendors.map(v => v.supportedVendorId));
           
           // Create vendors for any that don't exist
@@ -1771,12 +1814,17 @@ export class BillingService {
               };
             });
           
+          console.log(`🔍 BillingService: Will create ${vendorsToCreate.length} new vendors:`, 
+            vendorsToCreate.map(v => ({ name: v.name, slug: v.slug })));
+          
           if (vendorsToCreate.length > 0) {
             await tx.insert(vendors).values(vendorsToCreate);
             console.log(`✅ BillingService: Enabled ${vendorsToCreate.length} vendors for company`);
           } else {
             console.log('✅ BillingService: All supported vendors already enabled');
           }
+        } else {
+          console.warn('⚠️ BillingService: No enabled supported vendors found in the database!');
         }
 
         // 7. Update default store for users if not set
@@ -1898,22 +1946,25 @@ export class BillingService {
           console.log('✅ BillingService: Default pricing configuration already exists');
         }
 
-        // 10. Copy category templates if retail vertical is specified
-        if (customerData?.retailVerticalId) {
-          console.log(`📋 BillingService: Copying category templates for retail vertical ${customerData.retailVerticalId}`);
-          try {
-            const categoriesCopied = await storage.copyCategoryTemplatesToCompany(companyId, customerData.retailVerticalId);
-            if (categoriesCopied > 0) {
-              console.log(`✅ BillingService: Copied ${categoriesCopied} category templates to company`);
-            } else {
-              console.log(`ℹ️ BillingService: No category templates found for retail vertical ${customerData.retailVerticalId}`);
-            }
-          } catch (categoryError) {
-            console.error('⚠️ BillingService: Failed to copy category templates (non-critical):', categoryError);
-            // Don't fail provisioning if category copying fails
+        // 10. Copy category templates for retail vertical
+        const retailVerticalIdToCopy = customerData?.retailVerticalId || 1; // Default to Firearms (ID: 1)
+        console.log(`📋 BillingService: Copying category templates for retail vertical ${retailVerticalIdToCopy}`, {
+          hasRetailVerticalId: !!customerData?.retailVerticalId,
+          providedValue: customerData?.retailVerticalId,
+          usingDefault: !customerData?.retailVerticalId
+        });
+        
+        try {
+          const categoriesCopied = await storage.copyCategoryTemplatesToCompany(companyId, retailVerticalIdToCopy);
+          if (categoriesCopied > 0) {
+            console.log(`✅ BillingService: Copied ${categoriesCopied} category templates to company`);
+          } else {
+            console.warn(`⚠️ BillingService: No category templates found for retail vertical ${retailVerticalIdToCopy}`);
+            console.log('ℹ️ BillingService: This may be normal if the retail vertical has no pre-configured categories');
           }
-        } else {
-          console.log('ℹ️ BillingService: No retail vertical specified, skipping category template copying');
+        } catch (categoryError) {
+          console.error('⚠️ BillingService: Failed to copy category templates (non-critical):', categoryError);
+          // Don't fail provisioning if category copying fails
         }
 
         // Send invite email ONLY to NEW admin users (not on re-provisioning)
