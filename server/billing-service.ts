@@ -759,7 +759,7 @@ export class BillingService {
       
       const minimalCompanyData = {
         name: companyName,
-        slug: `company-${customerId}`.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+        slug: this.generateSlug(companyName), // Generate proper slug from company name
         email: companyEmail, // Store signup email for admin dashboard
         plan: planCode || 'free',
         billingProvider: provider,
