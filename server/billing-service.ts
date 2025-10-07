@@ -651,6 +651,23 @@ export class BillingService {
         }
       }
       
+      // CRITICAL FIX: Extract phone from contactpersons if not in customer billing address
+      if (customerToUse && provider === 'zoho') {
+        const contactPhone = subscription.contactpersons?.[0]?.phone || 
+                            subscription.contact_persons_associated?.[0]?.phone;
+        
+        if (contactPhone && !customerToUse.phone && !customerToUse.billing_address?.phone) {
+          console.log(`📞 BillingService: Extracting phone from contactpersons: ${contactPhone}`);
+          customerToUse.phone = contactPhone;
+        }
+        
+        // Also ensure retail vertical is extracted from customer object
+        if (!customerToUse.cf_retail_vertical && customerToUse.custom_field_hash?.cf_retail_vertical) {
+          customerToUse.cf_retail_vertical = customerToUse.custom_field_hash.cf_retail_vertical;
+          console.log(`📋 BillingService: Extracted retail vertical from custom_field_hash: ${customerToUse.cf_retail_vertical}`);
+        }
+      }
+      
       // Try to create company with available customer data
       if (customerToUse) {
         try {
