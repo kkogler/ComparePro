@@ -2626,11 +2626,19 @@ export class DatabaseStorage implements IStorage {
 
   // Category Template methods implementation
   async getCategoryTemplatesByRetailVertical(retailVerticalId: number): Promise<CategoryTemplate[]> {
-    return await db
-      .select()
-      .from(categoryTemplates)
-      .where(eq(categoryTemplates.retailVerticalId, retailVerticalId))
-      .orderBy(asc(categoryTemplates.sortOrder), asc(categoryTemplates.displayName));
+    console.log(`🔍 Storage: getCategoryTemplatesByRetailVertical called with retailVerticalId: ${retailVerticalId}`);
+    try {
+      const result = await db
+        .select()
+        .from(categoryTemplates)
+        .where(eq(categoryTemplates.retailVerticalId, retailVerticalId))
+        .orderBy(asc(categoryTemplates.sortOrder), asc(categoryTemplates.displayName));
+      console.log(`🔍 Storage: getCategoryTemplatesByRetailVertical returned ${result.length} templates`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Storage: Error in getCategoryTemplatesByRetailVertical:`, error);
+      throw error;
+    }
   }
 
   async createCategoryTemplate(template: InsertCategoryTemplate): Promise<CategoryTemplate> {
@@ -2664,11 +2672,18 @@ export class DatabaseStorage implements IStorage {
 
   async copyCategoryTemplatesToCompany(companyId: number, retailVerticalId: number): Promise<number> {
     try {
+      console.log(`🔍 Storage: Starting copyCategoryTemplatesToCompany for company ${companyId}, retail vertical ${retailVerticalId}`);
+      
       // Get all templates for this retail vertical
       const templates = await this.getCategoryTemplatesByRetailVertical(retailVerticalId);
       
+      console.log(`🔍 Storage: Query returned ${templates.length} templates`);
+      if (templates.length > 0) {
+        console.log(`🔍 Storage: First template:`, JSON.stringify(templates[0], null, 2));
+      }
+      
       if (templates.length === 0) {
-        console.log(`No category templates found for retail vertical ${retailVerticalId}`);
+        console.log(`⚠️ Storage: No category templates found for retail vertical ${retailVerticalId}`);
         return 0;
       }
 
@@ -2683,13 +2698,16 @@ export class DatabaseStorage implements IStorage {
         sortOrder: template.sortOrder
       }));
 
+      console.log(`🔍 Storage: Prepared ${categoriesToCreate.length} categories to insert`);
+
       // Insert all categories
       await db.insert(categories).values(categoriesToCreate);
 
-      console.log(`✅ Copied ${templates.length} category templates to company ${companyId}`);
+      console.log(`✅ Storage: Successfully copied ${templates.length} category templates to company ${companyId}`);
       return templates.length;
     } catch (error) {
-      console.error(`❌ Error copying category templates to company ${companyId}:`, error);
+      console.error(`❌ Storage: Error copying category templates to company ${companyId}:`, error);
+      console.error(`❌ Storage: Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
