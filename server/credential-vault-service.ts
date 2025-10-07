@@ -159,7 +159,7 @@ export class CredentialVaultService {
         adminFields = adminFields.map(field => {
           const normalizedName = field.name.toLowerCase().replace(/_/g, '');
           if (normalizedName === 'ftphost' || normalizedName === 'ftpserver') {
-            return { ...field, name: 'ftpHost' }; // Keep as ftpHost for admin
+            return { ...field, name: 'ftpServer' }; // Keep as ftpServer (matches database)
           }
           if (normalizedName === 'ftpusername') {
             return { ...field, name: 'ftpUsername' };

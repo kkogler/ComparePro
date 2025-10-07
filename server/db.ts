@@ -1,13 +1,9 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
+import { Pool as PgPool } from 'pg';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import ws from "ws";
 import * as schema from "@shared/schema";
-
-// Configure Neon WebSocket constructor
-neonConfig.webSocketConstructor = ws;
-
-// Improve Neon connection settings for stability
-neonConfig.poolQueryViaFetch = true;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -15,17 +11,43 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure connection pool with proper settings for Neon
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  max: 20,                    // Maximum number of connections in the pool
-  idleTimeoutMillis: 30000,   // Close connections after 30 seconds of inactivity
-  connectionTimeoutMillis: 10000, // Wait up to 10 seconds for a connection
-  maxUses: 7500,              // Maximum number of times a connection is used before being closed
-  allowExitOnIdle: false      // Keep the pool alive even if all connections are idle
-});
+const isNeonDatabase = process.env.DATABASE_URL.includes('neon.tech');
+const isLocalDatabase = process.env.DATABASE_URL.includes('localhost');
 
-export const db = drizzle({ client: pool, schema });
+console.log(`🔌 Database driver: ${isNeonDatabase ? 'Neon Cloud' : isLocalDatabase ? 'Local PostgreSQL' : 'Unknown'}`);
+
+let pool: any;
+let db: any;
+
+if (isNeonDatabase) {
+  // Configure Neon WebSocket constructor
+  neonConfig.webSocketConstructor = ws;
+  neonConfig.poolQueryViaFetch = true;
+
+  // Configure connection pool with proper settings for Neon
+  pool = new NeonPool({ 
+    connectionString: process.env.DATABASE_URL,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    maxUses: 7500,
+    allowExitOnIdle: false
+  });
+
+  db = drizzle({ client: pool, schema });
+} else {
+  // Use regular node-postgres for local PostgreSQL
+  pool = new PgPool({
+    connectionString: process.env.DATABASE_URL,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
+
+  db = drizzlePg(pool, { schema });
+}
+
+export { pool, db };
 
 // Add connection error handling
 pool.on('error', (err) => {
