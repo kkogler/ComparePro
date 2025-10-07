@@ -1,0 +1,95 @@
+                                                        Table "public.supported_vendors"
+                  Column                   |            Type             | Collation | Nullable |                    Default                    
+-------------------------------------------+-----------------------------+-----------+----------+-----------------------------------------------
+ id                                        | integer                     |           | not null | nextval('supported_vendors_id_seq'::regclass)
+ name                                      | text                        |           | not null | 
+ vendor_short_code                         | text                        |           |          | 
+ description                               | text                        |           | not null | 
+ api_type                                  | text                        |           | not null | 
+ logo_url                                  | text                        |           |          | 
+ website_url                               | text                        |           |          | 
+ documentation_url                         | text                        |           |          | 
+ credential_fields                         | json                        |           | not null | 
+ features                                  | json                        |           | not null | 
+ admin_credentials                         | json                        |           |          | 
+ admin_connection_status                   | text                        |           |          | 'not_configured'::text
+ last_catalog_sync                         | timestamp without time zone |           |          | 
+ catalog_sync_status                       | text                        |           |          | 
+ catalog_sync_error                        | text                        |           |          | 
+ last_sync_new_records                     | integer                     |           |          | 0
+ sports_south_schedule_enabled             | boolean                     |           |          | false
+ sports_south_schedule_time                | text                        |           |          | '14:00'::text
+ sports_south_schedule_frequency           | text                        |           |          | 'daily'::text
+ last_sync_records_updated                 | integer                     |           |          | 0
+ last_sync_records_skipped                 | integer                     |           |          | 0
+ last_sync_images_added                    | integer                     |           |          | 0
+ last_sync_images_updated                  | integer                     |           |          | 0
+ chattanooga_schedule_enabled              | boolean                     |           |          | false
+ chattanooga_schedule_time                 | text                        |           |          | '15:00'::text
+ chattanooga_schedule_frequency            | text                        |           |          | 'daily'::text
+ chattanooga_last_csv_download             | timestamp without time zone |           |          | 
+ chattanooga_csv_sync_status               | text                        |           |          | 'never_synced'::text
+ chattanooga_csv_sync_error                | text                        |           |          | 
+ chattanooga_last_csv_size                 | integer                     |           |          | 0
+ chattanooga_last_csv_hash                 | text                        |           |          | 
+ chattanooga_records_added                 | integer                     |           |          | 0
+ chattanooga_records_updated               | integer                     |           |          | 0
+ chattanooga_records_skipped               | integer                     |           |          | 0
+ chattanooga_records_failed                | integer                     |           |          | 0
+ chattanooga_total_records                 | integer                     |           |          | 0
+ bill_hicks_inventory_sync_enabled         | boolean                     |           |          | true
+ bill_hicks_inventory_sync_time            | text                        |           |          | '03:00'::text
+ bill_hicks_last_inventory_sync            | timestamp without time zone |           |          | 
+ bill_hicks_inventory_sync_status          | text                        |           |          | 'never_synced'::text
+ bill_hicks_inventory_sync_error           | text                        |           |          | 
+ bill_hicks_last_sync_records_updated      | integer                     |           |          | 0
+ bill_hicks_last_sync_records_skipped      | integer                     |           |          | 0
+ bill_hicks_last_sync_records_failed       | integer                     |           |          | 0
+ bill_hicks_inventory_records_added        | integer                     |           |          | 0
+ bill_hicks_inventory_records_failed       | integer                     |           |          | 0
+ bill_hicks_inventory_total_records        | integer                     |           |          | 0
+ bill_hicks_last_sync_records_added        | integer                     |           |          | 0
+ bill_hicks_last_sync_records_removed      | integer                     |           |          | 0
+ bill_hicks_last_sync_records_unchanged    | integer                     |           |          | 0
+ bill_hicks_last_sync_total_records        | integer                     |           |          | 0
+ bill_hicks_master_catalog_sync_enabled    | boolean                     |           |          | true
+ bill_hicks_master_catalog_sync_time       | character varying(5)        |           |          | '02:00'::character varying
+ bill_hicks_master_catalog_sync_status     | character varying(20)       |           |          | 'not_configured'::character varying
+ bill_hicks_master_catalog_last_sync       | timestamp without time zone |           |          | 
+ bill_hicks_master_catalog_sync_error      | text                        |           |          | 
+ bill_hicks_master_catalog_records_added   | integer                     |           |          | 0
+ bill_hicks_master_catalog_records_updated | integer                     |           |          | 0
+ bill_hicks_master_catalog_records_failed  | integer                     |           |          | 0
+ bill_hicks_master_catalog_records_skipped | integer                     |           |          | 0
+ bill_hicks_master_catalog_total_records   | integer                     |           |          | 0
+ lipseys_catalog_sync_enabled              | boolean                     |           |          | false
+ lipseys_catalog_sync_time                 | character varying(5)        |           |          | '08:00'::character varying
+ lipseys_catalog_sync_frequency            | text                        |           |          | 'daily'::text
+ lipseys_catalog_sync_status               | character varying(20)       |           |          | 'not_configured'::character varying
+ lipseys_last_catalog_sync                 | timestamp without time zone |           |          | 
+ lipseys_catalog_sync_error                | text                        |           |          | 
+ lipseys_records_added                     | integer                     |           |          | 0
+ lipseys_records_updated                   | integer                     |           |          | 0
+ lipseys_records_skipped                   | integer                     |           |          | 0
+ lipseys_records_failed                    | integer                     |           |          | 0
+ lipseys_total_records                     | integer                     |           |          | 0
+ lipseys_images_added                      | integer                     |           |          | 0
+ lipseys_images_updated                    | integer                     |           |          | 0
+ vendor_type                               | text                        |           |          | 'vendor'::text
+ name_aliases                              | text[]                      |           |          | 
+ is_enabled                                | boolean                     |           |          | true
+ sort_order                                | integer                     |           |          | 0
+ product_record_priority                   | integer                     |           | not null | 
+ created_at                                | timestamp without time zone |           | not null | now()
+ updated_at                                | timestamp without time zone |           | not null | now()
+Indexes:
+    "supported_vendors_pkey" PRIMARY KEY, btree (id)
+    "supported_vendors_name_unique" UNIQUE CONSTRAINT, btree (name)
+    "supported_vendors_product_record_priority_unique" UNIQUE CONSTRAINT, btree (product_record_priority)
+Referenced by:
+    TABLE "company_vendor_credentials" CONSTRAINT "company_vendor_credentials_supported_vendor_id_supported_vendor" FOREIGN KEY (supported_vendor_id) REFERENCES supported_vendors(id)
+    TABLE "supported_vendor_retail_verticals" CONSTRAINT "supported_vendor_retail_verticals_supported_vendor_id_supported" FOREIGN KEY (supported_vendor_id) REFERENCES supported_vendors(id)
+    TABLE "vendor_inventory" CONSTRAINT "vendor_inventory_supported_vendor_id_supported_vendors_id_fk" FOREIGN KEY (supported_vendor_id) REFERENCES supported_vendors(id)
+    TABLE "vendor_product_mappings" CONSTRAINT "vendor_product_mappings_supported_vendor_id_supported_vendors_i" FOREIGN KEY (supported_vendor_id) REFERENCES supported_vendors(id)
+    TABLE "vendors" CONSTRAINT "vendors_supported_vendor_id_supported_vendors_id_fk" FOREIGN KEY (supported_vendor_id) REFERENCES supported_vendors(id)
+
