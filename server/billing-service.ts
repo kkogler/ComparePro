@@ -613,6 +613,66 @@ export class BillingService {
       .where(eq(companies.billingCustomerId, customerId))
       .limit(1);
 
+    // **DUPLICATE SUBSCRIPTION PREVENTION**: Check if customer already has an active subscription
+    if (org && org.status === 'active' && org.billingSubscriptionId) {
+      console.error('🚨 DUPLICATE SUBSCRIPTION DETECTED', {
+        existingCompanyId: org.id,
+        existingCompanyName: org.name,
+        existingSubscriptionId: org.billingSubscriptionId,
+        newSubscriptionId: subscriptionId,
+        customerId: customerId,
+        customerEmail: customer?.email || subscription?.customer?.email
+      });
+
+      // Send alert email to admin
+      try {
+        const adminEmail = process.env.ADMIN_ALERT_EMAIL || 'kevin.kogler@microbiz.com';
+        const subject = '🚨 Duplicate Subscription Attempt Blocked';
+        const html = `
+          <h2>Duplicate Subscription Attempt Detected</h2>
+          <p><strong>A customer tried to create a duplicate subscription. This was blocked by the system.</strong></p>
+          
+          <h3>Existing Subscription Details:</h3>
+          <ul>
+            <li><strong>Company:</strong> ${org.name}</li>
+            <li><strong>Company ID:</strong> ${org.id}</li>
+            <li><strong>Existing Subscription ID:</strong> ${org.billingSubscriptionId}</li>
+            <li><strong>Status:</strong> ${org.status}</li>
+            <li><strong>Plan:</strong> ${org.plan}</li>
+          </ul>
+
+          <h3>New Subscription Attempt Details:</h3>
+          <ul>
+            <li><strong>Customer ID:</strong> ${customerId}</li>
+            <li><strong>New Subscription ID:</strong> ${subscriptionId}</li>
+            <li><strong>Email:</strong> ${customer?.email || subscription?.customer?.email || 'N/A'}</li>
+            <li><strong>Company Name:</strong> ${customer?.display_name || subscription?.customer?.display_name || 'N/A'}</li>
+          </ul>
+
+          <h3>Action Required:</h3>
+          <p>Please configure Zoho Billing to prevent duplicate subscriptions per email address.</p>
+          <p>Until then, the system will continue to block duplicate attempts and send these alerts.</p>
+        `;
+        
+        const { sendEmail } = await import('./email-service');
+        await sendEmail(adminEmail, subject, html);
+        console.log('✅ BillingService: Sent duplicate subscription alert email');
+      } catch (emailError) {
+        console.error('⚠️ BillingService: Failed to send duplicate subscription alert:', emailError);
+      }
+
+      // Log the webhook event but don't process it
+      await this.logBillingEvent({
+        eventType: 'subscription_created',
+        eventId: subscriptionId,
+        billingProvider: provider,
+        data: { subscription, customer, error: 'DUPLICATE_SUBSCRIPTION_BLOCKED' }
+      });
+
+      console.log('🛑 BillingService: Duplicate subscription blocked, webhook processing stopped');
+      return; // Exit early - don't create duplicate company
+    }
+
     if (!org) {
       console.log('🏗️ BillingService: Company not found, attempting to create new company...');
       
