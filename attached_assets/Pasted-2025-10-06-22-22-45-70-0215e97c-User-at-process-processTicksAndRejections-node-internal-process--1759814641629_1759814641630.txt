@@ -1,0 +1,168 @@
+2025-10-06 22:22:45.70
+0215e97c
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-06 22:22:45.70
+0215e97c
+User
+⚠️ BillingService: Failed to copy category templates (non-critical): NeonDbError: duplicate key value violates unique constraint "categories_pkey"
+2025-10-06 22:22:45.70
+0215e97c
+User
+at execute (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1556:55)
+2025-10-06 22:22:45.70
+0215e97c
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+2025-10-06 22:22:45.70
+0215e97c
+User
+severity: 'ERROR',
+2025-10-06 22:22:45.70
+0215e97c
+User
+code: '23505',
+2025-10-06 22:22:45.70
+0215e97c
+User
+detail: 'Key (id)=(6) already exists.',
+2025-10-06 22:22:45.70
+0215e97c
+User
+hint: undefined,
+2025-10-06 22:22:45.70
+0215e97c
+User
+position: undefined,
+2025-10-06 22:22:45.70
+0215e97c
+User
+internalPosition: undefined,
+2025-10-06 22:22:45.70
+0215e97c
+User
+internalQuery: undefined,
+2025-10-06 22:22:45.70
+0215e97c
+User
+where: undefined,
+2025-10-06 22:22:45.70
+0215e97c
+User
+schema: 'public',
+2025-10-06 22:22:45.70
+0215e97c
+User
+table: 'categories',
+2025-10-06 22:22:45.70
+0215e97c
+User
+column: undefined,
+2025-10-06 22:22:45.70
+0215e97c
+User
+dataType: undefined,
+2025-10-06 22:22:45.70
+0215e97c
+User
+constraint: 'categories_pkey',
+2025-10-06 22:22:45.70
+0215e97c
+User
+file: 'nbtinsert.c',
+2025-10-06 22:22:45.70
+0215e97c
+User
+line: '666',
+2025-10-06 22:22:45.70
+0215e97c
+User
+routine: '_bt_check_unique',
+2025-10-06 22:22:45.70
+0215e97c
+User
+sourceError: undefined
+2025-10-06 22:22:45.70
+0215e97c
+User
+}
+2025-10-06 22:22:45.70
+0215e97c
+User
+ℹ️ BillingService: Admin user already exists, sending new store notification email { userId: 181, companyId: 56 }
+2025-10-06 22:22:45.89
+0215e97c
+User
+🔑 BillingService: Generated new temporary password for existing user
+2025-10-06 22:22:45.89
+0215e97c
+User
+📧 BillingService: Sending new store notification email to EXISTING admin user {
+2025-10-06 22:22:45.89
+0215e97c
+User
+email: 'kevin.kogler+test3@microbiz.com',
+2025-10-06 22:22:45.89
+0215e97c
+User
+organizationName: 'TLC Guns',
+2025-10-06 22:22:45.89
+0215e97c
+User
+loginUrl: 'https://pricecomparehub.com/org/tlc-guns/auth',
+2025-10-06 22:22:45.89
+0215e97c
+User
+userId: 181
+2025-10-06 22:22:45.89
+0215e97c
+User
+}
+2025-10-06 22:22:45.94
+0215e97c
+User
+Attempting to send email via SMTP2GO...
+2025-10-06 22:22:46.39
+0215e97c
+User
+Email sent successfully via SMTP2GO to: kevin.kogler+test3@microbiz.com
+2025-10-06 22:22:46.39
+0215e97c
+User
+✅ BillingService: New store notification email sent successfully to existing user
+2025-10-06 22:22:46.39
+0215e97c
+User
+🎉 BillingService: Company onboarding provisioning completed successfully {
+2025-10-06 22:22:46.39
+0215e97c
+User
+companyId: 56,
+2025-10-06 22:22:46.39
+0215e97c
+User
+adminUserId: 181,
+2025-10-06 22:22:46.39
+0215e97c
+User
+defaultUserId: 182,
+2025-10-06 22:22:46.39
+0215e97c
+User
+defaultStoreId: 74,
+2025-10-06 22:22:46.39
+0215e97c
+User
+timestamp: '2025-10-07T05:22:46.395Z'
+2025-10-06 22:22:46.39
+0215e97c
+User
+}
+2025-10-06 22:22:46.42
+0215e97c
+User
+🔓 BillingService: Released provisioning lock for company 56
+2025-10-06 22:22:46.42
+0215e97c
+User
+✅ BillingServi
