@@ -2674,6 +2674,17 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`🔍 Storage: Starting copyCategoryTemplatesToCompany for company ${companyId}, retail vertical ${retailVerticalId}`);
       
+      // Check if company already has categories
+      const existingCategories = await db
+        .select()
+        .from(categories)
+        .where(eq(categories.companyId, companyId));
+      
+      if (existingCategories.length > 0) {
+        console.log(`ℹ️ Storage: Company ${companyId} already has ${existingCategories.length} categories, skipping template copy`);
+        return 0; // Return 0 to indicate no new categories were copied
+      }
+      
       // Get all templates for this retail vertical
       const templates = await this.getCategoryTemplatesByRetailVertical(retailVerticalId);
       
