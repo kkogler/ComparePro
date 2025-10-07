@@ -165,29 +165,19 @@ export class BillingService {
             this.handleCustomerCreated(customerData, 'zoho')
           );
           break;
-        case 'subscription_activation':
-          // Zoho sometimes sends 'subscription_activation' instead of 'subscription_created'
-          await this.safelyHandleEvent('subscription_activation', () => 
-            this.handleSubscriptionCreated(
-              subscriptionData || payload.data?.subscription,
-              customerData || payload.data?.subscription?.customer,
-              'zoho'
-            )
-          );
-          break;
-        case 'subscription_activated':
-          // Alternate wording observed in some Zoho payloads
-          await this.safelyHandleEvent('subscription_activated', () => 
-            this.handleSubscriptionCreated(
-              subscriptionData || payload.data?.subscription,
-              customerData || payload.data?.subscription?.customer,
-              'zoho'
-            )
-          );
-          break;
+        
         case 'subscription_created':
-          await this.safelyHandleEvent('subscription_created', () => 
-            this.handleSubscriptionCreated(subscriptionData, customerData, 'zoho')
+        case 'subscription_activation':
+        case 'subscription_activated':
+          // All Zoho subscription events treated the same way
+          // Deduplication is handled at database level (see isEventAlreadyProcessedInDB)
+          // Zoho may send different event names for the same subscription action
+          await this.safelyHandleEvent(eventType, () => 
+            this.handleSubscriptionCreated(
+              subscriptionData || payload.data?.subscription,
+              customerData || payload.data?.subscription?.customer,
+              'zoho'
+            )
           );
           break;
         case 'subscription_cancelled':
