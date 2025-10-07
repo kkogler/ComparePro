@@ -1,0 +1,216 @@
+2025-10-06 19:42:52.46
+310bbbde
+User
+🔒 BillingService: Acquired provisioning lock for company 54
+2025-10-06 19:42:52.59
+310bbbde
+User
+✅ BillingService: Admin user already exists for this company {
+2025-10-06 19:42:52.59
+310bbbde
+User
+companyId: 54,
+2025-10-06 19:42:52.59
+310bbbde
+User
+existingAdminId: 177,
+2025-10-06 19:42:52.59
+310bbbde
+User
+username: 'kevin.kogler@microbiz.com'
+2025-10-06 19:42:52.59
+310bbbde
+User
+}
+2025-10-06 19:42:52.62
+310bbbde
+User
+✅ BillingService: Default user already exists, using existing { companyId: 54, existingDefaultUserId: 178, username: 'default' }
+2025-10-06 19:42:52.65
+310bbbde
+User
+✅ BillingService: Default store already exists, using existing { companyId: 54, existingStoreId: 72, storeName: 'Bullys Guns' }
+2025-10-06 19:42:52.71
+310bbbde
+User
+✅ BillingService: User-store mappings already exist
+2025-10-06 19:42:52.74
+310bbbde
+User
+✅ BillingService: Updated company with timezone/retail vertical
+2025-10-06 19:42:52.74
+310bbbde
+User
+🔌 BillingService: Enabling all supported vendors for company
+2025-10-06 19:42:52.78
+310bbbde
+User
+🔍 BillingService: Found 5 enabled supported vendors: [
+2025-10-06 19:42:52.78
+310bbbde
+User
+{ id: 5, name: 'Chattanooga Shooting Supplies' },
+2025-10-06 19:42:52.78
+310bbbde
+User
+{ id: 2, name: 'Sports South' },
+2025-10-06 19:42:52.78
+310bbbde
+User
+{ id: 3, name: 'Bill Hicks & Co.' },
+2025-10-06 19:42:52.78
+310bbbde
+User
+{ id: 1, name: 'GunBroker' }
+2025-10-06 19:42:52.81
+310bbbde
+User
+🔍 BillingService: Company already has 5 vendors enabled
+2025-10-06 19:42:52.81
+310bbbde
+User
+🔍 BillingService: Will create 0 new vendors: []
+2025-10-06 19:42:52.90
+310bbbde
+User
+✅ BillingService: Default pricing configuration already exists
+2025-10-06 19:42:52.90
+310bbbde
+User
+📋 BillingService: Copying category templates for retail vertical 1 { hasRetailVerticalId: true, providedValue: 1, usingDefault: false }
+2025-10-06 19:42:52.90
+310bbbde
+User
+🔍 Storage: Starting copyCategoryTemplatesToCompany for company 54, retail vertical 1
+2025-10-06 19:42:52.90
+310bbbde
+User
+🔍 Storage: getCategoryTemplatesByRetailVertical called with retailVerticalId: 1
+2025-10-06 19:42:52.94
+310bbbde
+User
+⚠️ BillingService: No category templates found for retail vertical 1
+2025-10-06 19:42:52.94
+310bbbde
+User
+🔍 Storage: Query returned 0 templates
+2025-10-06 19:42:52.94
+310bbbde
+User
+⚠️ Storage: No category templates found for retail vertical 1
+2025-10-06 19:42:52.94
+310bbbde
+User
+ℹ️ BillingService: This may be normal if the retail vertical has no pre-configured categories
+2025-10-06 19:42:53.06
+310bbbde
+User
+🔑 BillingService: Generated new temporary password for existing user
+2025-10-06 19:42:53.06
+310bbbde
+User
+📧 BillingService: Sending new store notification email to EXISTING admin user {
+2025-10-06 19:42:53.06
+310bbbde
+User
+userId: 177
+2025-10-06 19:42:53.06
+310bbbde
+User
+}
+2025-10-06 19:42:53.80
+310bbbde
+User
+Email sent successfully via SMTP2GO to: kevin.kogler@microbiz.com
+2025-10-06 19:42:53.80
+310bbbde
+User
+✅ BillingService: New store notification email sent successfully to existing user
+2025-10-06 19:42:53.80
+310bbbde
+User
+🎉 BillingService: Company onboarding provisioning completed successfully {
+2025-10-06 19:42:53.80
+310bbbde
+User
+adminUserId: 177,
+2025-10-06 19:42:53.80
+310bbbde
+User
+defaultStoreId: 72,
+2025-10-06 19:42:53.80
+310bbbde
+User
+timestamp: '2025-10-07T02:42:53.808Z'
+2025-10-06 19:42:53.84
+310bbbde
+User
+🔓 BillingService: Released provisioning lock for company 54
+2025-10-06 19:42:53.84
+310bbbde
+User
+✅ BillingService: Initial provisioning completed successfully
+2025-10-06 19:42:53.90
+310bbbde
+User
+🗺️ Plan mapping: "free-plan-v1" -> "free" (was mapped)
+2025-10-06 19:42:53.90
+310bbbde
+User
+🗺️ Plan mapping: "free-plan-v1" -> "free" (was mapped)
+2025-10-06 19:42:53.94
+310bbbde
+User
+✅ BillingService: Updated subscription for company: Bullys Guns
+2025-10-06 19:42:53.94
+310bbbde
+User
+📝 BillingService: Creating explicit subscription record...
+2025-10-06 19:42:54.06
+310bbbde
+User
+📝 Created billing event record for subscription creation
+2025-10-06 19:42:54.06
+310bbbde
+User
+✅ BillingService: Skipping duplicate provisioning - already completed successfully
+2025-10-06 19:42:54.06
+310bbbde
+User
+🔓 Released webhook lock for customer 4899864000001981647
+2025-10-06 19:42:54.06
+310bbbde
+User
+✅ Successfully processed subscription_created
+2025-10-06 19:42:54.16
+310bbbde
+User
+📝 Created billing event record for 4899864000001981645
+2025-10-06 19:42:54.20
+310bbbde
+User
+✅ BillingService: Webhook processed successfully {
+2025-10-06 19:42:54.20
+310bbbde
+User
+eventId: '4899864000001981645',
+2025-10-06 19:42:54.20
+310bbbde
+User
+timestamp: '2025-10-07T02:42:54.201Z'
+2025-10-06 19:42:54.20
+310bbbde
+User
+}
+2025-10-06 19:42:54.20
+310bbbde
+User
+✅ WEBHOOK PROCESSING COMPLETED {
+2025-10-06 19:42:54.20
+310bbbde
+User
+requestId: 'd0a5f65f-14d5-4e24-9c5b-889540edc601',
+2025-10-06 19:42:54.20
+310bbbde
+User
+eventId: '4899864000001981645'
