@@ -50,7 +50,7 @@ if (isNeonDatabase) {
 export { pool, db };
 
 // Add connection error handling
-pool.on('error', (err) => {
+pool.on('error', (err: Error) => {
   console.error('Database pool error:', err);
 });
 
