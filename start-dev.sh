@@ -1,16 +1,15 @@
 #!/bin/bash
-# Start Development Server with Local PostgreSQL
+set -e
 
-echo "🔍 Starting PostgreSQL..."
-./start-postgres.sh
+PG_SOCKETS="/home/runner/.postgresql/sockets"
 
-echo ""
-echo "🚀 Starting Development Server..."
-echo "📊 Using LOCAL database: postgresql://user:password@localhost:5432/pricecompare"
+# FORCE local database URL (overrides Replit Secrets)
+unset DATABASE_URL
+export DATABASE_URL="postgresql://user:password@localhost:5432/pricecompare?host=$PG_SOCKETS"
+export NODE_ENV=development
 
-# Override Replit Secrets to use local database
-export DATABASE_URL="postgresql://user:password@localhost:5432/pricecompare"
-export NODE_ENV="development"
+echo "=== Starting Development Server ==="
+echo "🔌 Database: LOCAL PostgreSQL (forced)"
+echo "📍 URL: $DATABASE_URL"
 
-npm run dev
-
+tsx server/index.ts
