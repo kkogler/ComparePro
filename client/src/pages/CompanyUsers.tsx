@@ -52,8 +52,12 @@ export default function CompanyUsers() {
   const { user: currentUser } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
-  // Check if current user is admin
-  const isCurrentUserAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin;
+  // Check if current user is admin (includes both org admins and system admins)
+  // System admins have companyId = null, org admins have isAdmin = true
+  const isSystemAdmin = currentUser?.companyId === null;
+  const isOrgAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin;
+  const isCurrentUserAdmin = isSystemAdmin || isOrgAdmin;
+  
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteUserModal, setDeleteUserModal] = useState<{
     isOpen: boolean;
@@ -96,6 +100,8 @@ export default function CompanyUsers() {
   console.log('CompanyUsers Debug:', {
     slug,
     currentUser,
+    isSystemAdmin,
+    isOrgAdmin,
     isCurrentUserAdmin,
     users,
     usersCount: users.length,

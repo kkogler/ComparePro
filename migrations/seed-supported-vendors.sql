@@ -9,11 +9,16 @@ VALUES
    5, true),
   
   (2, 'Sports South', 'sports-south', 'rest', 'Sports South wholesale distributor',
-   '[{"name": "username", "type": "text", "label": "Username", "required": true}, {"name": "password", "type": "password", "label": "Password", "required": true}]'::json,
+   '[
+     {"name": "userName", "type": "text", "label": "Username", "required": true, "placeholder": "Your Sports South username"},
+     {"name": "customerNumber", "type": "text", "label": "Customer Number", "required": true, "placeholder": "Your Sports South customer number"},
+     {"name": "password", "type": "password", "label": "Password", "required": true, "placeholder": "Your Sports South password"},
+     {"name": "source", "type": "text", "label": "Source/Reference", "required": true, "placeholder": "Your Sports South source reference code"}
+   ]'::json,
    '{"inventorySync":true,"productCatalog":true,"realTimePricing":true,"electronicOrdering":true}'::json,
    1, true),
   
-  (3, 'Bill Hicks & Co.', 'bill-hicks', 'rest', 'Bill Hicks wholesale distributor',
+  (3, 'Bill Hicks & Co.', 'bill-hicks', 'ftp', 'Bill Hicks wholesale distributor',
    '[
      {"name": "ftpServer", "type": "text", "label": "FTP Server", "required": true, "placeholder": "billhicksco.hostedftp.com"},
      {"name": "ftpUsername", "type": "text", "label": "FTP Username", "required": true, "placeholder": "enter username for Bill Hicks FTP server"},
@@ -30,7 +35,13 @@ VALUES
    4, true),
   
   (5, 'Chattanooga Shooting Supplies Inc.', 'chattanooga', 'rest', 'Chattanooga wholesale distributor',
-   '[{"name": "ftpServer", "type": "text", "label": "FTP Server", "required": true}, {"name": "ftpUsername", "type": "text", "label": "FTP Username", "required": true}, {"name": "ftpPassword", "type": "password", "label": "FTP Password", "required": true}, {"name": "ftpPort", "type": "number", "label": "FTP Port", "default": "21", "required": false}, {"name": "ftpBasePath", "type": "text", "label": "FTP Base Path", "required": false}]'::json,
+   '[
+     {"name": "sid", "type": "text", "label": "API SID", "required": true, "placeholder": "Your Chattanooga API SID for authentication (REQUIRED)"},
+     {"name": "token", "type": "password", "label": "API Token", "required": true, "placeholder": "Your Chattanooga API Token for authentication (REQUIRED)"},
+     {"name": "accountNumber", "type": "text", "label": "Account Number", "required": false, "placeholder": "Your Chattanooga account number (optional, used in some API headers)"},
+     {"name": "username", "type": "text", "label": "Portal Username", "required": false, "placeholder": "Your Chattanooga dealer portal username (optional)"},
+     {"name": "password", "type": "password", "label": "Portal Password", "required": false, "placeholder": "Your Chattanooga dealer portal password (optional)"}
+   ]'::json,
    '{"inventorySync":true,"productCatalog":true,"realTimePricing":true,"electronicOrdering":true}'::json,
    2, true)
 ON CONFLICT (id) DO UPDATE SET

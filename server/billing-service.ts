@@ -2035,6 +2035,14 @@ export class BillingService {
         }
 
         // Send invite email ONLY to NEW admin users (not on re-provisioning)
+        console.log('📧 BillingService: Checking email send conditions:', {
+          isNewAdminUser,
+          hasAdminUser: !!adminUser,
+          adminUserEmail: (adminUser as any)?.email,
+          hasTempPassword: !!tempPasswordRaw,
+          willSendEmail: isNewAdminUser && adminUser && (adminUser as any).email && tempPasswordRaw
+        });
+        
         if (isNewAdminUser && adminUser && (adminUser as any).email && tempPasswordRaw) {
           try {
             const company = await tx.select().from(companies).where(eq(companies.id, companyId)).limit(1);
@@ -2052,7 +2060,8 @@ export class BillingService {
                 email: adminEmail,
                 organizationName: company[0].name,
                 loginUrl,
-                userId: adminUser.id
+                userId: adminUser.id,
+                tempPassword: tempPasswordRaw ? '***HIDDEN***' : 'MISSING'
               });
 
               const emailSent = await sendInviteEmail(
@@ -2066,7 +2075,7 @@ export class BillingService {
               if (emailSent) {
                 console.log('✅ BillingService: Welcome email sent successfully to new user');
               } else {
-                console.log('⚠️ BillingService: Welcome email sending failed (non-blocking)');
+                console.warn('⚠️ BillingService: Welcome email sending failed - check email service configuration');
               }
             }
           } catch (emailError) {
@@ -2599,6 +2608,18 @@ export class BillingService {
       };
 
       await this.provisionCompanyOnboarding(newCompany.id, customerData, 'zoho');
+
+      // Create billing event for subscription_created so it appears in admin dashboard "Created" column
+      await storage.createBillingEvent({
+        companyId: newCompany.id,
+        eventType: 'subscription_created',
+        billingProvider: 'manual', // Required field - indicates this was manually created
+        eventData: {
+          plan: data.plan,
+          source: 'manual',
+          customerEmail: data.email
+        }
+      });
 
       console.log('✅ BillingService: Manual subscription created successfully', {
         companyId: newCompany.id,

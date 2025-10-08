@@ -155,7 +155,7 @@ export default function SupportedVendorsAdmin() {
     vendor: SupportedVendor | null;
   }>({ isOpen: false, vendor: null });
   const [syncSettingsDialog, setSyncSettingsDialog] = useState<{ vendor: SupportedVendor } | null>(null);
-  const [editingPriority, setEditingPriority] = useState<{ vendorId: number; value: number | null } | null>(null);
+  const [editingPriority, setEditingPriority] = useState<{ vendorId: number; retailVerticalId: number; value: number } | null>(null);
 
   // Fetch supported vendors
   const { data: vendors, isLoading } = useQuery<SupportedVendor[]>({
@@ -237,8 +237,8 @@ export default function SupportedVendorsAdmin() {
 
   // Update priority mutation
   const updatePriorityMutation = useMutation({
-    mutationFn: ({ id, priority }: { id: number; priority: number | null }) => 
-      apiRequest(`/api/admin/supported-vendors/${id}`, 'PATCH', { productRecordPriority: priority }),
+    mutationFn: ({ vendorId, retailVerticalId, priority }: { vendorId: number; retailVerticalId: number; priority: number }) => 
+      apiRequest(`/api/admin/supported-vendors/${vendorId}/priority/${retailVerticalId}`, 'PATCH', { priority }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/supported-vendors'] });
       setEditingPriority(null);
@@ -279,15 +279,20 @@ export default function SupportedVendorsAdmin() {
     setSyncSettingsDialog({ vendor });
   };
 
-  // Priority update handlers
-  const handlePriorityEdit = (vendor: SupportedVendor) => {
-    setEditingPriority({ vendorId: vendor.id, value: vendor.productRecordPriority });
+  // Priority update handlers (per retail vertical)
+  const handlePriorityEdit = (vendor: SupportedVendor, retailVertical: { id: number; priority: number }) => {
+    setEditingPriority({ 
+      vendorId: vendor.id, 
+      retailVerticalId: retailVertical.id,
+      value: retailVertical.priority 
+    });
   };
 
   const handlePrioritySave = () => {
     if (editingPriority) {
       updatePriorityMutation.mutate({
-        id: editingPriority.vendorId,
+        vendorId: editingPriority.vendorId,
+        retailVerticalId: editingPriority.retailVerticalId,
         priority: editingPriority.value
       });
     }
@@ -300,8 +305,7 @@ export default function SupportedVendorsAdmin() {
   const handlePriorityChange = (value: string) => {
     if (editingPriority) {
       const numericValue = parseInt(value);
-      // All priorities must be valid positive integers (no null values allowed)
-      if (!isNaN(numericValue) && numericValue > 0) {
+      if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 25) {
         setEditingPriority({
           ...editingPriority,
           value: numericValue
@@ -310,31 +314,22 @@ export default function SupportedVendorsAdmin() {
     }
   };
 
-  // Get available priorities for the dropdown (strict 1-N enforcement)
-  const getAvailablePriorities = (currentVendorId: number) => {
-    if (!vendors) return [];
+  // Get available priorities for a specific retail vertical (1-25, excluding used ones)
+  const getAvailablePriorities = (retailVerticalId: number, currentVendorId: number) => {
+    if (!vendors) return Array.from({ length: 25 }, (_, i) => i + 1);
     
-    // Get all currently assigned priorities, excluding the current vendor being edited
-    // Note: With strict enforcement, all vendors should have non-null priorities
+    // Get all priorities currently assigned in this retail vertical, excluding the current vendor
     const assignedPriorities = vendors
-      .filter(v => v.id !== currentVendorId && v.productRecordPriority !== null)
-      .map(v => v.productRecordPriority);
+      .filter(v => v.id !== currentVendorId)
+      .flatMap(v => 
+        v.retailVerticals
+          .filter(rv => rv.id === retailVerticalId)
+          .map(rv => rv.priority)
+      );
     
-    // Get the current vendor's priority (so they can keep it)
-    const currentVendor = vendors.find(v => v.id === currentVendorId);
-    const currentPriority = currentVendor?.productRecordPriority;
-    
-    // Generate available priorities (1 to total vendors count)
-    const maxPriority = vendors.length;
-    const availablePriorities = [];
-    
-    for (let i = 1; i <= maxPriority; i++) {
-      if (!assignedPriorities.includes(i) || i === currentPriority) {
-        availablePriorities.push(i);
-      }
-    }
-    
-    return availablePriorities.sort((a, b) => a - b);
+    // Return all priorities from 1-25 that aren't assigned
+    return Array.from({ length: 25 }, (_, i) => i + 1)
+      .filter(p => !assignedPriorities.includes(p));
   };
 
   // Auto-assign next available priority for new vendors (strict 1-N enforcement)
@@ -615,90 +610,83 @@ export default function SupportedVendorsAdmin() {
                       {getVendorFeatureBadges(vendor.name)}
                     </div>
                   </TableCell>
-                  {/* Priority Cell */}
+                  {/* Priority Cell - Now shows per retail vertical */}
                   <TableCell>
-                    <div className="space-y-1">
-                      {editingPriority?.vendorId === vendor.id ? (
-                        <div className="flex items-center gap-2">
-                          <Select 
-                            value={editingPriority.value?.toString() || ''}
-                            onValueChange={handlePriorityChange}
-                          >
-                            <SelectTrigger className="w-20 h-7 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {getAvailablePriorities(vendor.id).map(priority => (
-                                <SelectItem key={priority} value={priority.toString()}>
-                                  {priority}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={handlePrioritySave}
-                              disabled={updatePriorityMutation.isPending}
-                              className="h-6 w-6 text-green-600 hover:text-green-800"
-                              data-testid={`button-save-priority-${vendor.id}`}
-                            >
-                              <Save className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={handlePriorityCancel}
-                              disabled={updatePriorityMutation.isPending}
-                              className="h-6 w-6 text-red-600 hover:text-red-800"
-                              data-testid={`button-cancel-priority-${vendor.id}`}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
+                    <div className="space-y-2">
+                      {vendor.retailVerticals && vendor.retailVerticals.length > 0 ? (
+                        vendor.retailVerticals.map((rv: any) => (
+                          <div key={rv.id} className="flex items-center justify-between gap-2 py-1">
+                            {editingPriority?.vendorId === vendor.id && editingPriority?.retailVerticalId === rv.id ? (
+                              // Edit mode
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className="text-xs text-gray-600 w-16 shrink-0">{rv.name}:</span>
+                                <Select 
+                                  value={editingPriority.value?.toString() || ''}
+                                  onValueChange={handlePriorityChange}
+                                >
+                                  <SelectTrigger className="w-16 h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {getAvailablePriorities(rv.id, vendor.id).map(priority => (
+                                      <SelectItem key={priority} value={priority.toString()}>
+                                        {priority}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handlePrioritySave}
+                                    disabled={updatePriorityMutation.isPending}
+                                    className="h-6 w-6 text-green-600 hover:text-green-800"
+                                  >
+                                    <Save className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handlePriorityCancel}
+                                    disabled={updatePriorityMutation.isPending}
+                                    className="h-6 w-6 text-red-600 hover:text-red-800"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              // Display mode
+                              <div className="flex items-center justify-between flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600 w-16">{rv.name}:</span>
+                                  <span 
+                                    className={`text-sm font-medium ${
+                                      rv.priority <= 3 ? 'text-green-700' : 
+                                      rv.priority <= 7 ? 'text-blue-700' : 
+                                      rv.priority <= 12 ? 'text-orange-700' : 
+                                      'text-gray-700'
+                                    }`}
+                                    title={`Priority ${rv.priority} out of 25 for duplicate UPC resolution in ${rv.name}`}
+                                  >
+                                    {rv.priority}
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handlePriorityEdit(vendor, rv)}
+                                  className="h-6 w-6 text-gray-600 hover:text-gray-800"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                        </div>
+                        ))
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <span 
-                            className={`text-sm font-medium ${
-                              vendor.productRecordPriority === null 
-                                ? 'text-gray-400' 
-                                : vendor.productRecordPriority === 1 
-                                  ? 'text-green-700' 
-                                  : vendor.productRecordPriority === 2 
-                                    ? 'text-blue-700' 
-                                    : vendor.productRecordPriority === 3 
-                                      ? 'text-orange-700' 
-                                      : vendor.productRecordPriority <= 4
-                                        ? 'text-red-700'
-                                        : 'text-purple-700'
-                            }`}
-                            title={`Priority ${vendor.productRecordPriority} - ${
-                                  vendor.productRecordPriority === 1 
-                                    ? 'Highest' 
-                                    : vendor.productRecordPriority === (vendors?.length || 5)
-                                      ? 'Lowest' 
-                                      : 'Medium'
-                                } priority for duplicate UPC resolution`}
-                          >
-{vendor.productRecordPriority || 'Invalid'}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handlePriorityEdit(vendor)}
-                            className="h-6 w-6 text-gray-600 hover:text-gray-800"
-                            data-testid={`button-edit-priority-${vendor.id}`}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                      {vendor.productRecordPriority !== null && (
-                        <div className="text-xs text-gray-500">
-                          For duplicate UPCs
-                        </div>
+                        <span className="text-xs text-gray-500">No verticals assigned</span>
                       )}
                     </div>
                   </TableCell>
@@ -1375,14 +1363,17 @@ function AdminCredentialsModal({
     vendor.adminCredentials || {}
   );
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [changedFields, setChangedFields] = useState<Set<string>>(new Set());
   
   // Update credentials when vendor changes (fixes stale data issue)
   useEffect(() => {
     setCredentials(vendor.adminCredentials || {});
+    setChangedFields(new Set()); // Reset changed fields tracker
   }, [vendor.adminCredentials]);
 
   const handleCredentialChange = (fieldName: string, value: string) => {
     setCredentials(prev => ({ ...prev, [fieldName]: value }));
+    setChangedFields(prev => new Set(prev).add(fieldName)); // Track this field was changed
   };
 
   const handleTestConnection = async () => {
@@ -1427,13 +1418,26 @@ function AdminCredentialsModal({
 
   const handleSaveCredentials = async () => {
     try {
+      // If no fields were changed, just close the modal (treat like Cancel)
+      if (changedFields.size === 0) {
+        console.log('🔍 ADMIN SAVE CREDENTIALS: No changes made, closing modal');
+        onClose();
+        return;
+      }
+
       // Use vendor short code - should already be normalized to lowercase in database
       const vendorIdentifier = vendor.vendorShortCode || vendor.name.toLowerCase().replace(/\s+/g, '_');
       
-      console.log('🔍 ADMIN SAVE CREDENTIALS: Saving with vendorIdentifier:', vendorIdentifier);
-      console.log('🔍 ADMIN SAVE CREDENTIALS: Credential keys:', Object.keys(credentials));
+      // Only send credentials that were actually changed
+      // This prevents overwriting passwords with placeholder values
+      const credentialsToSave = Object.fromEntries(
+        Object.entries(credentials).filter(([key]) => changedFields.has(key))
+      );
       
-      const response = await apiRequest(`/api/admin/vendors/${vendorIdentifier}/credentials`, 'POST', credentials);
+      console.log('🔍 ADMIN SAVE CREDENTIALS: Saving with vendorIdentifier:', vendorIdentifier);
+      console.log('🔍 ADMIN SAVE CREDENTIALS: Changed fields only:', Object.keys(credentialsToSave));
+      
+      const response = await apiRequest(`/api/admin/vendors/${vendorIdentifier}/credentials`, 'POST', credentialsToSave);
       
       if (response.ok) {
         const result = await response.json();
@@ -1468,6 +1472,7 @@ function AdminCredentialsModal({
             {vendor.name.includes('Bill Hicks') ? 'Bill Hicks Admin Credentials' : 
              vendor.name.includes('Sports South') ? 'Sports South Admin Credentials' :
              vendor.name.includes('GunBroker') ? 'GunBroker Admin Credentials' :
+             vendor.name.includes('Chattanooga') ? 'Configure Chattanooga Admin Credentials' :
              'Configure Admin Credentials'}
           </DialogTitle>
           <DialogDescription>
@@ -1480,6 +1485,7 @@ function AdminCredentialsModal({
             <div key={field.name}>
               <Label htmlFor={field.name}>
                 {vendor.name.includes('GunBroker') && field.name === 'devKey' ? 'Username' : field.label}
+                {field.required && <span className="text-red-500 ml-1">*</span>}
               </Label>
               {field.name === 'environment' ? (
                 <Select
@@ -1500,12 +1506,11 @@ function AdminCredentialsModal({
                   type={field.type}
                   value={credentials[field.name] || ''}
                   onChange={(e) => handleCredentialChange(field.name, e.target.value)}
-                  placeholder={field.placeholder}
+                  placeholder={field.type === 'password' && vendor.adminCredentials?.[field.name] 
+                    ? '••••••••••••••' 
+                    : field.placeholder}
                   required={field.required}
                 />
-              )}
-              {field.description && (
-                <p className="text-xs text-gray-500 mt-1">{field.description}</p>
               )}
             </div>
           ))}

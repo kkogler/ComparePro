@@ -10,7 +10,7 @@ import {
   type VendorFieldMapping, type InsertVendorFieldMapping, type OrganizationStatusAuditLog, type InsertOrganizationStatusAuditLog
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or, and, desc, asc, inArray, isNull, gte, sql } from "drizzle-orm";
+import { eq, ilike, or, and, desc, asc, inArray, isNull, gte, sql, ne } from "drizzle-orm";
 
 export interface IStorage {
   // Company methods
@@ -1504,15 +1504,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Supported Vendor methods
-  async getAllSupportedVendors(): Promise<(SupportedVendor & { retailVerticals: { id: number; name: string; slug: string }[] })[]> {
+  async getAllSupportedVendors(): Promise<(SupportedVendor & { retailVerticals: { id: number; name: string; slug: string; priority: number }[] })[]> {
     // Get all supported vendors first
     const vendors = await db.select().from(supportedVendors).orderBy(asc(supportedVendors.sortOrder));
     
-    // Get all retail verticals for all vendors in one query
+    // Get all retail verticals for all vendors in one query (now includes priority from junction table)
     const vendorRetailVerticals = await db
       .select({
         supportedVendorId: supportedVendorRetailVerticals.supportedVendorId,
         retailVerticalId: supportedVendorRetailVerticals.retailVerticalId,
+        priority: supportedVendorRetailVerticals.priority, // NEW: Include priority from junction table
         id: retailVerticals.id,
         name: retailVerticals.name,
         slug: retailVerticals.slug,
@@ -1529,9 +1530,10 @@ export class DatabaseStorage implements IStorage {
         id: item.id,
         name: item.name,
         slug: item.slug,
+        priority: item.priority, // NEW: Include priority from junction table
       });
       return acc;
-    }, {} as Record<number, { id: number; name: string; slug: string }[]>);
+    }, {} as Record<number, { id: number; name: string; slug: string; priority: number }[]>);
     
     // Combine vendors with their retail verticals
     return vendors.map(vendor => ({
@@ -1612,7 +1614,45 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount || 0) > 0;
   }
 
+  // Update vendor priority for a specific retail vertical
+  async updateVendorPriorityForVertical(vendorId: number, retailVerticalId: number, newPriority: number): Promise<boolean> {
+    try {
+      // Update the priority in the junction table
+      await db
+        .update(supportedVendorRetailVerticals)
+        .set({ priority: newPriority })
+        .where(
+          and(
+            eq(supportedVendorRetailVerticals.supportedVendorId, vendorId),
+            eq(supportedVendorRetailVerticals.retailVerticalId, retailVerticalId)
+          )
+        );
+      return true;
+    } catch (error) {
+      console.error('Error updating vendor priority:', error);
+      return false;
+    }
+  }
 
+  // Get available priorities for a retail vertical (1-25, excluding already used ones)
+  async getAvailablePriorities(retailVerticalId: number, excludeVendorId?: number): Promise<number[]> {
+    // Get all currently assigned priorities for this retail vertical
+    const query = db
+      .select({ priority: supportedVendorRetailVerticals.priority })
+      .from(supportedVendorRetailVerticals)
+      .where(eq(supportedVendorRetailVerticals.retailVerticalId, retailVerticalId));
+    
+    // Optionally exclude a specific vendor (e.g., the one being edited)
+    const assignments = excludeVendorId 
+      ? await query.where(ne(supportedVendorRetailVerticals.supportedVendorId, excludeVendorId))
+      : await query;
+    
+    const assignedPriorities = assignments.map(a => a.priority);
+    
+    // Return all priorities from 1-25 that aren't assigned
+    const allPriorities = Array.from({ length: 25 }, (_, i) => i + 1);
+    return allPriorities.filter(p => !assignedPriorities.includes(p));
+  }
 
   // Settings methods
   async getSettings(companyId?: number): Promise<Settings | undefined> {

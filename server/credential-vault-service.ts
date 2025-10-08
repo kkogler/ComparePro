@@ -235,7 +235,7 @@ export class CredentialVaultService {
    * Store admin-level credentials (system-wide)
    */
   async storeAdminCredentials(
-    vendorId: string, 
+    vendorId: string,
     credentials: Record<string, string>,
     userId: number,
     auditInfo?: { ipAddress?: string; userAgent?: string }
@@ -251,18 +251,36 @@ export class CredentialVaultService {
 
       console.log('🔍 CREDENTIAL VAULT: Schema admin fields:', schema.adminCredentials.map(f => f.name));
 
-      // Validate credentials against schema
-      this.validateCredentials(credentials, schema.adminCredentials);
-
-      // Process credentials (no encryption)
-      const processedCredentials = this.processCredentials(credentials, schema.adminCredentials);
-
-      // Store in database
+      // Get existing vendor to check for existing credentials
       const supportedVendor = await storage.getSupportedVendorByName(vendorId);
       if (!supportedVendor) {
         throw new Error(`Vendor not found: ${vendorId}`);
       }
 
+      const existingCredentials = supportedVendor.adminCredentials || {};
+      const isPartialUpdate = Object.keys(existingCredentials).length > 0 && Object.keys(credentials).length < schema.adminCredentials.length;
+      
+      console.log('🔍 CREDENTIAL VAULT: Existing credentials:', Object.keys(existingCredentials));
+      console.log('🔍 CREDENTIAL VAULT: Is partial update:', isPartialUpdate);
+
+      // Merge with existing credentials for partial updates
+      const mergedCredentials = { ...existingCredentials, ...credentials };
+
+      // For partial updates, only validate the merged result (not just the incoming fields)
+      // This allows updating just one field without requiring all fields again
+      if (isPartialUpdate) {
+        console.log('🔍 CREDENTIAL VAULT: Performing partial update - validating merged credentials');
+        this.validateCredentials(mergedCredentials, schema.adminCredentials);
+      } else {
+        // For new credentials, validate the incoming fields
+        console.log('🔍 CREDENTIAL VAULT: Performing full update - validating incoming credentials');
+        this.validateCredentials(credentials, schema.adminCredentials);
+      }
+
+      // Process credentials (no encryption)
+      const processedCredentials = this.processCredentials(mergedCredentials, schema.adminCredentials);
+
+      // Store in database
       await storage.updateSupportedVendor(supportedVendor.id, {
         adminCredentials: processedCredentials,
         adminConnectionStatus: 'pending_test'

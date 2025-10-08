@@ -390,10 +390,13 @@ export const supportedVendorRetailVerticals = pgTable("supported_vendor_retail_v
   id: serial("id").primaryKey(),
   supportedVendorId: integer("supported_vendor_id").references(() => supportedVendors.id).notNull(),
   retailVerticalId: integer("retail_vertical_id").references(() => retailVerticals.id).notNull(),
+  priority: integer("priority").notNull(), // 1-25 priority for product data quality within this retail vertical (1 = highest)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   // Unique constraint to prevent duplicates
   vendorVerticalUnique: unique("vendor_vertical_unique").on(table.supportedVendorId, table.retailVerticalId),
+  // Unique constraint: no two vendors in the same retail vertical can have the same priority
+  priorityPerVerticalUnique: unique("unique_priority_per_vertical").on(table.retailVerticalId, table.priority),
 }));
 
 // Vendor field mappings for CSV imports - saves column mappings per vendor

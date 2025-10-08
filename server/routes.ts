@@ -4981,6 +4981,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update vendor priority for a specific retail vertical
+  app.patch('/api/admin/supported-vendors/:id/priority/:retailVerticalId', requireAdminAuth, async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.id);
+      const retailVerticalId = parseInt(req.params.retailVerticalId);
+      const { priority } = req.body;
+      
+      console.log('=== UPDATE VENDOR PRIORITY START ===');
+      console.log('Vendor ID:', vendorId);
+      console.log('Retail Vertical ID:', retailVerticalId);
+      console.log('New Priority:', priority);
+      
+      // Validate priority is in valid range (1-25)
+      if (!Number.isInteger(priority) || priority < 1 || priority > 25) {
+        return res.status(400).json({ 
+          error: 'Priority must be an integer between 1 and 25' 
+        });
+      }
+      
+      // Get available priorities for this retail vertical (excluding current vendor)
+      const availablePriorities = await storage.getAvailablePriorities(retailVerticalId, vendorId);
+      
+      // Check if the requested priority is available
+      if (!availablePriorities.includes(priority)) {
+        // Get the vendor currently using this priority for better error message
+        const allVendors = await storage.getAllSupportedVendors();
+        const conflictingVendor = allVendors.find(v => 
+          v.retailVerticals.some(rv => rv.id === retailVerticalId && rv.priority === priority && v.id !== vendorId)
+        );
+        
+        return res.status(400).json({ 
+          error: `Priority ${priority} is already assigned to ${conflictingVendor?.name || 'another vendor'} in this retail vertical. Available priorities: ${availablePriorities.slice(0, 5).join(', ')}${availablePriorities.length > 5 ? '...' : ''}` 
+        });
+      }
+      
+      // Update the priority
+      const success = await storage.updateVendorPriorityForVertical(vendorId, retailVerticalId, priority);
+      
+      if (!success) {
+        return res.status(500).json({ error: 'Failed to update priority' });
+      }
+      
+      // Invalidate vendor priority cache
+      const vendor = await storage.getSupportedVendor(vendorId);
+      if (vendor) {
+        try {
+          invalidateVendorPriorityCache(vendor.name);
+          console.log('VENDOR PRIORITY: Successfully invalidated cache for vendor:', vendor.name);
+        } catch (error) {
+          console.error('VENDOR PRIORITY: Failed to invalidate cache:', error);
+        }
+      }
+      
+      console.log('=== UPDATE VENDOR PRIORITY SUCCESS ===');
+      res.json({ success: true, message: 'Priority updated successfully' });
+    } catch (error) {
+      console.error('Error updating vendor priority:', error);
+      res.status(500).json({ error: 'Failed to update vendor priority' });
+    }
+  });
+
   // Create new supported vendor with automatic priority assignment
   app.post('/api/admin/supported-vendors', requireAdminAuth, async (req, res) => {
     try {
@@ -5738,7 +5799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sportsSouthVendors = await db
         .select()
         .from(supportedVendors)
-        .where(eq(supportedVendors.name, 'Sports South'));
+        .where(eq(supportedVendors.vendorShortCode, 'sports-south'));
       
       if (sportsSouthVendors.length === 0) {
         return res.json({
@@ -9142,7 +9203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [lipseyVendor] = await db
         .select()
         .from(supportedVendors)
-        .where(eq(supportedVendors.name, "Lipsey's"));
+        .where(eq(supportedVendors.vendorShortCode, "lipseys"));
 
       if (!lipseyVendor || !lipseyVendor.adminCredentials) {
         return res.status(404).json({
@@ -9412,7 +9473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [lipseyVendor] = await db
         .select()
         .from(supportedVendors)
-        .where(eq(supportedVendors.name, "Lipsey's"));
+        .where(eq(supportedVendors.vendorShortCode, "lipseys"));
 
       if (!lipseyVendor || !lipseyVendor.adminCredentials) {
         return res.status(404).json({
@@ -9493,7 +9554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [lipseyVendor] = await db
           .select()
           .from(supportedVendors)
-          .where(eq(supportedVendors.name, "Lipsey's"));
+          .where(eq(supportedVendors.vendorShortCode, "lipseys"));
         
         if (lipseyVendor) {
           await db.update(supportedVendors)
