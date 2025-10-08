@@ -8,7 +8,7 @@ PG_SOCKETS="/home/runner/.postgresql/sockets"
 
 # FORCE local database URL (overrides Replit Secrets)
 unset DATABASE_URL
-export DATABASE_URL="postgresql://user:password@/pricecompare?host=$PG_SOCKETS"
+export DATABASE_URL="postgresql://user:password@localhost:5432/pricecompare"
 export NODE_ENV=development
 
 echo "=== Starting Development Server ==="

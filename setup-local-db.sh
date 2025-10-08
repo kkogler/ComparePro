@@ -33,11 +33,11 @@ done
 
 # Create database if it doesn't exist
 echo "🗄️ Creating pricecompare database..."
-psql -h localhost -U user -tc "SELECT 1 FROM pg_database WHERE datname = 'pricecompare'" | grep -q 1 || \
-  psql -h localhost -U user -c "CREATE DATABASE pricecompare"
+psql -h localhost -U user -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'pricecompare'" | grep -q 1 || \
+  psql -h localhost -U user -d postgres -c "CREATE DATABASE pricecompare"
 
 # Set password for user
-psql -h localhost -U user -c "ALTER USER \"user\" WITH PASSWORD 'password';"
+psql -h localhost -U user -d postgres -c "ALTER USER \"user\" WITH PASSWORD 'password';"
 
 echo "✅ Local PostgreSQL setup complete!"
 echo "📍 Connection: postgresql://user:password@localhost:5432/pricecompare"

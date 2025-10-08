@@ -1,0 +1,3 @@
+Product Name,SKU,Style,Vendor Name,Brand,Main Category,Sub-Category,Product Class,Sub-Class,Prompt for Price,Replacement Cost,Average Cost,Price,MSRP,MAP,Special Price,Product Tax Class,UPC,Alternate SKU,Product ID,Item No,Bin Location,Storage Location,Reorder Qty,Reorder Level,Vendor Minimum Order Qty,Vendor Discontinued,Status,Allow Fractions,Allow Discounts,Allow Returns,Image Path,Special Price Begin Date,Special Price End Date,Product Note
+Widget,1001,,ACME ,ACME ,Widgets,,,,,10,,24.99,,,,,87545465,,,,,,,5,5,,,,,,,,,Sell with part no. 857
+Part,1002,,ACME ,ACME ,Parts,,,,,5,,7.5,,,,,53334354,,,,,,,,,,,,,,,,,Fits all widgets
