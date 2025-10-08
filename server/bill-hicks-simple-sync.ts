@@ -184,8 +184,11 @@ export async function runBillHicksInventorySync(): Promise<BillHicksSyncResult> 
 /**
  * Simple Bill Hicks catalog sync - replaces the complex 3-tier system
  */
-export async function runBillHicksSimpleSync(): Promise<BillHicksSyncResult> {
+export async function runBillHicksSimpleSync(forceFullSync: boolean = false): Promise<BillHicksSyncResult> {
   console.log('🔄 BILL HICKS: Starting simplified catalog sync...');
+  if (forceFullSync) {
+    console.log('🔄 FORCE FULL SYNC MODE ENABLED');
+  }
   
   // Clear vendor priority cache for fresh data
   vendorPriorityCache.clear();
@@ -213,7 +216,7 @@ export async function runBillHicksSimpleSync(): Promise<BillHicksSyncResult> {
     
     // Step 3: OPTIMIZED - Detect only changed lines instead of processing all products
     console.log('🔍 Analyzing changes using line-by-line differential...');
-    const changeResult = await detectChangedLines(catalogContent);
+    const changeResult = await detectChangedLines(catalogContent, forceFullSync);
     
     if (!changeResult.hasChanges) {
       // No changes detected - update stats with actual file size but zero processing
@@ -413,7 +416,7 @@ function parseCatalogCSV(content: string): BillHicksProduct[] {
  * Only returns the actual changed lines instead of a boolean
  * This is MUCH more efficient than processing all 50,000+ products
  */
-async function detectChangedLines(newContent: string): Promise<{
+async function detectChangedLines(newContent: string, forceFullSync: boolean = false): Promise<{
   hasChanges: boolean;
   changedLines: string[];
   stats: {
@@ -424,6 +427,21 @@ async function detectChangedLines(newContent: string): Promise<{
   };
 }> {
   const previousFile = path.join(DOWNLOADS_DIR, 'previous_catalog.csv');
+  
+  if (forceFullSync) {
+    console.log('🔄 FORCE FULL SYNC: Ignoring previous file and processing all records');
+    const allLines = newContent.split('\n').filter(line => line.trim());
+    return {
+      hasChanges: true,
+      changedLines: allLines,
+      stats: {
+        totalLines: allLines.length,
+        changedLines: allLines.length,
+        addedLines: allLines.length,
+        removedLines: 0
+      }
+    };
+  }
   
   if (!existsSync(previousFile)) {
     console.log('📝 No previous file found - processing all records (first sync)');

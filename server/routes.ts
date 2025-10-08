@@ -6624,13 +6624,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bill Hicks - Manual Master Catalog Sync (Admin)
   app.post('/api/admin/bill-hicks/manual-master-catalog-sync', requireAdminAuth, async (req, res) => {
     try {
+      const { forceFullSync } = req.body;
+      
       console.log('='.repeat(60));
       console.log('MANUAL TRIGGER: Starting Bill Hicks MASTER CATALOG sync');
+      if (forceFullSync) {
+        console.log('🔄 FORCE FULL SYNC MODE REQUESTED');
+      }
       console.log('='.repeat(60));
       
       // The runBillHicksSimpleSync function handles all status and statistics updates internally
       const { runBillHicksSimpleSync } = await import('./bill-hicks-simple-sync');
-      const result = await runBillHicksSimpleSync();
+      const result = await runBillHicksSimpleSync(forceFullSync || false);
       
       if (!result.success) {
         throw new Error(result.message);

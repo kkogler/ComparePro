@@ -2905,10 +2905,14 @@ function BillHicksSyncSettings({ vendor, onSync, isLoading, onScheduleChange }: 
     }
   };
 
+  const [forceFullSync, setForceFullSync] = useState(false);
+
   const handleMasterCatalogSync = async () => {
     try {
       setIsMasterCatalogSyncing(true);
-      const response = await apiRequest('/api/admin/bill-hicks/manual-master-catalog-sync', 'POST', {});
+      const response = await apiRequest('/api/admin/bill-hicks/manual-master-catalog-sync', 'POST', {
+        forceFullSync
+      });
       const result = await response.json();
       
       // Refresh vendor data to show updated sync status
@@ -3210,6 +3214,18 @@ function BillHicksSyncSettings({ vendor, onSync, isLoading, onScheduleChange }: 
             <p className="text-xs text-gray-600 mb-3">
               Manual sync runs independently of automated Scheduled Deployments
             </p>
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                id="forceFullSync"
+                checked={forceFullSync}
+                onChange={(e) => setForceFullSync(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <label htmlFor="forceFullSync" className="text-sm text-gray-700">
+                Force Full Sync (ignore previous file, process all products)
+              </label>
+            </div>
             <Button
               onClick={handleMasterCatalogSync}
               disabled={isMasterCatalogSyncing || masterCatalogSyncStatus === 'in_progress'}
