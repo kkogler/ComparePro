@@ -5196,6 +5196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/admin/master-catalog', requireAdminAuth, async (req, res) => {
     try {
+      console.log(`🔍 MASTER CATALOG: Request received - Database: ${process.env.DATABASE_URL?.includes('localhost') ? 'LOCAL DEV' : 'PRODUCTION'}`);
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.pageSize as string) || parseInt(req.query.limit as string) || 50;
       const searchQuery = req.query.search as string || '';
@@ -6942,6 +6943,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Plan settings fetch error:', error);
       res.status(500).json({ message: "Failed to fetch plan settings" });
+    }
+  });
+
+  app.post("/api/admin/plan-settings", requireAdminAuth, async (req, res) => {
+    try {
+      const planData = req.body;
+      const newPlan = await storage.createPlanSettings(planData);
+      res.json(newPlan);
+    } catch (error) {
+      console.error('Plan settings create error:', error);
+      res.status(500).json({ message: "Failed to create plan settings" });
     }
   });
 

@@ -1079,25 +1079,36 @@ async function bulkUpdateInventoryRecords(
     }
   }
 
-  // Step 3: Execute bulk operations
+  // Step 3: Execute bulk operations in batches to avoid stack overflow
+  const BATCH_SIZE = 500;
+  
   if (recordsToInsert.length > 0) {
-    await db.insert(vendorInventory).values(recordsToInsert);
+    console.log(`📦 Inserting ${recordsToInsert.length} new inventory records in batches of ${BATCH_SIZE}...`);
+    for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
+      const batch = recordsToInsert.slice(i, i + BATCH_SIZE);
+      await db.insert(vendorInventory).values(batch);
+      console.log(`   ✅ Inserted batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(recordsToInsert.length/BATCH_SIZE)} (${batch.length} records)`);
+    }
     stats.recordsAdded += recordsToInsert.length;
   }
   
   if (recordsToUpdate.length > 0) {
-    // Use a single bulk update query for better performance
-    // Note: Drizzle doesn't support bulk updates directly, so we use a transaction
-    await db.transaction(async (tx) => {
-      for (const update of recordsToUpdate) {
-        await tx.update(vendorInventory)
-          .set({
-            quantityAvailable: update.quantityAvailable,
-            lastUpdated: update.lastUpdated
-          })
-          .where(eq(vendorInventory.id, update.id));
-      }
-    });
+    console.log(`📦 Updating ${recordsToUpdate.length} inventory records in batches of ${BATCH_SIZE}...`);
+    // Use batched transactions for better performance
+    for (let i = 0; i < recordsToUpdate.length; i += BATCH_SIZE) {
+      const batch = recordsToUpdate.slice(i, i + BATCH_SIZE);
+      await db.transaction(async (tx) => {
+        for (const update of batch) {
+          await tx.update(vendorInventory)
+            .set({
+              quantityAvailable: update.quantityAvailable,
+              lastUpdated: update.lastUpdated
+            })
+            .where(eq(vendorInventory.id, update.id));
+        }
+      });
+      console.log(`   ✅ Updated batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(recordsToUpdate.length/BATCH_SIZE)} (${batch.length} records)`);
+    }
     stats.recordsUpdated += recordsToUpdate.length;
   }
 

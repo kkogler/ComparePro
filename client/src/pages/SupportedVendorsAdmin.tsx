@@ -1472,14 +1472,15 @@ function AdminCredentialsModal({
           </DialogTitle>
           <DialogDescription>
             Enter system-level admin credentials for {vendor.name} to enable Master Product Catalog synchronization.
-            These credentials are separate from organization credentials used for pricing/availability.
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
           {vendor.credentialFields.map((field) => (
             <div key={field.name}>
-              <Label htmlFor={field.name}>{field.label}</Label>
+              <Label htmlFor={field.name}>
+                {vendor.name.includes('GunBroker') && field.name === 'devKey' ? 'Username' : field.label}
+              </Label>
               {field.name === 'environment' ? (
                 <Select
                   value={credentials[field.name] || 'sandbox'}
@@ -1515,7 +1516,11 @@ function AdminCredentialsModal({
               <div className="text-sm">
                 <p className="font-medium text-blue-900">Admin vs Organization Credentials</p>
                 <p className="text-blue-700">
-                  Admin credentials are used to test the status of the connection. Pricing/availability calls and responses use Store-level credentials entered by a user in Store Settings.
+                  {vendor.name.includes('GunBroker') ? (
+                    <>Admin credentials are used to test the status of the connection and to provide access to Gunbroker prices to Stores. As Gunbroker is a marketplace, pricing/availability calls at a store level is not available. There are no store-level credentials entered by a user in Store Settings.</>
+                  ) : (
+                    <>Admin credentials are used to test the status of the connection. Pricing/availability calls and responses use Store-level credentials entered by a user in Store Settings.</>
+                  )}
                 </p>
               </div>
             </div>

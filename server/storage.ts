@@ -254,6 +254,7 @@ export interface IStorage {
   // Plan Settings methods
   getAllPlanSettings(): Promise<PlanSettings[]>;
   getPlanSettings(planId: string): Promise<PlanSettings | undefined>;
+  createPlanSettings(planData: Omit<InsertPlanSettings, 'planId' | 'createdAt' | 'updatedAt'>): Promise<PlanSettings>;
   updatePlanSettings(planId: string, updates: Partial<PlanSettings>): Promise<PlanSettings | undefined>;
 
   // Organization Status Audit Log methods
@@ -2882,6 +2883,25 @@ export class DatabaseStorage implements IStorage {
       .from(planSettings)
       .where(eq(planSettings.planId, planId))
       .limit(1);
+    return result[0];
+  }
+
+  async createPlanSettings(planData: Omit<InsertPlanSettings, 'planId' | 'createdAt' | 'updatedAt'>): Promise<PlanSettings> {
+    // Generate a planId from the plan name (lowercase, hyphenated)
+    const generatedPlanId = planData.planName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const result = await db
+      .insert(planSettings)
+      .values({
+        ...planData,
+        planId: generatedPlanId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
     return result[0];
   }
 

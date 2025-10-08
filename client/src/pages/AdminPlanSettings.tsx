@@ -48,7 +48,8 @@ import {
   Calendar,
   Infinity,
   DollarSign,
-  Save
+  Save,
+  Plus
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -295,6 +296,217 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
   );
 }
 
+function CreatePlanDialog({ onCreated }: { onCreated: () => void }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  
+  const form = useForm<PlanSettingsForm>({
+    resolver: zodResolver(planSettingsSchema),
+    defaultValues: {
+      planName: '',
+      trialLengthDays: null,
+      planLengthDays: null,
+      maxUsers: null,
+      maxVendors: null,
+      onlineOrdering: false,
+      asnProcessing: false,
+      webhookExport: false,
+    },
+  });
+
+  const createPlanMutation = useMutation({
+    mutationFn: async (data: PlanSettingsForm) => {
+      const response = await apiRequest('/api/admin/plan-settings', 'POST', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Plan created successfully",
+        description: "New plan has been added.",
+      });
+      onCreated();
+      setOpen(false);
+      form.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error creating plan",
+        description: error.message || "Failed to create plan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: PlanSettingsForm) => {
+    createPlanMutation.mutate(data);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Plan
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Create New Plan</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="planName"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-sm font-medium">Plan Name</label>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., Pro, Enterprise" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="trialLengthDays"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-sm font-medium">Trial Length (Days)</label>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Leave empty for no trial"
+                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="maxUsers"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-sm font-medium">Max Users</label>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Leave empty for unlimited"
+                        {...field}
+                        value={field.value === null ? '' : field.value}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          field.onChange(val === '' ? null : parseInt(val) || null);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="maxVendors"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-sm font-medium">Max Vendors</label>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Leave empty for unlimited"
+                        {...field}
+                        value={field.value === null ? '' : field.value}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          field.onChange(val === '' ? null : parseInt(val) || null);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium">Features</h4>
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="onlineOrdering"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Online Ordering</label>
+                      <FormControl>
+                        <Switch 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="asnProcessing"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <label className="text-sm font-medium">ASN Processing</label>
+                      <FormControl>
+                        <Switch 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="webhookExport"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Webhook/Export</label>
+                      <FormControl>
+                        <Switch 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createPlanMutation.isPending}>
+                {createPlanMutation.isPending ? "Creating..." : "Create Plan"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminPlanSettings() {
   const { toast } = useToast();
 
@@ -446,6 +658,7 @@ export default function AdminPlanSettings() {
             Manage subscription plan features and limits
           </p>
         </div>
+        <CreatePlanDialog onCreated={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/plan-settings'] })} />
       </div>
 
       {/* Subscription Plan Configuration */}
