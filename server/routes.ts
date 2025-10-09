@@ -2067,7 +2067,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/org/:slug/api/users", requireOrganizationAccess, async (req, res) => {
     try {
       const organizationId = (req as any).organizationId;
+      const currentUser = (req as any).user;
+      const isAdminUser = currentUser?.companyId === null;
+      
+      console.log('GET /org/:slug/api/users:', {
+        slug: req.params.slug,
+        organizationId,
+        currentUserId: currentUser?.id,
+        currentUserCompanyId: currentUser?.companyId,
+        isAdminUser
+      });
+      
+      // Validate organizationId is set
+      if (!organizationId) {
+        console.error('GET /org/:slug/api/users: organizationId is not set!');
+        return res.status(400).json({ message: "Organization context is required" });
+      }
+      
       const users = await storage.getUsersByCompany(organizationId);
+      
+      console.log(`GET /org/:slug/api/users: Found ${users.length} users for organizationId ${organizationId}`);
       
       // Remove password from response - unified users table fields
       const safeUsers = users.map(user => ({
