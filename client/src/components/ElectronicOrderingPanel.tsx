@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { getVendorIdentifier } from "@/lib/vendor-utils";
 // Using any for Order and Vendor since they're from shared schema
 interface Order {
   id: number;
@@ -108,9 +109,11 @@ export function ElectronicOrderingPanel({ order, vendor, onOrderUpdated }: Elect
   const [fflNumber, setFflNumber] = useState(order.fflNumber || '');
 
   // Get supported order types for this vendor
+  // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+  const vendorIdentifier = vendor ? getVendorIdentifier(vendor) : null;
   const { data: orderTypesData } = useQuery({
-    queryKey: [`/org/${order.companyId}/api/vendors/${vendor.id}/order-types`],
-    enabled: !!vendor.id,
+    queryKey: [`/org/${order.companyId}/api/vendors/${vendorIdentifier}/order-types`],
+    enabled: !!vendorIdentifier,
   });
 
   const orderTypes: OrderType[] = (orderTypesData as any)?.orderTypes || [

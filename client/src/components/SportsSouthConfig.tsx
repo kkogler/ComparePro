@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Settings, TestTube } from "lucide-react";
+import { buildVendorApiUrl } from "@/lib/vendor-utils";
 
 interface SportsSouthConfigProps {
   vendor?: any;
@@ -51,11 +52,11 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
 
       console.log('🔍 SPORTS SOUTH MAPPED CREDS:', mappedCreds);
 
-      // Use vendor slug if available, fallback to short code, then ID
-      const vendorIdentifier = vendor?.slug || vendor?.vendorShortCode || vendor?.id;
-      console.log('🔍 SPORTS SOUTH VENDOR IDENTIFIER:', vendorIdentifier);
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(organizationSlug, vendor, 'credentials');
+      console.log('🔍 SPORTS SOUTH API URL:', apiUrl);
 
-      const response = await apiRequest(`/org/${organizationSlug}/api/vendors/${vendorIdentifier}/credentials`, 'POST', mappedCreds);
+      const response = await apiRequest(apiUrl, 'POST', mappedCreds);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -92,13 +93,12 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
   const testConnection = useMutation({
     mutationFn: async () => {
       console.log('🔍 SPORTS SOUTH TEST: Starting connection test');
-      console.log('🔍 SPORTS SOUTH TEST: Using vendor ID:', vendor?.id);
-      console.log('🔍 SPORTS SOUTH TEST: Using vendor short code:', vendor?.vendorShortCode);
       
-      // ✅ FIX: Remove redundant save - test connection should use already saved credentials
-      // The credentials should already be saved when the user clicked "Save"
-      const vendorIdentifier = vendor?.slug || vendor?.vendorShortCode || vendor?.id;
-      const response = await apiRequest(`/org/${organizationSlug}/api/vendors/${vendorIdentifier}/test-connection`, 'POST');
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(organizationSlug, vendor, 'test-connection');
+      console.log('🔍 SPORTS SOUTH TEST API URL:', apiUrl);
+      
+      const response = await apiRequest(apiUrl, 'POST');
       const data = await response.json();
       return data;
     },

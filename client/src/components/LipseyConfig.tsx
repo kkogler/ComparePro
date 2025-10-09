@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Loader2, ExternalLink } from 'lucide-react';
+import { buildVendorApiUrl } from '@/lib/vendor-utils';
 
 interface LipseyConfigProps {
   open: boolean;
@@ -52,12 +53,11 @@ export function LipseyConfig({
 
   const loadExistingCredentials = async () => {
     try {
-      // Use vendor slug if available, otherwise fall back to vendorId
-      const vendorIdentifier = vendor?.slug || vendor?.vendorShortCode || vendorId;
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(organizationSlug, vendor || { id: vendorId }, 'credentials');
+      console.log('🔍 LIPSEY LOAD CREDS API URL:', apiUrl);
       
-      console.log('🔍 LIPSEY LOAD CREDS: Loading credentials for vendor:', vendorIdentifier);
-      
-      const response = await fetch(`/org/${organizationSlug}/api/vendors/${vendorIdentifier}/credentials`, {
+      const response = await fetch(apiUrl, {
         method: 'GET',
         credentials: 'include'
       });
@@ -113,8 +113,11 @@ export function LipseyConfig({
     try {
       console.log('🔍 LIPSEY TEST: Starting connection test');
       
-      const vendorIdentifier = vendor?.slug || vendor?.vendorShortCode || vendorId;
-      const response = await fetch(`/org/${organizationSlug}/api/vendors/${vendorIdentifier}/test-connection`, {
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(organizationSlug, vendor || { id: vendorId }, 'test-connection');
+      console.log('🔍 LIPSEY TEST API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,11 +185,11 @@ export function LipseyConfig({
         credentials.password = password.trim();
       }
       
-      const response = await apiRequest(
-        `/org/${organizationSlug}/api/vendors/${vendor?.slug || vendor?.vendorShortCode || vendorId}/credentials`,
-        'POST',
-        credentials
-      );
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(organizationSlug, vendor || { id: vendorId }, 'credentials');
+      console.log('🔍 LIPSEY SAVE API URL:', apiUrl);
+      
+      const response = await apiRequest(apiUrl, 'POST', credentials);
 
       if (response.ok) {
         toast({

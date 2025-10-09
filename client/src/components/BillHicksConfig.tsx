@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff, Database, Zap, FileText, AlertCircle, RefreshCw, Download, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { buildVendorApiUrl } from "@/lib/vendor-utils";
 
 const billHicksConfigSchema = z.object({
   // FTP Connection Settings
@@ -127,7 +128,11 @@ export function BillHicksConfig({
       setIsTestingConnection(true);
       
       try {
-        const response = await apiRequest(`/org/${organizationSlug}/api/vendors/${vendor.id}/test-ftp-connection`, 'POST', {
+        // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+        const apiUrl = buildVendorApiUrl(organizationSlug, vendor, 'test-ftp-connection');
+        console.log('🔍 BILL HICKS TEST FTP API URL:', apiUrl);
+        
+        const response = await apiRequest(apiUrl, 'POST', {
           ftpHost: formData.ftpHost,
           ftpUsername: formData.ftpUsername,
           ftpPassword: formData.ftpPassword,
@@ -216,7 +221,11 @@ export function BillHicksConfig({
         inventorySyncEnabled: credentials.enableAutomaticSync
       });
 
-      const response = await apiRequest(`/org/${organizationSlug}/api/vendors/bill-hicks/credentials`, 'POST', {
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(organizationSlug, vendor, 'credentials');
+      console.log('🔍 BILL HICKS SAVE API URL:', apiUrl);
+      
+      const response = await apiRequest(apiUrl, 'POST', {
         ftp_server: credentials.ftpHost,
         ftp_username: credentials.ftpUsername,
         ftp_password: credentials.ftpPassword,

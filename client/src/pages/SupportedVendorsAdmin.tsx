@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
+import { getVendorIdentifier } from '@/lib/vendor-utils';
 import {
   Card,
   CardContent,
@@ -1379,9 +1380,8 @@ function AdminCredentialsModal({
   const handleTestConnection = async () => {
     setIsTestingConnection(true);
     try {
-      // Use vendor short code - should already be normalized to lowercase in database
-      const vendorIdentifier = vendor.vendorShortCode || vendor.name.toLowerCase().replace(/\s+/g, '_');
-      
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const vendorIdentifier = getVendorIdentifier(vendor);
       console.log('🔍 ADMIN TEST CONNECTION: Testing with vendorIdentifier:', vendorIdentifier);
       
       const response = await apiRequest(`/api/admin/vendors/${vendorIdentifier}/test-connection`, 'POST');
@@ -1425,8 +1425,8 @@ function AdminCredentialsModal({
         return;
       }
 
-      // Use vendor short code - should already be normalized to lowercase in database
-      const vendorIdentifier = vendor.vendorShortCode || vendor.name.toLowerCase().replace(/\s+/g, '_');
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const vendorIdentifier = getVendorIdentifier(vendor);
       
       // Only send credentials that were actually changed
       // This prevents overwriting passwords with placeholder values

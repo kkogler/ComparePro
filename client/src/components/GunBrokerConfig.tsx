@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Settings, TestTube } from "lucide-react";
+import { buildVendorApiUrl } from "@/lib/vendor-utils";
 
 interface GunBrokerConfigProps {
   vendor?: any;
@@ -43,9 +44,11 @@ export function GunBrokerConfig({ vendor, isOpen = false, onClose, onSuccess, or
 
   const testConnection = useMutation({
     mutationFn: async () => {
-      // Use the alternative endpoint that has special GunBroker admin credential handling
-      const vendorIdentifier = vendor?.slug || vendor?.vendorShortCode || vendor?.id;
-      const response = await apiRequest(`/org/${organizationSlug}/api/vendors/${vendorIdentifier}/test-connection-alt`, 'POST', {});
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(organizationSlug, vendor, 'test-connection-alt');
+      console.log('🔍 GUNBROKER TEST API URL:', apiUrl);
+      
+      const response = await apiRequest(apiUrl, 'POST', {});
       return await response.json();
     },
     onSuccess: (result: any) => {

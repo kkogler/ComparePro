@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { getVendorIdentifier } from "@/lib/vendor-utils";
 
 export default function VendorComparison() {
   const [location, setLocation] = useLocation();
@@ -149,7 +150,8 @@ export default function VendorComparison() {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30000);
           
-          const vendorIdentifier = vendor.slug || vendor.vendorShortCode || vendor.id;
+          // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+          const vendorIdentifier = getVendorIdentifier(vendor);
           console.log(`🔍 VENDOR API CALL: Making request for ${vendor.name} using identifier: ${vendorIdentifier}`);
           console.log(`🔍 VENDOR API CALL: URL: /org/${orgSlug}/api/products/${productId}/vendors/${vendorIdentifier}/price`);
           const vendorResponse = await fetch(`/org/${orgSlug}/api/products/${productId}/vendors/${vendorIdentifier}/price`, {
