@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { buildVendorApiUrl } from "@/lib/vendor-utils";
 
 // Only SID and Token are required for real-time API calls.
 const chattanoogaConfigSchema = z.object({
@@ -70,14 +71,12 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
         tokenLength: data.token?.length || 0
       });
 
-      // Use vendor slug if available, fallback to short code, then ID
-      const vendorIdentifier = vendor.slug || vendor.vendorShortCode || vendor.id;
-      console.log('🔍 CHATTANOOGA VENDOR IDENTIFIER:', vendorIdentifier);
-      console.log('🔍 CHATTANOOGA SLUG VALUE:', slug);
-      console.log('🔍 CHATTANOOGA FULL URL:', `/org/${slug}/api/vendors/${vendorIdentifier}/credentials`);
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(slug, vendor, 'credentials');
+      console.log('🔍 CHATTANOOGA SAVE: API URL:', apiUrl);
 
       // Persist only the required API credentials (SID and Token)
-      const response = await apiRequest(`/org/${slug}/api/vendors/${vendorIdentifier}/credentials`, 'POST', {
+      const response = await apiRequest(apiUrl, 'POST', {
         sid: data.sid,
         token: data.token,
       });
@@ -115,10 +114,11 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
       console.log('🔍 CHATTANOOGA TEST: Using vendor ID:', vendor.id);
       console.log('🔍 CHATTANOOGA TEST: Using vendor short code:', vendor.vendorShortCode);
       
-      // ✅ FIX: Remove redundant save - test connection should use already saved credentials
-      // The credentials should already be saved when the user clicked "Save"
-      const vendorIdentifier = vendor.slug || vendor.vendorShortCode || vendor.id;
-      const response = await apiRequest(`/org/${slug}/api/vendors/${vendorIdentifier}/test-connection`, 'POST');
+      // ✅ STANDARDIZED: Use vendor utility to get correct identifier
+      const apiUrl = buildVendorApiUrl(slug, vendor, 'test-connection');
+      console.log('🔍 CHATTANOOGA TEST: API URL:', apiUrl);
+      
+      const response = await apiRequest(apiUrl, 'POST');
       const data = await response.json();
 
       if (data.success) {
