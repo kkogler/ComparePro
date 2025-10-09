@@ -65,9 +65,16 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
         const data = await response.json();
         console.log('🔍 CHATTANOOGA LOAD: Credentials loaded:', Object.keys(data));
         
+        // Response format: { success: true, credentials: { sid, token } }
+        const creds = data.credentials || {};
+        console.log('🔍 CHATTANOOGA LOAD: Populating form with:', {
+          sid: creds.sid ? `${creds.sid.substring(0, 8)}...` : 'EMPTY',
+          token: creds.token ? 'PRESENT' : 'EMPTY'
+        });
+        
         form.reset({
-          sid: data.sid || "",
-          token: data.token || "",
+          sid: creds.sid || "",
+          token: creds.token || "",
         });
       } else {
         console.log('🔍 CHATTANOOGA LOAD: No existing credentials found (this is OK for new setup)');
