@@ -6084,26 +6084,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/org/:slug/api/vendors/:vendorSlug/test-connection", requireOrganizationAccess, async (req, res) => {
     try {
       const organizationId = (req as any).organizationId;
-      const vendorSlug = req.params.vendorSlug;
+      const vendorIdentifier = req.params.vendorSlug; // This is actually vendorShortCode from frontend
       
-      if (!vendorSlug || typeof vendorSlug !== 'string') {
-        return res.status(400).json({ success: false, message: 'Invalid vendor slug' });
+      if (!vendorIdentifier || typeof vendorIdentifier !== 'string') {
+        return res.status(400).json({ success: false, message: 'Invalid vendor identifier' });
       }
       
-      // Get the vendor
-      const vendor = await storage.getVendorBySlug(vendorSlug, organizationId);
-      if (!vendor) {
-        return res.status(404).json({ success: false, message: 'Vendor not found' });
-      }
+      console.log('🔍 TEST CONNECTION: Looking up vendor by shortCode:', vendorIdentifier, 'for company:', organizationId);
       
-      // Get supported vendor to identify vendor type
-      const supportedVendor = await storage.getSupportedVendor(vendor.supportedVendorId);
+      // Look up the supported vendor first (by shortCode)
+      const supportedVendor = await storage.getSupportedVendorByShortCode(vendorIdentifier);
       if (!supportedVendor) {
+        console.error('🔍 TEST CONNECTION: Supported vendor not found for shortCode:', vendorIdentifier);
         return res.status(404).json({ 
           success: false, 
-          message: 'Supported vendor configuration not found' 
+          message: `Vendor '${vendorIdentifier}' not found in system` 
         });
       }
+      
+      console.log('🔍 TEST CONNECTION: Found supported vendor:', supportedVendor.name, 'ID:', supportedVendor.id);
+      
+      // Find the organization's instance of this vendor
+      const allCompanyVendors = await storage.getVendorsByCompany(organizationId);
+      const vendor = allCompanyVendors.find(v => v.supportedVendorId === supportedVendor.id);
+      
+      if (!vendor) {
+        console.error('🔍 TEST CONNECTION: Company does not have this vendor configured');
+        return res.status(404).json({ 
+          success: false, 
+          message: `Vendor '${supportedVendor.name}' not configured for this organization` 
+        });
+      }
+      
+      console.log('🔍 TEST CONNECTION: Found company vendor instance:', vendor.slug, 'ID:', vendor.id);
       
       // For vendors using company_vendor_credentials table (Bill Hicks, Lipsey's, etc.)
       let testCredentials = vendor.credentials;
