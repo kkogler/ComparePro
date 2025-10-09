@@ -1,0 +1,50 @@
+modules = ["nodejs-20", "web"]
+run = "npm run dev"
+
+[nix]
+channel = "stable-24_05"
+
+[[ports]]
+localPort = 3000
+externalPort = 5000
+
+[[ports]]
+localPort = 3001
+externalPort = 3003
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3002
+
+[[ports]]
+localPort = 5002
+externalPort = 4200
+
+[[ports]]
+localPort = 37595
+externalPort = 3001
+
+[[ports]]
+localPort = 44703
+externalPort = 3000
+
+ [workflows]
+
+ [[workflows.workflow]]
+ name = "Start Application"
+ mode = "sequential"
+ author = 45098479
+
+ [[workflows.workflow.tasks]]
+ task = "shell.exec"
+ args = "npm run dev"
+
+[deployment]
+deploymentTarget = "cloudrun"
+build = "npm run db:push -- --force"
+run = ["sh", "-c", "NODE_ENV=production PORT=$PORT node dist/index.js"]
+
