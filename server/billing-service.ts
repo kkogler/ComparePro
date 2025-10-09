@@ -1858,21 +1858,22 @@ export class BillingService {
             .filter(sv => !existingVendorIds.has(sv.id))
             .map(sv => {
               const vendorShortCode = sv.vendorShortCode || sv.name;
-              const baseSlug = vendorShortCode.toLowerCase()
+              
+              // ✅ STANDARDIZED: Use vendorShortCode directly as slug
+              // Slug doesn't need companyId suffix because queries always filter by companyId
+              // This matches the format used by storage.createVendorsFromSupported()
+              const slug = vendorShortCode.toLowerCase()
                 .replace(/[^a-z0-9\s-]/g, '')
                 .replace(/\s+/g, '-')
                 .replace(/-+/g, '-')
                 .replace(/^-|-$/g, '');
-              
-              // Make slug unique per company by appending company ID
-              const slug = `${baseSlug || `vendor-${sv.id}`}-${companyId}`;
               
               return {
                 companyId,
                 supportedVendorId: sv.id,
                 name: sv.name,
                 vendorShortCode,
-                slug,
+                slug: slug || `vendor-${sv.id}`, // Fallback only if normalization produces empty string
                 integrationType: sv.apiType || 'api',
                 status: 'offline',
                 enabledForPriceComparison: true,
