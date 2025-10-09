@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,28 +35,56 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
   const queryClient = useQueryClient();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
 
   // Debug logging for slug
   console.log('🔍 CHATTANOOGA CONFIG: Component loaded with slug:', slug);
 
-
   const form = useForm<ChattanoogaConfigForm>({
     resolver: zodResolver(chattanoogaConfigSchema),
     defaultValues: {
-      sid: vendor?.credentials?.sid || "",
-      token: vendor?.credentials?.token || "",
+      sid: "",
+      token: "",
     },
   });
 
-  // Reset form when vendor data changes to ensure credentials are loaded
-  useEffect(() => {
-    if (vendor?.credentials) {
-      form.reset({
-        sid: vendor.credentials.sid || "",
-        token: vendor.credentials.token || "",
+  const loadExistingCredentials = useCallback(async () => {
+    if (!vendor || !slug) return;
+    
+    setIsLoadingCredentials(true);
+    try {
+      const apiUrl = buildVendorApiUrl(slug, vendor, 'credentials');
+      console.log('🔍 CHATTANOOGA LOAD: Fetching credentials from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        credentials: 'include'
       });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔍 CHATTANOOGA LOAD: Credentials loaded:', Object.keys(data));
+        
+        form.reset({
+          sid: data.sid || "",
+          token: data.token || "",
+        });
+      } else {
+        console.log('🔍 CHATTANOOGA LOAD: No existing credentials found (this is OK for new setup)');
+      }
+    } catch (error) {
+      console.error('🔍 CHATTANOOGA LOAD: Error loading credentials:', error);
+    } finally {
+      setIsLoadingCredentials(false);
     }
-  }, [vendor, form]);
+  }, [vendor, slug, form]);
+
+  // Load existing credentials when modal opens
+  useEffect(() => {
+    if (isOpen && vendor && slug) {
+      loadExistingCredentials();
+    }
+  }, [isOpen, vendor, slug, loadExistingCredentials]);
 
   const handleSave = async (data: ChattanoogaConfigForm) => {
     if (!vendor?.id || !slug) return;
