@@ -1,0 +1,155 @@
+2025-10-09 01:15:53.92
+6447b4ca
+User
+✅ Subscription services initialized successfully
+2025-10-09 01:15:53.92
+6447b4ca
+User
+🔧 STARTUP: Validating vendor priority consistency...
+2025-10-09 01:15:53.92
+6447b4ca
+User
+VENDOR PRIORITY VALIDATION: Starting 1-N consistency check...
+2025-10-09 01:15:53.95
+6447b4ca
+User
+VENDOR PRIORITY VALIDATION: Found 5 vendors to validate
+2025-10-09 01:15:53.98
+6447b4ca
+User
+VENDOR PRIORITY VALIDATION: Non-null priorities found: [ 1, 2, 3, 4, 5 ]
+2025-10-09 01:15:53.98
+6447b4ca
+User
+VENDOR PRIORITY VALIDATION: Completed - VALID
+2025-10-09 01:15:53.98
+6447b4ca
+User
+VENDOR PRIORITY VALIDATION: Total vendors: 5 Issues found: 0
+2025-10-09 01:15:53.98
+6447b4ca
+User
+✅ STARTUP: Vendor priority system is consistent - 5 vendors in proper 1-N sequence
+2025-10-09 01:15:53.98
+6447b4ca
+User
+✅ Test email routes setup successfully
+2025-10-09 01:15:54.00
+6447b4ca
+User
+✅ STARTUP: Admin users already exist, count: 1
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 ============================================
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 PROXY CONFIGURATION DETECTED
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 ============================================
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 Host: 52.8.105.64
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 Port: 3128
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 Username: proxyuser
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 Password: ********
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 ============================================
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 All vendor API calls will route through fixed IP
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 APIs using proxy: Lipsey's, Sports South, Chattanooga
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌐 ============================================
+2025-10-09 01:15:54.00
+6447b4ca
+User
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🌍 Global timezone set to: America/Los_Angeles
+2025-10-09 01:15:54.00
+6447b4ca
+User
+ℹ️ Using Scheduled Deployments for automated syncs (cron schedulers disabled)
+2025-10-09 01:15:54.00
+6447b4ca
+User
+Server initialization complete
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🔧 Server mode: production
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🔧 Environment detection: development=false, production=true
+2025-10-09 01:15:54.00
+6447b4ca
+User
+🔧 Serving built static files from production build
+2025-10-09 01:15:54.04
+6447b4ca
+User
+🔧 Port 5000 cleared for startup
+2025-10-09 01:15:54.04
+6447b4ca
+User
+1:15:54 AM [express] serving on port 5000
+2025-10-09 01:15:54.04
+6447b4ca
+User
+🚀 Server is running on http://0.0.0.0:5000
+2025-10-09 01:15:54.04
+6447b4ca
+User
+🌍 Environment: production
+2025-10-09 01:15:54.04
+6447b4ca
+User
+🆔 PID: 28
+2025-10-09 01:15:54.05
+6447b4ca
+User
+⏰ Started at: 2025-10-09T08:15:54.048Z
+2025-10-09 01:15:54.36
+6447b4ca
+User
+🔍 ROUTES DEBUG: GET /
+2025-10-09 01:15:54.37
+6447b4ca
+User
+ORG MIDDLEWARE: Processing URL: /
+2025-10-09 01:15:54.37
+6447b4ca
+User
+ORG MIDDLEWARE: Final organizationSlug: undefined
+2025-10-09 01:15:54.37
+6447b4ca
+User
+ORG CONTEXT: organizationSlug: undefined
+2025-10-09 01:15:54.37
+6447b4ca
+User
+ORG CONTEXT: No organizationSlug found
