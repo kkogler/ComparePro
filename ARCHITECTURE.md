@@ -34,7 +34,7 @@ Worker Process (PM2):
 └── Background Jobs (Subscription services)
 
 External Services:
-├── Database (PostgreSQL)
+├── Database (NEON PostgreSQL - Development & Production)
 ├── File Storage (Google Cloud)
 └── Authentication (Session-based)
 ```
@@ -63,7 +63,15 @@ External Services:
   - Handle scheduled operations
 - **Environment**: Runs independently from web server
 
-### **3. Health Endpoints**
+### **3. Databases**
+- **Architecture**: Two NEON PostgreSQL databases (cloud-hosted)
+  - **Development Database**: Used for local development and testing
+  - **Production Database**: Used for live production application
+- **No Local PostgreSQL**: All database operations use hosted NEON databases
+- **Connection**: Via `DATABASE_URL` environment variable
+- **See:** [DATABASE_ARCHITECTURE.md](./DATABASE_ARCHITECTURE.md) for detailed information
+
+### **4. Health Endpoints**
 - **`/api/health`**: Server health and environment info
 - **`/api/ready`**: Server readiness for traffic
 

@@ -3057,14 +3057,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const { LipseyAPI } = await import('./lipsey-api.js');
         
-        // Get credentials from company_vendor_credentials table (not vendor.credentials)
-        const companyVendorCreds = await storage.getCompanyVendorCredentials(organizationId, vendor.supportedVendorId);
-        
-        // Map userName -> email for Lipsey's API
-        const credentials = companyVendorCreds ? {
-          email: companyVendorCreds.userName,  // userName maps to email for Lipsey's
-          password: companyVendorCreds.password
-        } : null;
+        // ✅ FIX: Use credential vault (with field aliases) instead of direct storage access
+        const { credentialVault } = await import('./credential-vault-service');
+        const credentials = await credentialVault.getStoreCredentials('lipseys', organizationId, 0);
         
         // Store-level credentials required - NO ENVIRONMENT VARIABLE FALLBACK
         if (!credentials || !credentials.email || !credentials.password) {

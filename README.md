@@ -1,4 +1,12 @@
-# BestPrice – Quickstart (Replit)
+# BestPrice – Quickstart
+
+## Database Architecture
+
+This application uses **two hosted NEON PostgreSQL databases**:
+- **Development Database**: Used for local development and testing
+- **Production Database**: Used for the live production application
+
+**No local PostgreSQL database is required.** All database operations use hosted NEON databases.
 
 ## Dev Start
 
@@ -9,6 +17,7 @@ PORT=5000 NODE_ENV=development npm run dev
 
 - Replit `.replit` sets `PORT=5000` so only one process listens on 5000.
 - Do not run PM2 in Replit dev.
+- Uses `DATABASE_URL` environment variable pointing to the development NEON database
 
 ## Clean Restart (Dev)
 
@@ -49,12 +58,26 @@ npm run start:pm2
 
 For deeper details see `ARCHITECTURE.md`.
 
-## Replit Hosting-Only (Deployments)
+## Database Configuration
+
+### Development Environment
+Set `DATABASE_URL` to your development NEON database:
+```bash
+DATABASE_URL=postgresql://neondb_owner:***@ep-dev-xxxxx.us-east-1.aws.neon.tech/neondb?sslmode=require
+```
+
+### Production Environment
+Set `DATABASE_URL` to your production NEON database:
+```bash
+DATABASE_URL=postgresql://neondb_owner:***@ep-prod-xxxxx.us-east-1.aws.neon.tech/neondb?sslmode=require
+```
+
+## Deployment (Replit Hosting)
 
 - Build: `npm ci && npm run build`
 - Run: `NODE_ENV=production PORT=$PORT node dist/index.js`
 - Health check: `/api/health`
-- Secrets to set: `DATABASE_URL`, `SESSION_SECRET`, `CREDENTIAL_ENCRYPTION_KEY`, `BASE_URL`, `SENDGRID_API_KEY` (if emails), Zoho Billing vars if used (`ZOHO_BILLING_*`, `ZOHO_WEBHOOK_SECRET`)
+- Required Secrets: `DATABASE_URL` (production NEON), `SESSION_SECRET`, `CREDENTIAL_ENCRYPTION_KEY`, `BASE_URL`, `SENDGRID_API_KEY` (if emails), Zoho Billing vars if used (`ZOHO_BILLING_*`, `ZOHO_WEBHOOK_SECRET`)
 - Filesystem is ephemeral in Deployments. Store uploads in object storage; log to stdout, not files.
 
 ## Vendor Sync Methods Overview

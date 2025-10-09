@@ -348,12 +348,13 @@ export class CredentialVaultService {
       // Validate merged credentials against schema
       this.validateCredentials(merged, schema.storeCredentials);
 
-      // Process credentials (no encryption)
-      const processedCredentials = this.processCredentials(merged, schema.storeCredentials);
+      // HYBRID APPROACH: Pass credentials through directly (no transformation)
+      // Storage layer will save to JSON column as-is (matches admin pattern)
+      console.log('🔐 CREDENTIAL VAULT (HYBRID): Passing credentials to storage without transformation');
+      console.log('🔐 CREDENTIAL VAULT (HYBRID): Credential keys:', Object.keys(merged));
 
-      // Store in database
-
-      await storage.saveCompanyVendorCredentials(companyId, supportedVendor.id, processedCredentials);
+      // Store in database (storage layer handles JSON + legacy columns)
+      await storage.saveCompanyVendorCredentials(companyId, supportedVendor.id, merged);
 
       // Audit log
       await this.logCredentialAccess({
@@ -459,39 +460,27 @@ export class CredentialVaultService {
         return null;
       }
 
-      // Process credentials (no decryption needed)
-      const decryptedCredentials = this.unprocessCredentials(rawCredentials, schema.storeCredentials);
+      // HYBRID APPROACH: Credentials are already in correct format from JSON column
+      // Storage layer handles fallback to legacy columns if needed
+      console.log(`🔍 CREDENTIAL VAULT (HYBRID): Retrieved credentials for ${vendorId}`);
+      console.log(`🔍 CREDENTIAL VAULT (HYBRID): Credential keys:`, Object.keys(rawCredentials));
 
-      console.log(`🔍 CREDENTIAL DEBUG: Raw credential fields for ${vendorId}:`, Object.keys(decryptedCredentials));
-
-      // ✅ FIX: Apply field aliases BEFORE filtering to handle field name mismatches
-      const aliasedCredentials = await this.applyFieldAliases(vendorId, decryptedCredentials);
-      console.log(`🔍 CREDENTIAL DEBUG: Aliased fields for ${vendorId}:`, Object.keys(aliasedCredentials));
+      // ✅ FIX: Apply field aliases BEFORE filtering (handles vendor-specific field name variations)
+      const aliasedCredentials = await this.applyFieldAliases(vendorId, rawCredentials);
+      console.log(`🔍 CREDENTIAL VAULT (HYBRID): Aliased fields:`, Object.keys(aliasedCredentials));
 
       // Filter to only include fields defined in the schema for this vendor
       const schemaFieldNames = schema.storeCredentials.map(field => field.name);
       const filteredCredentials: Record<string, string> = {};
       
       for (const fieldName of schemaFieldNames) {
-        // ✅ FIX: Check aliased credentials instead of raw decrypted
         if (aliasedCredentials[fieldName] !== undefined) {
           filteredCredentials[fieldName] = aliasedCredentials[fieldName];
         }
       }
       
-      // ✅ SPORTS SOUTH FIX: Also include camelCase aliases for API compatibility
-      if (vendorId.toLowerCase().includes('sports') && vendorId.toLowerCase().includes('south')) {
-        if (aliasedCredentials['userName']) {
-          filteredCredentials['userName'] = aliasedCredentials['userName'];
-        }
-        if (aliasedCredentials['customerNumber']) {
-          filteredCredentials['customerNumber'] = aliasedCredentials['customerNumber'];
-        }
-        console.log('🔧 SPORTS SOUTH: Added camelCase aliases to filtered credentials');
-      }
-      
-      console.log(`🔍 CREDENTIAL FILTER: Schema fields for ${vendorId}:`, schemaFieldNames);
-      console.log(`🔍 CREDENTIAL FILTER: Filtered credentials:`, Object.keys(filteredCredentials));
+      console.log(`🔍 CREDENTIAL VAULT (HYBRID): Schema fields:`, schemaFieldNames);
+      console.log(`🔍 CREDENTIAL VAULT (HYBRID): Filtered credentials:`, Object.keys(filteredCredentials));
 
       // Audit log
       await this.logCredentialAccess({

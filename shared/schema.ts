@@ -1130,6 +1130,11 @@ export const companyVendorCredentials = pgTable("company_vendor_credentials", {
   sid: text("sid"),
   token: text("token"), // Encrypted storage
   
+  // NEW: JSON-based credential storage (hybrid approach)
+  // Stores all vendor credentials in flexible JSON format (matches admin pattern)
+  // Eliminates field name transformation issues and allows vendor-specific structures
+  credentials: text("credentials", { mode: 'json' }).$type<Record<string, any>>(),
+  
   // Sync configuration 
   catalogSyncEnabled: boolean("catalog_sync_enabled").default(true),
   catalogSyncSchedule: text("catalog_sync_schedule").default("0 4 * * *"), // Daily at 4 AM

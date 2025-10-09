@@ -2421,7 +2421,27 @@ export class DatabaseStorage implements IStorage {
           eq(companyVendorCredentials.supportedVendorId, supportedVendorId)
         )
       );
-    return result || undefined;
+    
+    if (!result) {
+      return undefined;
+    }
+    
+    // NEW HYBRID APPROACH: Read from JSON column first, fallback to old columns
+    if (result.credentials && typeof result.credentials === 'object' && Object.keys(result.credentials).length > 0) {
+      console.log('📖 STORAGE (HYBRID): Reading credentials from JSON column');
+      console.log('📖 STORAGE (HYBRID): JSON credential keys:', Object.keys(result.credentials));
+      
+      // Return the entire result object but credentials come from JSON
+      return {
+        ...result,
+        // Merge JSON credentials into the result (they override old columns)
+        ...result.credentials
+      };
+    }
+    
+    // FALLBACK: If no JSON credentials, read from old columns (backward compatibility)
+    console.log('📖 STORAGE (HYBRID): Falling back to legacy columns (no JSON found)');
+    return result;
   }
 
   async upsertCompanyVendorCredentials(credentials: any): Promise<any> {
@@ -2471,66 +2491,80 @@ export class DatabaseStorage implements IStorage {
   async saveCompanyVendorCredentials(companyId: number, supportedVendorId: number, credentials: any): Promise<any> {
     const { companyVendorCredentials } = await import('@shared/schema');
     
-    console.log('💾 STORAGE: Saving company vendor credentials');
-    console.log('💾 STORAGE: Company ID:', companyId);
-    console.log('💾 STORAGE: Supported Vendor ID:', supportedVendorId);
-    console.log('💾 STORAGE: Credentials:', credentials);
+    console.log('💾 STORAGE (HYBRID): Saving company vendor credentials');
+    console.log('💾 STORAGE (HYBRID): Company ID:', companyId);
+    console.log('💾 STORAGE (HYBRID): Supported Vendor ID:', supportedVendorId);
+    console.log('💾 STORAGE (HYBRID): Credentials keys:', Object.keys(credentials));
     
-    // Map snake_case fields to camelCase for Drizzle ORM
-    const mappedCredentials: any = {
-      companyId: companyId,
-      supportedVendorId: supportedVendorId,
-      updatedAt: new Date()
+    // NEW HYBRID APPROACH:
+    // 1. Save raw credentials to JSON column (primary storage)
+    // 2. Also save to old columns for backward compatibility (will be removed later)
+    
+    // Extract operational fields (not credentials)
+    const operationalFields = {
+      catalogSyncEnabled: credentials.catalog_sync_enabled ?? credentials.catalogSyncEnabled,
+      catalogSyncSchedule: credentials.catalog_sync_schedule ?? credentials.catalogSyncSchedule,
+      inventorySyncEnabled: credentials.inventory_sync_enabled ?? credentials.inventorySyncEnabled,
+      inventorySyncSchedule: credentials.inventory_sync_schedule ?? credentials.inventorySyncSchedule,
     };
     
+    // Extract credential fields (everything except operational fields)
+    const credentialFields = { ...credentials };
+    delete credentialFields.catalog_sync_enabled;
+    delete credentialFields.catalogSyncEnabled;
+    delete credentialFields.catalog_sync_schedule;
+    delete credentialFields.catalogSyncSchedule;
+    delete credentialFields.inventory_sync_enabled;
+    delete credentialFields.inventorySyncEnabled;
+    delete credentialFields.inventory_sync_schedule;
+    delete credentialFields.inventorySyncSchedule;
+    
+    console.log('💾 STORAGE (HYBRID): Credential fields for JSON:', Object.keys(credentialFields));
+    console.log('💾 STORAGE (HYBRID): Operational fields:', operationalFields);
+    
+    // Build the save object
+    const saveData: any = {
+      companyId: companyId,
+      supportedVendorId: supportedVendorId,
+      credentials: credentialFields,  // ✨ NEW: Store all credentials as JSON
+      updatedAt: new Date(),
+      ...operationalFields
+    };
+    
+    // BACKWARD COMPATIBILITY: Also save to old columns (will be removed in Phase 3)
     // Map common FTP fields
-    if (credentials.ftp_server !== undefined) mappedCredentials.ftpServer = credentials.ftp_server;
-    if (credentials.ftp_port !== undefined) mappedCredentials.ftpPort = credentials.ftp_port;
-    if (credentials.ftp_username !== undefined) mappedCredentials.ftpUsername = credentials.ftp_username;
-    if (credentials.ftp_password !== undefined) mappedCredentials.ftpPassword = credentials.ftp_password;
-    if (credentials.ftp_base_path !== undefined) mappedCredentials.ftpBasePath = credentials.ftp_base_path;
+    if (credentialFields.ftpServer) saveData.ftpServer = credentialFields.ftpServer;
+    if (credentialFields.ftpPort) saveData.ftpPort = credentialFields.ftpPort;
+    if (credentialFields.ftpUsername) saveData.ftpUsername = credentialFields.ftpUsername;
+    if (credentialFields.ftpPassword) saveData.ftpPassword = credentialFields.ftpPassword;
+    if (credentialFields.ftpBasePath) saveData.ftpBasePath = credentialFields.ftpBasePath;
     
-    // Map sync fields
-    if (credentials.catalog_sync_enabled !== undefined) mappedCredentials.catalogSyncEnabled = credentials.catalog_sync_enabled;
-    if (credentials.catalog_sync_schedule !== undefined) mappedCredentials.catalogSyncSchedule = credentials.catalog_sync_schedule;
-    if (credentials.inventory_sync_enabled !== undefined) mappedCredentials.inventorySyncEnabled = credentials.inventory_sync_enabled;
-    if (credentials.inventory_sync_schedule !== undefined) mappedCredentials.inventorySyncSchedule = credentials.inventory_sync_schedule;
+    // Map API fields - accept both camelCase (new) and snake_case (old)
+    if (credentialFields.userName) saveData.userName = credentialFields.userName;
+    if (credentialFields.email) saveData.userName = credentialFields.email;  // Lipsey's
+    if (credentialFields.password) saveData.password = credentialFields.password;
+    if (credentialFields.customerNumber) saveData.customerNumber = credentialFields.customerNumber;
+    if (credentialFields.source) saveData.source = credentialFields.source;
+    if (credentialFields.apiKey) saveData.apiKey = credentialFields.apiKey;
+    if (credentialFields.devKey) saveData.apiKey = credentialFields.devKey;  // GunBroker
+    if (credentialFields.apiSecret) saveData.apiSecret = credentialFields.apiSecret;
+    if (credentialFields.sid) saveData.sid = credentialFields.sid;
+    if (credentialFields.token) saveData.token = credentialFields.token;
+    if (credentialFields.accountNumber) saveData.customerNumber = credentialFields.accountNumber;  // Chattanooga
+    if (credentialFields.username) saveData.userName = credentialFields.username;  // Chattanooga
     
-    // Map API fields (for non-FTP vendors)
-    // Priority: email > user_name (Lipsey's uses email, Sports South uses user_name)
-    if (credentials.email !== undefined) {
-      mappedCredentials.userName = credentials.email;
-      console.log('💾 STORAGE: Mapped email to userName:', credentials.email);
-    } else if (credentials.user_name !== undefined) {
-      mappedCredentials.userName = credentials.user_name;
-      console.log('💾 STORAGE: Mapped user_name to userName:', credentials.user_name);
-    }
-    if (credentials.password !== undefined) mappedCredentials.password = credentials.password;
-    if (credentials.customer_number !== undefined) mappedCredentials.customerNumber = credentials.customer_number;
-    if (credentials.api_key !== undefined) mappedCredentials.apiKey = credentials.api_key;
-    if (credentials.api_secret !== undefined) mappedCredentials.apiSecret = credentials.api_secret;
-    if (credentials.sid !== undefined) mappedCredentials.sid = credentials.sid;
-    if (credentials.token !== undefined) mappedCredentials.token = credentials.token;
-    
-    // Also accept camelCase fields (for backward compatibility) - but only if snake_case wasn't provided
-    if (credentials.ftpServer !== undefined && credentials.ftp_server === undefined) mappedCredentials.ftpServer = credentials.ftpServer;
-    if (credentials.ftpPort !== undefined && credentials.ftp_port === undefined) mappedCredentials.ftpPort = credentials.ftpPort;
-    if (credentials.ftpUsername !== undefined && credentials.ftp_username === undefined) mappedCredentials.ftpUsername = credentials.ftpUsername;
-    if (credentials.ftpPassword !== undefined && credentials.ftp_password === undefined) mappedCredentials.ftpPassword = credentials.ftpPassword;
-    if (credentials.ftpBasePath !== undefined && credentials.ftp_base_path === undefined) mappedCredentials.ftpBasePath = credentials.ftpBasePath;
-    
-    console.log('💾 STORAGE: Mapped credentials for Drizzle:', mappedCredentials);
+    console.log('💾 STORAGE (HYBRID): Saving to JSON column + legacy columns');
     
     const [result] = await db
       .insert(companyVendorCredentials)
-      .values(mappedCredentials)
+      .values(saveData)
       .onConflictDoUpdate({
         target: [companyVendorCredentials.companyId, companyVendorCredentials.supportedVendorId],
-        set: mappedCredentials // Use mapped credentials in update too
+        set: saveData
       })
       .returning();
     
-    console.log('💾 STORAGE: Successfully saved credentials');
+    console.log('✅ STORAGE (HYBRID): Successfully saved credentials to JSON + legacy columns');
     return result;
   }
 

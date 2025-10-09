@@ -196,8 +196,9 @@ export function registerCredentialManagementRoutes(app: Express): void {
     try {
       const { vendorSlug } = req.params;
       
-      // Use vendor slug directly - no conversion needed
-      const stringVendorId = vendorSlug;
+      // Strip numeric suffix from vendor slug for credential vault lookup
+      // Vendors table has: sports-south-1, but supported_vendors needs: sports-south
+      const stringVendorId = vendorSlug.replace(/-\d+$/, '');
       
       const schema = await credentialVault.getVendorSchema(stringVendorId);
       if (!schema) {
@@ -234,9 +235,10 @@ export function registerCredentialManagementRoutes(app: Express): void {
         userAgent: req.get('User-Agent')
       };
 
-      // Use vendor slug directly - no conversion needed
-      const stringVendorId = vendorSlug;
-      console.log(`🔄 CREDENTIAL SAVE: Using vendor slug ${stringVendorId}`);
+      // Strip numeric suffix from vendor slug for credential vault lookup
+      // Vendors table has: sports-south-1, but supported_vendors needs: sports-south
+      const stringVendorId = vendorSlug.replace(/-\d+$/, ''); // Remove -1, -2, etc. suffix
+      console.log(`🔄 CREDENTIAL SAVE: Converted vendor slug ${vendorSlug} → ${stringVendorId}`);
       
       // Special case: GunBroker uses admin-level shared credentials for all stores
       // Match both 'gunbroker' and 'gunbroker-123' patterns
@@ -278,33 +280,46 @@ export function registerCredentialManagementRoutes(app: Express): void {
         console.log('  - User ID:', userId);
       }
 
-      // Field name validation and mapping for Sports South
-      if (stringVendorId.toLowerCase().includes('sports') && stringVendorId.toLowerCase().includes('south')) {
-        console.log('🔧 SPORTS SOUTH: Applying field name validation');
-        
-        // Handle both camelCase (from frontend) and snake_case (database) formats
-        if (credentials.userName && !credentials.user_name) {
-          console.log('🔧 SPORTS SOUTH: Mapping userName → user_name');
-          credentials.user_name = credentials.userName;
-          delete credentials.userName;
-        }
-        if (credentials.customerNumber && !credentials.customer_number) {
-          console.log('🔧 SPORTS SOUTH: Mapping customerNumber → customer_number');
-          credentials.customer_number = credentials.customerNumber;
-          delete credentials.customerNumber;
-        }
-        
-        console.log('🔧 SPORTS SOUTH: Final credentials after mapping:', Object.keys(credentials));
-      }
+      // HYBRID APPROACH: Pass credentials directly to vault (no transformation)
+      // Credentials are saved to JSON column in database (matches admin pattern)
+      console.log('📝 CREDENTIAL SAVE (HYBRID): Storing credentials with field names:', Object.keys(credentials));
+      console.log('📝 CREDENTIAL SAVE (HYBRID): Credential values (masked):', Object.entries(credentials).reduce((acc, [key, val]) => {
+        acc[key] = typeof val === 'string' && val.length > 0 ? `${val[0]}***${val[val.length-1]}` : '<empty>';
+        return acc;
+      }, {} as Record<string, string>));
 
       await credentialVault.storeStoreCredentials(stringVendorId, companyId, credentials, userId, auditInfo);
+
+      // ✅ VERIFY THE SAVE: Read back the credentials to confirm they were actually saved
+      // Look up the supported vendor to get its ID (don't use company-specific slug)
+      const supportedVendor = await storage.getSupportedVendorByName(stringVendorId);
+      if (!supportedVendor) {
+        throw new Error(`Supported vendor not found after save: ${stringVendorId}`);
+      }
+      
+      const savedCreds = await storage.getCompanyVendorCredentials(companyId, supportedVendor.id);
+      console.log('✅ VERIFICATION (HYBRID): Saved credentials keys:', Object.keys(savedCreds || {}));
+      console.log('✅ VERIFICATION (HYBRID): Non-empty fields:', Object.entries(savedCreds || {}).filter(([k,v]) => v && v.toString().trim().length > 0).map(([k]) => k));
+      
+      // Check if any required fields are still empty
+      const emptyRequiredFields = Object.entries(credentials).filter(([key, val]) => {
+        const savedVal = savedCreds?.[key];
+        return val && val.toString().trim().length > 0 && (!savedVal || savedVal.toString().trim().length === 0);
+      });
+      
+      if (emptyRequiredFields.length > 0) {
+        console.error('❌ VERIFICATION FAILED: Fields not saved:', emptyRequiredFields.map(([k]) => k));
+        throw new Error(`Credentials were not saved properly. Empty fields: ${emptyRequiredFields.map(([k]) => k).join(', ')}`);
+      }
+      
+      console.log('✅ VERIFICATION PASSED: All credential fields saved successfully');
 
       res.json({
         success: true,
         message: `Store credentials saved successfully for ${stringVendorId}`
       });
     } catch (error: any) {
-      console.error('Failed to store store credentials:', error);
+      console.error('❌ CREDENTIAL SAVE FAILED:', error);
       res.status(400).json({ 
         success: false, 
         message: error.message 
@@ -321,9 +336,10 @@ export function registerCredentialManagementRoutes(app: Express): void {
       const companyId = (req as any).organizationId;
       const userId = (req as any).user?.id || 0;
 
-      // Use vendor slug directly - no conversion needed
-      const stringVendorId = vendorSlug;
-      console.log(`🔄 CONNECTION TEST: Using vendor slug ${stringVendorId}`);
+      // Strip numeric suffix from vendor slug for credential vault lookup
+      // Vendors table has: sports-south-1, but supported_vendors needs: sports-south
+      const stringVendorId = vendorSlug.replace(/-\d+$/, ''); // Remove -1, -2, etc. suffix
+      console.log(`🔄 CONNECTION TEST: Converted vendor slug ${vendorSlug} → ${stringVendorId}`);
 
       // Special case: GunBroker uses admin-level shared credentials for all stores
       // Match both 'gunbroker' and 'gunbroker-123' patterns
@@ -369,8 +385,9 @@ export function registerCredentialManagementRoutes(app: Express): void {
     try {
       const { vendorSlug } = req.params;
       const companyId = (req as any).organizationId;
-      // Use vendor slug directly - no conversion needed
-      const stringVendorId = vendorSlug;
+      // Strip numeric suffix from vendor slug for credential vault lookup
+      // Vendors table has: sports-south-1, but supported_vendors needs: sports-south
+      const stringVendorId = vendorSlug.replace(/-\d+$/, '');
       
       // Special case: GunBroker uses admin-level shared credentials for all stores
       // Match both 'gunbroker' and 'gunbroker-123' patterns
@@ -533,8 +550,9 @@ export function registerCredentialManagementRoutes(app: Express): void {
       
       console.log(`🔍 CREDENTIAL DEBUG: Starting debug for vendor ${vendorSlug}, company ${companyId}`);
       
-      const stringVendorId = vendorSlug;
-      console.log(`🔍 CREDENTIAL DEBUG: Converted to string vendor ID: ${stringVendorId}`);
+      // Strip numeric suffix from vendor slug for credential vault lookup
+      const stringVendorId = vendorSlug.replace(/-\d+$/, '');
+      console.log(`🔍 CREDENTIAL DEBUG: Converted vendor slug ${vendorSlug} → ${stringVendorId}`);
       
       const supportedVendor = await storage.getSupportedVendorByName(stringVendorId);
       

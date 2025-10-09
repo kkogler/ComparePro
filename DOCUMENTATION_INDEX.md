@@ -2,6 +2,39 @@
 
 This repository contains comprehensive documentation for the Multi-Tenant Retail Inventory Management Platform.
 
+## Quick Start Documentation
+
+### Essential Guides
+- **[README.md](./README.md)** ⭐ **START HERE** - Quick start guide and basic commands
+- **[DATABASE_ARCHITECTURE.md](./DATABASE_ARCHITECTURE.md)** 🗄️ **Database Guide** - Complete database architecture overview
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** 🏗️ - Application architecture and components
+
+## Database Documentation
+
+### Current Architecture (Two NEON Databases)
+**Last Updated: October 9, 2025**
+
+The application now uses **two hosted NEON PostgreSQL databases** with **no local PostgreSQL requirement**.
+
+#### Primary Database Documentation
+- **[DATABASE_ARCHITECTURE.md](./DATABASE_ARCHITECTURE.md)** - Comprehensive database architecture guide
+- **[README_DATABASE_SETUP.md](./README_DATABASE_SETUP.md)** - Database setup instructions and quick reference
+- **[docs/DATABASE_SETUP_GUIDE.md](./docs/DATABASE_SETUP_GUIDE.md)** - Detailed environment and configuration guide
+
+#### Database Architecture Summary
+- **Development Database**: NEON cloud-hosted database for development and testing
+- **Production Database**: NEON cloud-hosted database for live production
+- **No Local PostgreSQL**: All operations use cloud-hosted databases
+
+#### Obsolete Documentation (Old Architecture)
+⚠️ The following documents reference the old three-database architecture with local PostgreSQL and are **no longer applicable**:
+- ~~DATABASE_SITUATION_SUMMARY.md~~ - References local PostgreSQL (obsolete)
+- ~~DATABASE_MIGRATION_GUIDE.md~~ - References local PostgreSQL migration (obsolete)
+- ~~NEXT_STEPS.md~~ - References three-database setup (obsolete)
+- ~~START_HERE.md~~ - References local PostgreSQL (obsolete)
+- ~~SYNC_COMPLETE.md~~ - References local PostgreSQL sync (obsolete)
+- ~~SYNC_PROGRESS.md~~ - References local PostgreSQL sync (obsolete)
+
 ## Implementation Documentation
 
 ### Phase 1 Multi-Vertical Architecture (January 2025)

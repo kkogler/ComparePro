@@ -42,10 +42,10 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
         vendorShortCode: vendor?.vendorShortCode
       });
 
-      // Map camelCase field names to snake_case for database compatibility
+      // ✅ KEEP CAMELCASE: Schema expects camelCase field names
       const mappedCreds = {
-        user_name: creds.userName,        // userName → user_name
-        customer_number: creds.customerNumber, // customerNumber → customer_number
+        userName: creds.userName,              // Keep as camelCase
+        customerNumber: creds.customerNumber,  // Keep as camelCase
         password: creds.password,
         source: creds.source
       };
@@ -64,7 +64,7 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
           status: response.status,
           statusText: response.statusText,
           errorData,
-          vendorIdentifier,
+          apiUrl,
           mappedCreds: Object.keys(mappedCreds)
         });
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);

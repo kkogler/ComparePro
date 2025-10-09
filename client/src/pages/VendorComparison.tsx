@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Check, Clock, X, ShoppingCart, Building2, Store, Truck, Plus, CheckCircle } from "lucide-react";
+import { ArrowLeft, Check, Clock, X, Minus, ShoppingCart, Building2, Store, Truck, Plus, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -592,6 +592,8 @@ export default function VendorComparison() {
         return <Clock className="h-4 w-4 mr-1" />;
       case 'out_of_stock':
         return <X className="h-4 w-4 mr-1" />;
+      case 'not_available':
+        return <Minus className="h-4 w-4 mr-1" />;
       default:
         return null;
     }
@@ -605,6 +607,8 @@ export default function VendorComparison() {
         return `${stock} Available`;
       case 'out_of_stock':
         return 'Out of Stock';
+      case 'not_available':
+        return 'Not Carried';
       case 'config_required':
         return 'Config Required';
       case 'disabled':
@@ -649,26 +653,31 @@ export default function VendorComparison() {
     
     // Check if vendor has a logo URL from the API response
     if (vendor.logoUrl) {
-
       return (
-        <div className="flex items-center justify-center w-20 h-12 rounded border border-gray-200 dark:border-gray-600 overflow-hidden bg-gray-50 dark:bg-gray-800">
-          <img 
-            src={vendor.logoUrl} 
-            alt={`${vendor.name} logo`}
-            className="w-full h-full object-contain"
-          />
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center justify-center w-20 h-12 rounded border border-gray-200 dark:border-gray-600 overflow-hidden bg-gray-50 dark:bg-gray-800">
+            <img 
+              src={vendor.logoUrl} 
+              alt={`${vendor.name} logo`}
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{vendor.name}</span>
         </div>
       );
     }
     
-    // Use vendor short code or fallback to first letter of name
-    const initials = vendor.vendorShortCode || vendor.name?.charAt(0) || '?';
+    // Show vendor name with icon/initials
+    const initials = vendor.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2).toUpperCase() || vendor.vendorShortCode?.slice(0, 2).toUpperCase() || '?';
     const bgColor = 'bg-gray-100 dark:bg-gray-800';
     const textColor = 'text-gray-600 dark:text-gray-400';
     
     return (
-      <div className={`flex items-center justify-center w-20 h-12 rounded border border-gray-200 dark:border-gray-600 ${bgColor}`}>
-        <span className={`text-sm font-bold ${textColor}`}>{initials}</span>
+      <div className="flex flex-col items-center gap-1">
+        <div className={`flex items-center justify-center w-20 h-12 rounded border border-gray-200 dark:border-gray-600 ${bgColor}`}>
+          <span className={`text-sm font-bold ${textColor}`}>{initials}</span>
+        </div>
+        <span className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">{vendor.name || vendor.vendorShortCode}</span>
       </div>
     );
   };
@@ -942,7 +951,7 @@ export default function VendorComparison() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="text-sm font-medium">
-                            {vendor.cost === 'N/A' || vendor.cost === null || vendor.cost === undefined ? 'N/A' : `$${parseFloat(String(vendor.cost).replace('$', '')).toFixed(2)}`}
+                            {vendor.cost === 'N/A' || vendor.cost === null || vendor.cost === undefined ? '-' : `$${parseFloat(String(vendor.cost).replace('$', '')).toFixed(2)}`}
                           </div>
                           {vendor.cost !== 'N/A' && vendor.cost !== null && vendor.cost !== undefined && parseFloat(String(vendor.cost).replace('$', '')) === lowestCost && (
                             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -950,9 +959,9 @@ export default function VendorComparison() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className={`flex items-center text-sm ${getAvailabilityColor(vendor.availability)}`}>
+                        <div className={`flex items-center text-sm ${getAvailabilityColor(vendor.availability)}`} title={vendor.apiMessage || ''}>
                           {getAvailabilityIcon(vendor.availability)}
-                          {getAvailabilityText(vendor.availability, vendor.stock || 0)}
+                          <span className="cursor-help">{getAvailabilityText(vendor.availability, vendor.stock || 0)}</span>
                         </div>
                       </TableCell>
                       <TableCell>

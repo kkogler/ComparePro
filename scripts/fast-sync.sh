@@ -73,3 +73,8 @@ rm -rf "$TEMP_DIR"
 echo "🎉 Fast sync complete!"
 
 
+
+
+
+
+

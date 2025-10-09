@@ -28,32 +28,30 @@ export function getVendorIdentifier(vendor: VendorReference | null | undefined):
     throw new Error('Vendor object is required');
   }
 
-  // Primary: vendorShortCode (THIS IS THE STANDARD)
+  // ✅ FIX: For store-level vendors, slug is MORE specific than vendorShortCode
+  // slug = "sports-south-1" (company-specific instance)
+  // vendorShortCode = "sports-south" (generic identifier)
+  // We need the specific slug for company vendor lookups!
+  if (vendor.slug) {
+    return vendor.slug;
+  }
+
+  // Fallback: Use vendorShortCode if no slug (admin-level vendors)
   if (vendor.vendorShortCode) {
     return vendor.vendorShortCode;
   }
 
-  // Fallback: Normalize name to short code format
-  // This should only happen for legacy data
+  // Last resort: Normalize name to short code format
   if (vendor.name) {
     console.warn(
-      `⚠️ VENDOR IDENTIFIER: Using name as fallback for vendor. This indicates missing vendorShortCode.`,
+      `⚠️ VENDOR IDENTIFIER: Using name as fallback for vendor. This indicates missing slug and vendorShortCode.`,
       { vendor: vendor.name }
     );
     return vendor.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
   }
 
-  // Last resort: Use slug (but log warning)
-  if (vendor.slug) {
-    console.warn(
-      `⚠️ VENDOR IDENTIFIER: Using slug as last resort. This may cause issues with numbered instances (chattanooga-1 vs chattanooga-2).`,
-      { slug: vendor.slug }
-    );
-    return vendor.slug;
-  }
-
   throw new Error(
-    `Cannot determine vendor identifier. Vendor must have vendorShortCode, name, or slug. Got: ${JSON.stringify(vendor)}`
+    `Cannot determine vendor identifier. Vendor must have slug, vendorShortCode, or name. Got: ${JSON.stringify(vendor)}`
   );
 }
 

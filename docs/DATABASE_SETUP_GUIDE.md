@@ -1,36 +1,40 @@
 # Database Setup & Environment Guide
 
-**Last Updated:** October 7, 2025
+**Last Updated:** October 9, 2025
 
 ## Overview
 
-This document clarifies the database architecture and environments to prevent confusion between development and production databases.
+This document clarifies the database architecture and environments. The application uses **two hosted NEON PostgreSQL databases** - one for development and one for production. **No local PostgreSQL database is required.**
 
 ---
 
 ## Database Environments
 
-### 🟢 **Production Database (Neon Cloud)**
-- **Type:** PostgreSQL (Neon managed database)
-- **Connection:** Set via Replit Environment Variable `DATABASE_URL`
-- **URL Pattern:** `postgresql://neondb_owner:***@ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
+### 🔵 **Development Database (NEON Cloud)**
+- **Type:** PostgreSQL (NEON managed database)
+- **Connection:** Set via `DATABASE_URL` environment variable
+- **URL Pattern:** `postgresql://neondb_owner:***@ep-dev-xxxxx.us-east-1.aws.neon.tech/neondb?sslmode=require`
 - **Used By:** 
-  - Production website: https://pricecomparehub.com
-  - Deployed Replit app
-  - Background jobs and webhooks
+  - Local development (when running `npm run dev`)
+  - Testing and staging environments
+  - Development team members
 - **Access:**
-  - Via Replit environment variable: `$DATABASE_URL`
-  - Via Replit SQL console (Database tab)
+  - Via environment variable: `$DATABASE_URL`
+  - Via NEON console: https://console.neon.tech/
   - Via `psql "$DATABASE_URL"` in terminal
 
-### 🔵 **Development Database (Local)**
-- **Type:** PostgreSQL (Local instance - NOT currently running)
-- **Connection:** Defined in `.env` file (NOT used in production)
-- **URL:** `postgresql://user:password@localhost:5432/pricecompare`
-- **Used By:**
-  - Local development only (when running `npm run dev`)
-  - NOT used by deployed production
-- **Status:** ⚠️ Currently not running (connection refused)
+### 🟢 **Production Database (NEON Cloud)**
+- **Type:** PostgreSQL (NEON managed database)
+- **Connection:** Set via production hosting Environment Variable `DATABASE_URL`
+- **URL Pattern:** `postgresql://neondb_owner:***@ep-prod-xxxxx.us-east-1.aws.neon.tech/neondb?sslmode=require`
+- **Used By:** 
+  - Production website: https://pricecomparehub.com
+  - Deployed production app
+  - Background jobs and webhooks
+- **Access:**
+  - Via production environment variable: `$DATABASE_URL`
+  - Via NEON console: https://console.neon.tech/
+  - Via `psql "$DATABASE_URL"` in terminal
 
 ---
 
@@ -40,51 +44,52 @@ This document clarifies the database architecture and environments to prevent co
 ```bash
 # Check current DATABASE_URL
 echo $DATABASE_URL
-# Returns: postgresql://neondb_owner:***@ep-lingering-hat...  (PRODUCTION)
+# Returns the database URL currently set in your environment
 ```
 
-The terminal uses **Replit's environment variable**, which points to **Neon production database**.
+**For Development:** Set `DATABASE_URL` to your development NEON database  
+**For Production:** The production environment automatically uses the production NEON database
 
 ### When Running the Application
 ```bash
-# Production mode (Replit deployment)
-NODE_ENV=production node dist/index.js
-# Uses: Neon production database (from environment variable)
-
-# Development mode (local)
+# Development mode
 npm run dev
-# Uses: .env file settings (local database - currently not running)
+# Uses: DATABASE_URL from your environment (should be development NEON)
+
+# Production mode (production deployment)
+NODE_ENV=production node dist/index.js
+# Uses: DATABASE_URL from production environment (production NEON)
 ```
 
 ### When Browsing the Website
-- **https://pricecomparehub.com** → Neon production database
-- **localhost:3000** (if running) → .env file database (local)
+- **https://pricecomparehub.com** → Production NEON database
+- **localhost:5000** (if running locally) → Development NEON database (via your local DATABASE_URL)
 
 ---
 
 ## Common Confusion Points ❗
 
-### Issue 1: "I reset the database but still see data"
-**Explanation:** You likely reset the LOCAL database (via .env), but the production website uses the NEON database.
+### Issue 1: "I'm not sure which database I'm connected to"
+**Explanation:** Both development and production use NEON databases, so it's important to verify which one you're using.
 
-**Solution:** Always use `$DATABASE_URL` environment variable:
+**Solution:** Always check your `DATABASE_URL`:
 ```bash
-# Correct - resets PRODUCTION (Neon)
-psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+# Check which database you're connected to
+echo $DATABASE_URL
 
-# Wrong - tries to reset LOCAL (not running)
-psql "postgresql://user:password@localhost:5432/pricecompare" -c "..."
+# Development should show: ep-dev-xxxxx
+# Production should show: ep-prod-xxxxx
 ```
 
-### Issue 2: "Terminal queries show 0 rows but website shows data"
-**Explanation:** The website might be using a different database than your terminal queries.
+### Issue 2: "Changes in dev are appearing in production"
+**Explanation:** Your `DATABASE_URL` is pointing to the production database instead of development.
 
-**Solution:** Verify you're querying the same database:
+**Solution:** Set the correct database URL for development:
 ```bash
-# Check what database the website uses
-curl -s http://localhost:5000/api/health | grep -o "status.*ok"
+# Set development database
+export DATABASE_URL="postgresql://...@ep-dev-xxxxx..."
 
-# Confirm your terminal is using production
+# Verify it's set correctly
 echo $DATABASE_URL
 ```
 
@@ -107,16 +112,29 @@ npm run build
 
 ## Database Operations
 
-### Querying Production Database
+### Querying Databases
 ```bash
-# Always use $DATABASE_URL for production
+# Query development database
+export DATABASE_URL="postgresql://...@ep-dev-xxxxx..."
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM products;"
 
-# Run migration scripts
-psql "$DATABASE_URL" -f migrations/seed-production-category-templates.sql
+# Query production database (be careful!)
+export DATABASE_URL="postgresql://...@ep-prod-xxxxx..."
+psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM products;"
 ```
 
-### Resetting Production Database (⚠️ DESTRUCTIVE)
+### Running Migrations
+```bash
+# Push schema changes to development
+export DATABASE_URL="postgresql://...@ep-dev-xxxxx..."
+npm run db:push
+
+# After testing, push to production
+export DATABASE_URL="postgresql://...@ep-prod-xxxxx..."
+npm run db:push
+```
+
+### Resetting a Database (⚠️ DESTRUCTIVE)
 ```bash
 # 1. Wipe database (drops all tables, data, and schemas)
 psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
@@ -124,41 +142,45 @@ psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 # 2. Recreate schema
 npm run db:push  # Runs drizzle-kit push
 
-# 3. Seed essential data
+# 3. Seed essential data (if you have seed scripts)
 bash scripts/seed-production-data.sh
 ```
 
-### Seeding Production Data
-```bash
-# Automated seeding (recommended)
-bash scripts/seed-production-data.sh
-
-# Manual seeding
-psql "$DATABASE_URL" -f migrations/seed-production-category-templates.sql
-psql "$DATABASE_URL" -f migrations/seed-production-vendor-mappings.sql
-```
+⚠️ **Always ensure you're connected to the correct database before running destructive operations!**
 
 ---
 
 ## Environment Variables
 
-### Production Environment (Replit)
-Set in **Replit Secrets** (automatically injected as environment variables):
+### Development Environment
+Set in `.env` file or export in your shell:
+
+```env
+# Development NEON Database
+DATABASE_URL=postgresql://neondb_owner:***@ep-dev-xxxxx.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# Application Settings
+NODE_ENV=development
+SESSION_SECRET=your-dev-session-secret
+CREDENTIAL_ENCRYPTION_KEY=your-dev-encryption-key
+BASE_URL=http://localhost:5000
+
+# Optional Email Settings (for testing)
+SENDGRID_API_KEY=your-sendgrid-key
+```
+
+### Production Environment
+Set in **Production Hosting Secrets** (Replit, Heroku, Vercel, etc.):
 
 | Variable | Example | Purpose |
 |----------|---------|---------|
-| `DATABASE_URL` | `postgresql://neondb_owner:***@ep-lingering-hat...` | Production database connection |
-| `ZOHO_WEBHOOK_SECRET` | `your-webhook-secret` | Zoho webhook verification |
-| `SMTP_HOST` | `mail.smtp2go.com` | Email service |
+| `DATABASE_URL` | `postgresql://neondb_owner:***@ep-prod-xxxxx...` | Production NEON database connection |
 | `NODE_ENV` | `production` | Environment mode |
-
-### Development Environment (Local)
-Set in `.env` file (NOT used in production):
-
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/pricecompare
-NODE_ENV=development
-```
+| `SESSION_SECRET` | `your-prod-secret` | Session encryption |
+| `CREDENTIAL_ENCRYPTION_KEY` | `your-prod-key` | Credential encryption |
+| `BASE_URL` | `https://pricecomparehub.com` | Production URL |
+| `SENDGRID_API_KEY` | `your-key` | Email service |
+| `ZOHO_WEBHOOK_SECRET` | `your-webhook-secret` | Zoho webhook verification |
 
 ---
 
@@ -201,35 +223,51 @@ psql "$DATABASE_URL" -f scripts/consolidate-vendor-sources.sql
 ## Troubleshooting
 
 ### "Connection refused" when querying database
-**Cause:** Trying to connect to local database that's not running
+**Cause:** Invalid `DATABASE_URL` or database is not accessible
 
-**Solution:** Use `$DATABASE_URL` instead:
+**Solution:** Verify your connection string:
 ```bash
-# Wrong
-psql "postgresql://user:password@localhost:5432/pricecompare" -c "..."
+# Check your DATABASE_URL is set
+echo $DATABASE_URL
 
-# Correct
-psql "$DATABASE_URL" -c "..."
+# Test connection
+psql "$DATABASE_URL" -c "SELECT current_database();"
+
+# Ensure it includes ?sslmode=require for NEON
 ```
 
-### "0 products found" but website shows products
-**Cause:** Querying wrong database or old cached results
+### "I'm modifying the wrong database"
+**Cause:** `DATABASE_URL` is pointing to the wrong environment
 
-**Solution:**
-1. Hard refresh browser (Ctrl+Shift+R)
-2. Verify database connection:
+**Solution:** Always verify which database you're connected to:
 ```bash
-echo $DATABASE_URL  # Should show Neon URL
-psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM products;"
+# Check current connection
+echo $DATABASE_URL
+
+# Development should show: ep-dev-xxxxx
+# Production should show: ep-prod-xxxxx
+
+# Set the correct one
+export DATABASE_URL="postgresql://...@ep-dev-xxxxx..."  # For dev
 ```
 
-### Changes don't appear after deployment
+### "Changes don't appear after deployment"
 **Cause:** Production bundle not rebuilt
 
 **Solution:**
 ```bash
 npm run build  # Rebuild TypeScript to JavaScript
-# Replit auto-restarts, or manually restart
+# Deployment platform auto-restarts, or manually restart
+```
+
+### "Database is suspended" (NEON-specific)
+**Cause:** NEON databases auto-suspend after inactivity
+
+**Solution:**
+- Simply query the database to wake it up
+- Or configure "Always Active" in NEON console (paid feature)
+```bash
+psql "$DATABASE_URL" -c "SELECT 1;"  # Wakes up the database
 ```
 
 ---
@@ -238,22 +276,37 @@ npm run build  # Rebuild TypeScript to JavaScript
 
 ### Updating Schema (Development → Production)
 
-1. **Make schema changes** in `migrations/schema.ts` or `shared/schema.ts`
+1. **Make schema changes** in `shared/schema.ts`
 
-2. **Push to database:**
+2. **Push to development first:**
 ```bash
-# Push schema changes to production
+# Set development database
+export DATABASE_URL="postgresql://...@ep-dev-xxxxx..."
+
+# Push schema changes
+npm run db:push
+
+# Test thoroughly
+npm run dev
+```
+
+3. **Push to production after testing:**
+```bash
+# Set production database
+export DATABASE_URL="postgresql://...@ep-prod-xxxxx..."
+
+# Push schema changes
 npm run db:push
 ```
 
-3. **Verify schema:**
+4. **Verify schema:**
 ```bash
 psql "$DATABASE_URL" -c "\d table_name"
 ```
 
-4. **Commit changes:**
+5. **Commit changes:**
 ```bash
-git add migrations/ shared/
+git add shared/
 git commit -m "Update database schema"
 git push
 ```
@@ -266,14 +319,17 @@ git push
 # Check which database you're using
 echo $DATABASE_URL
 
-# Query production database
+# Switch to development database
+export DATABASE_URL="postgresql://...@ep-dev-xxxxx..."
+
+# Switch to production database
+export DATABASE_URL="postgresql://...@ep-prod-xxxxx..."
+
+# Query current database
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM products;"
 
-# Reset production database
-bash scripts/reset-production-db.sh
-
-# Seed production data
-bash scripts/seed-production-data.sh
+# Push schema changes
+npm run db:push
 
 # Rebuild production code
 npm run build
@@ -282,14 +338,41 @@ npm run build
 git status
 
 # Deploy to production
-git push  # Replit auto-deploys on push
+git push  # Auto-deploys on most platforms
+```
+
+---
+
+## Backup and Recovery
+
+### NEON Built-in Backups
+- Automatic daily backups (retained for 7 days on free tier, longer on paid)
+- Point-in-time recovery available
+- Access through NEON console: https://console.neon.tech/
+
+### Manual Backup
+```bash
+# Export database to SQL file
+pg_dump "$DATABASE_URL" > backup-$(date +%Y%m%d).sql
+
+# Restore from backup
+psql "$DATABASE_URL" < backup-20251009.sql
+```
+
+### Branching (NEON Feature)
+NEON supports database branching - create a copy of production for testing:
+```bash
+# 1. Create branch in NEON console from production
+# 2. Get branch connection URL
+# 3. Use branch URL for development/testing
+export DATABASE_URL="postgresql://...@ep-branch-xxxxx..."
 ```
 
 ---
 
 ## Related Documentation
 
-- [Production Migration Guide](./PRODUCTION_MIGRATION_GUIDE.md) - Seeding category templates and vendor mappings
+- [Production Migration Guide](../migrations/PRODUCTION_MIGRATION_GUIDE.md) - Seeding category templates and vendor mappings
 - [Vendor Code Standard](./VENDOR_CODE_STANDARD_FINAL.md) - Vendor naming conventions
 - [Subscription Creation System](./SUBSCRIPTION_CREATION_SYSTEM.md) - Webhook provisioning flow
 
@@ -302,9 +385,10 @@ If you're unsure which database you're connected to:
 1. **Check environment variable:** `echo $DATABASE_URL`
 2. **Test query:** `psql "$DATABASE_URL" -c "SELECT current_database(), version();"`
 3. **Verify via API:** `curl http://localhost:5000/api/health`
+4. **Check NEON console:** https://console.neon.tech/ to see both databases
 
 **Rule of Thumb:** 
-- Terminal commands → Use `$DATABASE_URL` (points to Neon production)
-- Production website → Uses `$DATABASE_URL` (Neon production)  
-- Local dev server → Uses `.env` file (local database - not currently running)
+- Always verify `DATABASE_URL` before running any database operations
+- Development NEON → Safe for testing and experimentation
+- Production NEON → Handle with care, always test in dev first
 
