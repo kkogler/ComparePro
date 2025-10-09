@@ -8,6 +8,19 @@ import { execSync } from "child_process";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Global error handlers to prevent server crashes
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('🚨 UNHANDLED REJECTION:', reason);
+  console.error('Promise:', promise);
+  // Don't exit the process - keep server running
+});
+
+process.on('uncaughtException', (error: Error) => {
+  console.error('🚨 UNCAUGHT EXCEPTION:', error);
+  console.error('Stack:', error.stack);
+  // Don't exit the process - keep server running
+});
+
 const app = express();
 app.use(express.json({
   verify: (req: any, _res, buf) => {
