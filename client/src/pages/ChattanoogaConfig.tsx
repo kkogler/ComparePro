@@ -35,6 +35,9 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Debug logging for slug
+  console.log('🔍 CHATTANOOGA CONFIG: Component loaded with slug:', slug);
+
 
   const form = useForm<ChattanoogaConfigForm>({
     resolver: zodResolver(chattanoogaConfigSchema),
@@ -70,6 +73,8 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
       // Use vendor slug if available, fallback to short code, then ID
       const vendorIdentifier = vendor.slug || vendor.vendorShortCode || vendor.id;
       console.log('🔍 CHATTANOOGA VENDOR IDENTIFIER:', vendorIdentifier);
+      console.log('🔍 CHATTANOOGA SLUG VALUE:', slug);
+      console.log('🔍 CHATTANOOGA FULL URL:', `/org/${slug}/api/vendors/${vendorIdentifier}/credentials`);
 
       // Persist only the required API credentials (SID and Token)
       const response = await apiRequest(`/org/${slug}/api/vendors/${vendorIdentifier}/credentials`, 'POST', {
