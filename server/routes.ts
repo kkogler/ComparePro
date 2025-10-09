@@ -9692,6 +9692,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Run admin user check on startup
   await ensureAdminUserExists();
 
+  // ONE-TIME ADMIN: Manual schema sync endpoint (temporary)
+  app.post('/api/admin/sync-schema', requireAdminAuth, async (req, res) => {
+    try {
+      console.log('🔧 ADMIN: Manual schema sync requested');
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+      
+      const { stdout, stderr } = await execAsync('npm run db:push -- --force', {
+        cwd: process.cwd(),
+        env: process.env
+      });
+      
+      console.log('✅ ADMIN: Schema sync completed');
+      console.log('STDOUT:', stdout);
+      if (stderr) console.log('STDERR:', stderr);
+      
+      res.json({
+        success: true,
+        message: 'Schema sync completed successfully',
+        output: stdout,
+        errors: stderr || null
+      });
+    } catch (error: any) {
+      console.error('❌ ADMIN: Schema sync failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        output: error.stdout,
+        stderr: error.stderr
+      });
+    }
+  });
+
   // STARTUP: Check and log proxy configuration
   const proxyConfigured = !!(
     process.env.PROXY_HOST && 
