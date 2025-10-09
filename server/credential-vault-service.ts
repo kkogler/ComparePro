@@ -518,19 +518,26 @@ export class CredentialVaultService {
    * Supports both snake_case (schema) and camelCase (frontend) field names
    */
   private validateCredentials(credentials: Record<string, string>, schema: CredentialField[]): void {
-    // Helper to convert snake_case to camelCase (handles uppercase letters)
+    // Bidirectional case conversion helpers
     const snakeToCamel = (str: string) => {
       return str.toLowerCase().replace(/_([a-z])/g, (g) => g[1].toUpperCase());
     };
     
+    const camelToSnake = (str: string) => {
+      return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    };
+    
     for (const field of schema) {
-      // Check multiple variations of the field name
-      const snakeCaseName = field.name;
-      const camelCaseName = snakeToCamel(field.name);
-      const lowerCaseName = field.name.toLowerCase();
+      // Generate all possible variations of the field name
+      const originalName = field.name;
+      const snakeCaseName = originalName.includes('_') ? originalName : camelToSnake(originalName);
+      const camelCaseName = originalName.includes('_') ? snakeToCamel(originalName) : originalName;
+      const lowerCaseName = originalName.toLowerCase();
       
       // Try to find the value in credentials using various name formats
-      let value = credentials[snakeCaseName] || credentials[camelCaseName];
+      let value = credentials[originalName] || 
+                  credentials[snakeCaseName] || 
+                  credentials[camelCaseName];
       
       // If not found, try case-insensitive match
       if (!value) {
