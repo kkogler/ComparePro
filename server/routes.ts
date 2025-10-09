@@ -9123,10 +9123,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Initialize subscription services
+  // Initialize subscription services - DISABLED per user request
+  // NO AUTOMATIC CRON JOBS OR SYNCS
   try {
-    const { initializeSubscriptionServices } = await import('./plan-enforcement-service');
-    await initializeSubscriptionServices();
+    // const { initializeSubscriptionServices } = await import('./plan-enforcement-service');
+    // await initializeSubscriptionServices();
+    console.log('ℹ️  Subscription cron jobs DISABLED - all syncs must be manual');
   } catch (error) {
     console.error('Failed to initialize subscription services:', error);
   }

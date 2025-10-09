@@ -128,14 +128,18 @@ The application uses a **single database with company-scoped data** approach rat
   - Vendor enablement based on retail vertical
 
 ### Background Jobs & Scheduling
-**Development (Replit):**
-- **No background jobs** in web process to avoid port conflicts
-- **Manual sync triggers** via API endpoints for testing
+**ALL AUTOMATIC SYNCS DISABLED (User Request - October 2025):**
+- ❌ **No cron jobs running** - all automatic scheduling disabled
+- ❌ **No subscription cron jobs** - trial expiration checks disabled
+- ❌ **No vendor auto-syncs** - all syncs must be triggered manually
+- ✅ **Manual sync triggers** available via Admin UI API endpoints
+- ⚠️ **Vendor syncs crash production** due to memory limits - never run from web server
 
-**Production:**
-- **Replit Scheduled Deployments** for automated vendor syncs (external to app)
-- **Optional PM2 worker process** for background tasks
-- **Database-driven schedules** stored in `supported_vendors` table per company
+**Previous Automatic Sync Architecture (DISABLED):**
+- Replit Scheduled Deployments for automated vendor syncs (not configured)
+- Optional PM2 worker process for background tasks (not used)
+- Database-driven schedules stored in `supported_vendors` table (ignored)
+- Subscription cron jobs for trial expiration (disabled in code)
 
 ### File Storage & Processing
 - **Google Cloud Storage** for product images and vendor files
