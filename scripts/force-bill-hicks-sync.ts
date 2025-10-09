@@ -80,3 +80,4 @@ async function forceBillHicksSync() {
 // Run the script
 forceBillHicksSync();
 
+
