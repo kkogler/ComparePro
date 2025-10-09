@@ -777,8 +777,19 @@ export default function CompanyUsers() {
                           size="sm"
                           onClick={() => handleEdit(user)}
                           data-testid={`button-edit-${user.id}`}
+                          title="Edit user"
                         >
                           <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => resetPassword.mutate(user.id)}
+                          disabled={resetPassword.isPending}
+                          data-testid={`button-reset-password-${user.id}`}
+                          title="Reset password"
+                        >
+                          <KeyRound className="h-3 w-3" />
                         </Button>
                         {!user.isAdmin && (
                           <Button
@@ -786,6 +797,7 @@ export default function CompanyUsers() {
                             size="sm"
                             onClick={() => setDeleteUserModal({ isOpen: true, user })}
                             data-testid={`button-delete-${user.id}`}
+                            title="Delete user"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
