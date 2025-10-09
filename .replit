@@ -45,6 +45,6 @@ externalPort = 3000
 
 [deployment]
 deploymentTarget = "cloudrun"
-build = ["sh", "-c", "npm ci && npx vite build --mode production && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --log-level=warning --allow-overwrite"]
+build = ["sh", "-c", "npm run db:push -- --force"]
 run = ["sh", "-c", "NODE_ENV=production PORT=$PORT node dist/index.js"]
 
