@@ -1,5 +1,141 @@
 import { relations } from "drizzle-orm/relations";
-import { orders, orderItems, products, vendorProducts, asns, vendors, retailVerticals, companies, billingEvents, asnItems, supportedVendors, stores, users, searchHistory, importJobs, userStores, settings, userPreferences, poSequences, pricingConfigurations, vendorProductMappings, companyVendorCredentials, vendorInventory, categories, supportedVendorRetailVerticals, subscriptions, subscriptionPlanChanges, subscriptionPayments, subscriptionWebhookEvents, subscriptionUsage } from "./schema";
+import { retailVerticals, companies, categories, categoryTemplates, orders, asns, vendors, billingEvents, integrationSettings, importJobs, users, orderItems, products, vendorProducts, organizationStatusAuditLog, stores, poSequences, orgDomains, pricingConfigurations, settings, searchHistory, subscriptionUsage, subscriptions, subscriptionPlanChanges, subscriptionWebhookEvents, userStores, supportedVendors, vendorInventory, supportedVendorRetailVerticals, usageMetrics, asnItems, companyVendorCredentials, subscriptionPayments, vendorProductMappings } from "./schema";
+
+export const companiesRelations = relations(companies, ({one, many}) => ({
+	retailVertical: one(retailVerticals, {
+		fields: [companies.retailVerticalId],
+		references: [retailVerticals.id]
+	}),
+	categories: many(categories),
+	billingEvents: many(billingEvents),
+	integrationSettings: many(integrationSettings),
+	importJobs: many(importJobs),
+	organizationStatusAuditLogs: many(organizationStatusAuditLog),
+	orders: many(orders),
+	orgDomains: many(orgDomains),
+	pricingConfigurations: many(pricingConfigurations),
+	settings: many(settings),
+	searchHistories: many(searchHistory),
+	stores: many(stores),
+	subscriptionUsages: many(subscriptionUsage),
+	subscriptionPlanChanges: many(subscriptionPlanChanges),
+	subscriptionWebhookEvents: many(subscriptionWebhookEvents),
+	users: many(users),
+	subscriptions: many(subscriptions),
+	usageMetrics: many(usageMetrics),
+	vendors: many(vendors),
+	companyVendorCredentials: many(companyVendorCredentials),
+	subscriptionPayments: many(subscriptionPayments),
+	vendorProductMappings: many(vendorProductMappings),
+}));
+
+export const retailVerticalsRelations = relations(retailVerticals, ({many}) => ({
+	companies: many(companies),
+	categoryTemplates: many(categoryTemplates),
+	products: many(products),
+	supportedVendorRetailVerticals: many(supportedVendorRetailVerticals),
+}));
+
+export const categoriesRelations = relations(categories, ({one}) => ({
+	company: one(companies, {
+		fields: [categories.companyId],
+		references: [companies.id]
+	}),
+}));
+
+export const categoryTemplatesRelations = relations(categoryTemplates, ({one}) => ({
+	retailVertical: one(retailVerticals, {
+		fields: [categoryTemplates.retailVerticalId],
+		references: [retailVerticals.id]
+	}),
+}));
+
+export const asnsRelations = relations(asns, ({one, many}) => ({
+	order: one(orders, {
+		fields: [asns.orderId],
+		references: [orders.id]
+	}),
+	vendor: one(vendors, {
+		fields: [asns.vendorId],
+		references: [vendors.id]
+	}),
+	asnItems: many(asnItems),
+}));
+
+export const ordersRelations = relations(orders, ({one, many}) => ({
+	asns: many(asns),
+	orderItems: many(orderItems),
+	company: one(companies, {
+		fields: [orders.companyId],
+		references: [companies.id]
+	}),
+	store: one(stores, {
+		fields: [orders.storeId],
+		references: [stores.id]
+	}),
+	vendor: one(vendors, {
+		fields: [orders.vendorId],
+		references: [vendors.id]
+	}),
+	user: one(users, {
+		fields: [orders.createdBy],
+		references: [users.id]
+	}),
+}));
+
+export const vendorsRelations = relations(vendors, ({one, many}) => ({
+	asns: many(asns),
+	orders: many(orders),
+	company: one(companies, {
+		fields: [vendors.companyId],
+		references: [companies.id]
+	}),
+	supportedVendor: one(supportedVendors, {
+		fields: [vendors.supportedVendorId],
+		references: [supportedVendors.id]
+	}),
+	vendorProducts: many(vendorProducts),
+}));
+
+export const billingEventsRelations = relations(billingEvents, ({one}) => ({
+	company: one(companies, {
+		fields: [billingEvents.companyId],
+		references: [companies.id]
+	}),
+}));
+
+export const integrationSettingsRelations = relations(integrationSettings, ({one}) => ({
+	company: one(companies, {
+		fields: [integrationSettings.companyId],
+		references: [companies.id]
+	}),
+}));
+
+export const importJobsRelations = relations(importJobs, ({one}) => ({
+	company: one(companies, {
+		fields: [importJobs.organizationId],
+		references: [companies.id]
+	}),
+	user: one(users, {
+		fields: [importJobs.createdBy],
+		references: [users.id]
+	}),
+}));
+
+export const usersRelations = relations(users, ({one, many}) => ({
+	importJobs: many(importJobs),
+	orders: many(orders),
+	searchHistories: many(searchHistory),
+	company: one(companies, {
+		fields: [users.companyId],
+		references: [companies.id]
+	}),
+	store: one(stores, {
+		fields: [users.defaultStoreId],
+		references: [stores.id]
+	}),
+	userStores: many(userStores),
+}));
 
 export const orderItemsRelations = relations(orderItems, ({one, many}) => ({
 	order: one(orders, {
@@ -17,35 +153,14 @@ export const orderItemsRelations = relations(orderItems, ({one, many}) => ({
 	asnItems: many(asnItems),
 }));
 
-export const ordersRelations = relations(orders, ({one, many}) => ({
-	orderItems: many(orderItems),
-	asns: many(asns),
-	vendor: one(vendors, {
-		fields: [orders.vendorId],
-		references: [vendors.id]
-	}),
-	company: one(companies, {
-		fields: [orders.companyId],
-		references: [companies.id]
-	}),
-	user: one(users, {
-		fields: [orders.createdBy],
-		references: [users.id]
-	}),
-	store: one(stores, {
-		fields: [orders.storeId],
-		references: [stores.id]
-	}),
-}));
-
 export const productsRelations = relations(products, ({one, many}) => ({
 	orderItems: many(orderItems),
-	vendorProducts: many(vendorProducts),
-	vendorProductMappings: many(vendorProductMappings),
 	retailVertical: one(retailVerticals, {
 		fields: [products.retailVerticalId],
 		references: [retailVerticals.id]
 	}),
+	vendorProducts: many(vendorProducts),
+	vendorProductMappings: many(vendorProductMappings),
 }));
 
 export const vendorProductsRelations = relations(vendorProducts, ({one, many}) => ({
@@ -60,62 +175,147 @@ export const vendorProductsRelations = relations(vendorProducts, ({one, many}) =
 	}),
 }));
 
-export const asnsRelations = relations(asns, ({one, many}) => ({
-	order: one(orders, {
-		fields: [asns.orderId],
-		references: [orders.id]
-	}),
-	vendor: one(vendors, {
-		fields: [asns.vendorId],
-		references: [vendors.id]
-	}),
-	asnItems: many(asnItems),
-}));
-
-export const vendorsRelations = relations(vendors, ({one, many}) => ({
-	asns: many(asns),
+export const organizationStatusAuditLogRelations = relations(organizationStatusAuditLog, ({one}) => ({
 	company: one(companies, {
-		fields: [vendors.companyId],
+		fields: [organizationStatusAuditLog.companyId],
 		references: [companies.id]
 	}),
+}));
+
+export const poSequencesRelations = relations(poSequences, ({one}) => ({
+	store: one(stores, {
+		fields: [poSequences.storeId],
+		references: [stores.id]
+	}),
+}));
+
+export const storesRelations = relations(stores, ({one, many}) => ({
+	poSequences: many(poSequences),
+	orders: many(orders),
+	company: one(companies, {
+		fields: [stores.companyId],
+		references: [companies.id]
+	}),
+	users: many(users),
+	userStores: many(userStores),
+}));
+
+export const orgDomainsRelations = relations(orgDomains, ({one}) => ({
+	company: one(companies, {
+		fields: [orgDomains.companyId],
+		references: [companies.id]
+	}),
+}));
+
+export const pricingConfigurationsRelations = relations(pricingConfigurations, ({one}) => ({
+	company: one(companies, {
+		fields: [pricingConfigurations.companyId],
+		references: [companies.id]
+	}),
+}));
+
+export const settingsRelations = relations(settings, ({one}) => ({
+	company: one(companies, {
+		fields: [settings.companyId],
+		references: [companies.id]
+	}),
+}));
+
+export const searchHistoryRelations = relations(searchHistory, ({one}) => ({
+	company: one(companies, {
+		fields: [searchHistory.companyId],
+		references: [companies.id]
+	}),
+	user: one(users, {
+		fields: [searchHistory.userId],
+		references: [users.id]
+	}),
+}));
+
+export const subscriptionUsageRelations = relations(subscriptionUsage, ({one}) => ({
+	company: one(companies, {
+		fields: [subscriptionUsage.companyId],
+		references: [companies.id]
+	}),
+	subscription: one(subscriptions, {
+		fields: [subscriptionUsage.subscriptionId],
+		references: [subscriptions.id]
+	}),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({one, many}) => ({
+	subscriptionUsages: many(subscriptionUsage),
+	subscriptionPlanChanges: many(subscriptionPlanChanges),
+	subscriptionWebhookEvents: many(subscriptionWebhookEvents),
+	company: one(companies, {
+		fields: [subscriptions.companyId],
+		references: [companies.id]
+	}),
+	subscriptionPayments: many(subscriptionPayments),
+}));
+
+export const subscriptionPlanChangesRelations = relations(subscriptionPlanChanges, ({one}) => ({
+	subscription: one(subscriptions, {
+		fields: [subscriptionPlanChanges.subscriptionId],
+		references: [subscriptions.id]
+	}),
+	company: one(companies, {
+		fields: [subscriptionPlanChanges.companyId],
+		references: [companies.id]
+	}),
+}));
+
+export const subscriptionWebhookEventsRelations = relations(subscriptionWebhookEvents, ({one}) => ({
+	company: one(companies, {
+		fields: [subscriptionWebhookEvents.companyId],
+		references: [companies.id]
+	}),
+	subscription: one(subscriptions, {
+		fields: [subscriptionWebhookEvents.subscriptionId],
+		references: [subscriptions.id]
+	}),
+}));
+
+export const userStoresRelations = relations(userStores, ({one}) => ({
+	user: one(users, {
+		fields: [userStores.userId],
+		references: [users.id]
+	}),
+	store: one(stores, {
+		fields: [userStores.storeId],
+		references: [stores.id]
+	}),
+}));
+
+export const vendorInventoryRelations = relations(vendorInventory, ({one}) => ({
 	supportedVendor: one(supportedVendors, {
-		fields: [vendors.supportedVendorId],
+		fields: [vendorInventory.supportedVendorId],
 		references: [supportedVendors.id]
 	}),
-	vendorProducts: many(vendorProducts),
-	orders: many(orders),
 }));
 
-export const companiesRelations = relations(companies, ({one, many}) => ({
+export const supportedVendorsRelations = relations(supportedVendors, ({many}) => ({
+	vendorInventories: many(vendorInventory),
+	supportedVendorRetailVerticals: many(supportedVendorRetailVerticals),
+	vendors: many(vendors),
+	companyVendorCredentials: many(companyVendorCredentials),
+	vendorProductMappings: many(vendorProductMappings),
+}));
+
+export const supportedVendorRetailVerticalsRelations = relations(supportedVendorRetailVerticals, ({one}) => ({
+	supportedVendor: one(supportedVendors, {
+		fields: [supportedVendorRetailVerticals.supportedVendorId],
+		references: [supportedVendors.id]
+	}),
 	retailVertical: one(retailVerticals, {
-		fields: [companies.retailVerticalId],
+		fields: [supportedVendorRetailVerticals.retailVerticalId],
 		references: [retailVerticals.id]
 	}),
-	billingEvents: many(billingEvents),
-	vendors: many(vendors),
-	searchHistories: many(searchHistory),
-	importJobs: many(importJobs),
-	settings: many(settings),
-	stores: many(stores),
-	orders: many(orders),
-	pricingConfigurations: many(pricingConfigurations),
-	vendorProductMappings: many(vendorProductMappings),
-	companyVendorCredentials: many(companyVendorCredentials),
-	categories: many(categories),
-	subscriptions: many(subscriptions),
 }));
 
-export const retailVerticalsRelations = relations(retailVerticals, ({many}) => ({
-	companies: many(companies),
-	pricingConfigurations: many(pricingConfigurations),
-	supportedVendorRetailVerticals: many(supportedVendorRetailVerticals),
-	products: many(products),
-	supportedVendors: many(supportedVendors),
-}));
-
-export const billingEventsRelations = relations(billingEvents, ({one}) => ({
+export const usageMetricsRelations = relations(usageMetrics, ({one}) => ({
 	company: one(companies, {
-		fields: [billingEvents.companyId],
+		fields: [usageMetrics.companyId],
 		references: [companies.id]
 	}),
 }));
@@ -131,103 +331,25 @@ export const asnItemsRelations = relations(asnItems, ({one}) => ({
 	}),
 }));
 
-export const supportedVendorsRelations = relations(supportedVendors, ({one, many}) => ({
-	vendors: many(vendors),
-	vendorProductMappings: many(vendorProductMappings),
-	companyVendorCredentials: many(companyVendorCredentials),
-	vendorInventories: many(vendorInventory),
-	supportedVendorRetailVerticals: many(supportedVendorRetailVerticals),
-	retailVertical: one(retailVerticals, {
-		fields: [supportedVendors.retailVerticalId],
-		references: [retailVerticals.id]
-	}),
-}));
-
-export const usersRelations = relations(users, ({one, many}) => ({
-	store: one(stores, {
-		fields: [users.defaultStoreId],
-		references: [stores.id]
-	}),
-	searchHistories: many(searchHistory),
-	importJobs: many(importJobs),
-	userStores: many(userStores),
-	userPreferences: many(userPreferences),
-	orders: many(orders),
-}));
-
-export const storesRelations = relations(stores, ({one, many}) => ({
-	users: many(users),
-	userStores: many(userStores),
+export const companyVendorCredentialsRelations = relations(companyVendorCredentials, ({one}) => ({
 	company: one(companies, {
-		fields: [stores.companyId],
+		fields: [companyVendorCredentials.companyId],
 		references: [companies.id]
 	}),
-	orders: many(orders),
-	poSequences: many(poSequences),
+	supportedVendor: one(supportedVendors, {
+		fields: [companyVendorCredentials.supportedVendorId],
+		references: [supportedVendors.id]
+	}),
 }));
 
-export const searchHistoryRelations = relations(searchHistory, ({one}) => ({
+export const subscriptionPaymentsRelations = relations(subscriptionPayments, ({one}) => ({
+	subscription: one(subscriptions, {
+		fields: [subscriptionPayments.subscriptionId],
+		references: [subscriptions.id]
+	}),
 	company: one(companies, {
-		fields: [searchHistory.companyId],
+		fields: [subscriptionPayments.companyId],
 		references: [companies.id]
-	}),
-	user: one(users, {
-		fields: [searchHistory.userId],
-		references: [users.id]
-	}),
-}));
-
-export const importJobsRelations = relations(importJobs, ({one}) => ({
-	company: one(companies, {
-		fields: [importJobs.organizationId],
-		references: [companies.id]
-	}),
-	user: one(users, {
-		fields: [importJobs.createdBy],
-		references: [users.id]
-	}),
-}));
-
-export const userStoresRelations = relations(userStores, ({one}) => ({
-	user: one(users, {
-		fields: [userStores.userId],
-		references: [users.id]
-	}),
-	store: one(stores, {
-		fields: [userStores.storeId],
-		references: [stores.id]
-	}),
-}));
-
-export const settingsRelations = relations(settings, ({one}) => ({
-	company: one(companies, {
-		fields: [settings.companyId],
-		references: [companies.id]
-	}),
-}));
-
-export const userPreferencesRelations = relations(userPreferences, ({one}) => ({
-	user: one(users, {
-		fields: [userPreferences.userId],
-		references: [users.id]
-	}),
-}));
-
-export const poSequencesRelations = relations(poSequences, ({one}) => ({
-	store: one(stores, {
-		fields: [poSequences.storeId],
-		references: [stores.id]
-	}),
-}));
-
-export const pricingConfigurationsRelations = relations(pricingConfigurations, ({one}) => ({
-	company: one(companies, {
-		fields: [pricingConfigurations.companyId],
-		references: [companies.id]
-	}),
-	retailVertical: one(retailVerticals, {
-		fields: [pricingConfigurations.retailVerticalId],
-		references: [retailVerticals.id]
 	}),
 }));
 
@@ -243,80 +365,5 @@ export const vendorProductMappingsRelations = relations(vendorProductMappings, (
 	company: one(companies, {
 		fields: [vendorProductMappings.companyId],
 		references: [companies.id]
-	}),
-}));
-
-export const companyVendorCredentialsRelations = relations(companyVendorCredentials, ({one}) => ({
-	company: one(companies, {
-		fields: [companyVendorCredentials.companyId],
-		references: [companies.id]
-	}),
-	supportedVendor: one(supportedVendors, {
-		fields: [companyVendorCredentials.supportedVendorId],
-		references: [supportedVendors.id]
-	}),
-}));
-
-export const vendorInventoryRelations = relations(vendorInventory, ({one}) => ({
-	supportedVendor: one(supportedVendors, {
-		fields: [vendorInventory.supportedVendorId],
-		references: [supportedVendors.id]
-	}),
-}));
-
-export const categoriesRelations = relations(categories, ({one}) => ({
-	company: one(companies, {
-		fields: [categories.companyId],
-		references: [companies.id]
-	}),
-}));
-
-export const supportedVendorRetailVerticalsRelations = relations(supportedVendorRetailVerticals, ({one}) => ({
-	supportedVendor: one(supportedVendors, {
-		fields: [supportedVendorRetailVerticals.supportedVendorId],
-		references: [supportedVendors.id]
-	}),
-	retailVertical: one(retailVerticals, {
-		fields: [supportedVendorRetailVerticals.retailVerticalId],
-		references: [retailVerticals.id]
-	}),
-}));
-
-export const subscriptionPlanChangesRelations = relations(subscriptionPlanChanges, ({one}) => ({
-	subscription: one(subscriptions, {
-		fields: [subscriptionPlanChanges.subscriptionId],
-		references: [subscriptions.id]
-	}),
-}));
-
-export const subscriptionsRelations = relations(subscriptions, ({one, many}) => ({
-	subscriptionPlanChanges: many(subscriptionPlanChanges),
-	company: one(companies, {
-		fields: [subscriptions.companyId],
-		references: [companies.id]
-	}),
-	subscriptionPayments: many(subscriptionPayments),
-	subscriptionWebhookEvents: many(subscriptionWebhookEvents),
-	subscriptionUsages: many(subscriptionUsage),
-}));
-
-export const subscriptionPaymentsRelations = relations(subscriptionPayments, ({one}) => ({
-	subscription: one(subscriptions, {
-		fields: [subscriptionPayments.subscriptionId],
-		references: [subscriptions.id]
-	}),
-}));
-
-export const subscriptionWebhookEventsRelations = relations(subscriptionWebhookEvents, ({one}) => ({
-	subscription: one(subscriptions, {
-		fields: [subscriptionWebhookEvents.subscriptionId],
-		references: [subscriptions.id]
-	}),
-}));
-
-export const subscriptionUsageRelations = relations(subscriptionUsage, ({one}) => ({
-	subscription: one(subscriptions, {
-		fields: [subscriptionUsage.subscriptionId],
-		references: [subscriptions.id]
 	}),
 }));
