@@ -197,6 +197,8 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: 'lax', // Allow cookies to be sent when navigating from admin to org pages
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   };

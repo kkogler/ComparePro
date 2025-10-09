@@ -110,6 +110,11 @@ export default function CompanyUsers() {
     queryKey: `/org/${slug}/api/users`
   });
 
+  // Additional warning if admin sees no users
+  if (!isLoading && isSystemAdmin && users.length === 0) {
+    console.warn('⚠️ ADMIN USER ISSUE: System admin sees 0 users for organization. This may indicate an issue with the API endpoint.');
+  }
+
   // Filter users based on role - non-admins can only see themselves
   // Also filter out inactive/system users (like 'Default' user created for internal operations)
   const visibleUsers = isCurrentUserAdmin 
@@ -651,13 +656,36 @@ export default function CompanyUsers() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-{`Users (${visibleUsers.length})`}
+            {`Users (${visibleUsers.length})`}
           </CardTitle>
           <CardDescription>
             {isCurrentUserAdmin ? "Manage user accounts and permissions for your company" : "Your account information and store assignments"}
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {!isLoading && isSystemAdmin && users.length === 0 && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 text-amber-600">
+                  ⚠️
+                </div>
+                <div>
+                  <h4 className="font-semibold text-amber-800 mb-1">No Users Found</h4>
+                  <p className="text-sm text-amber-700">
+                    No users were found for this organization. This may indicate:
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-amber-700 mt-2 space-y-1">
+                    <li>The organization has no user accounts yet</li>
+                    <li>There may be a data loading issue</li>
+                    <li>Check the browser console for error messages</li>
+                  </ul>
+                  <p className="text-sm text-amber-700 mt-2">
+                    Organization slug: <code className="bg-amber-100 px-1 rounded">{slug}</code>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
