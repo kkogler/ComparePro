@@ -1238,9 +1238,9 @@ export const planSettings = pgTable("plan_settings", {
   trialLengthDays: integer("trial_length_days"), // null for no trial, number for trial days
   planLengthDays: integer("plan_length_days"), // null for unlimited, number for limited plans
   
-  // User and vendor limits
-  maxUsers: integer("max_users"), // null for unlimited, number for limit
+  // Vendor and order limits
   maxVendors: integer("max_vendors"), // null for unlimited, number for limit
+  maxOrders: integer("max_orders"), // null for unlimited, number for limit
   
   // Feature toggles
   onlineOrdering: boolean("online_ordering").default(false),

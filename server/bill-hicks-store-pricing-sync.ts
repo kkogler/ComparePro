@@ -26,7 +26,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { db } from './db';
 import { products, vendorProductMappings, companyVendorCredentials, supportedVendors } from '@shared/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import { storage } from './storage';
 
 // Bill Hicks Configuration
@@ -106,12 +106,25 @@ export async function syncStoreSpecificBillHicksPricing(companyId: number): Prom
     console.log(`📥 Downloading store pricing from FTP for company ${companyId}...`);
     const pricingContent = await downloadStoreSpecificBillHicksPricing(companyId, credentials);
     
-    // Step 3: OPTIMIZED - Detect only changed lines instead of processing all records
+    // Step 3: Check if this is the first sync (no mappings exist)
+    const [mappingCountResult] = await db.select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(vendorProductMappings)
+      .where(
+        and(
+          eq(vendorProductMappings.companyId, companyId),
+          eq(vendorProductMappings.supportedVendorId, billHicksVendor)
+        )
+      );
+    
+    const hasExistingMappings = (mappingCountResult?.count || 0) > 0;
+    console.log(`📊 Existing Bill Hicks mappings for company ${companyId}: ${mappingCountResult?.count || 0}`);
+    
+    // Step 4: OPTIMIZED - Detect only changed lines instead of processing all records
     console.log('🔍 Analyzing changes using line-by-line differential...');
     const changeResult = await detectStoreChangedLines(companyId, pricingContent);
     
-    if (!changeResult.hasChanges) {
-      // No changes detected - update stats with actual file size but zero processing
+    if (!changeResult.hasChanges && hasExistingMappings) {
+      // No changes detected AND mappings already exist - safe to skip
       const allRecords = parseStorePricingCSV(pricingContent);
       stats.totalRecords = allRecords.length;
       stats.recordsSkipped = allRecords.length; // All records were skipped due to no changes
@@ -126,15 +139,33 @@ export async function syncStoreSpecificBillHicksPricing(companyId: number): Prom
         stats
       };
     }
+    
+    // If no mappings exist, force a full sync regardless of file changes
+    if (!hasExistingMappings) {
+      console.log('⚠️ FIRST SYNC: No existing mappings found - forcing full sync to populate database');
+    }
 
-    // Step 4: OPTIMIZED - Parse only changed lines instead of entire file
-    console.log('📋 Parsing only changed records for maximum efficiency...');
-    const changedCsvContent = changeResult.changedLines.join('\n');
-    const pricingRecords = parseStorePricingCSV(changedCsvContent);
-    const allRecords = parseStorePricingCSV(pricingContent); // For total count
-    stats.totalRecords = allRecords.length;
-    console.log(`🎯 STORE OPTIMIZATION: Found ${changeResult.stats.changedLines} changed records out of ${changeResult.stats.totalLines} total lines`);
-    console.log(`📊 Processing only ${pricingRecords.length} records instead of ${allRecords.length}! (${Math.round((1 - pricingRecords.length / allRecords.length) * 100)}% reduction)`);
+    // Step 5: OPTIMIZED - Parse only changed lines (or all if first sync)
+    let pricingRecords;
+    let allRecords;
+    
+    if (!hasExistingMappings) {
+      // First sync - process ALL records
+      console.log('📋 FIRST SYNC: Parsing all records...');
+      pricingRecords = parseStorePricingCSV(pricingContent);
+      allRecords = pricingRecords;
+      stats.totalRecords = allRecords.length;
+      console.log(`📊 Processing all ${pricingRecords.length} records for initial population`);
+    } else {
+      // Incremental sync - process only changed records
+      console.log('📋 Parsing only changed records for maximum efficiency...');
+      const changedCsvContent = changeResult.changedLines.join('\n');
+      pricingRecords = parseStorePricingCSV(changedCsvContent);
+      allRecords = parseStorePricingCSV(pricingContent); // For total count
+      stats.totalRecords = allRecords.length;
+      console.log(`🎯 STORE OPTIMIZATION: Found ${changeResult.stats.changedLines} changed records out of ${changeResult.stats.totalLines} total lines`);
+      console.log(`📊 Processing only ${pricingRecords.length} records instead of ${allRecords.length}! (${Math.round((1 - pricingRecords.length / allRecords.length) * 100)}% reduction)`);
+    }
 
     // Step 5: Update vendor mappings with store pricing using bulk operations
     console.log('🔄 Updating store pricing mappings with bulk operations...');
@@ -311,8 +342,10 @@ function findPricingFile(files: any[]): any {
  */
 function parseStorePricingCSV(content: string): BillHicksStorePricingRecord[] {
   try {
-    // Simple fix for common header issues
-    const fixedContent = content.replace(/,product_name"/g, ',"product_name"');
+    // Fix for common header issues in Bill Hicks CSV files
+    let fixedContent = content.replace(/,product_name"/g, ',"product_name"');
+    // Fix missing quote before MFG_product
+    fixedContent = fixedContent.replace(/,MFG_product"/g, ',"MFG_product"');
     
     const records = parse(fixedContent, {
       columns: true,
@@ -384,12 +417,13 @@ async function bulkUpdateVendorMappings(
 
     // Step 2: Pre-fetch all products by UPC in one query
     console.log(`📊 Pre-fetching ${upcs.length} products by UPC...`);
-    const products = await db.select()
-      .from(products)
-      .where(inArray(products.upc, upcs));
+    const { products: productsTable } = await import('@shared/schema');
+    const existingProducts = await db.select()
+      .from(productsTable)
+      .where(inArray(productsTable.upc, upcs));
     
-    const productMap = new Map(products.map(p => [p.upc, p]));
-    console.log(`📊 Found ${products.length} existing products`);
+    const productMap = new Map(existingProducts.map(p => [p.upc, p]));
+    console.log(`📊 Found ${existingProducts.length} existing products`);
 
     // Step 3: Pre-fetch all existing vendor mappings in one query
     console.log(`📊 Pre-fetching existing vendor mappings...`);
@@ -408,6 +442,7 @@ async function bulkUpdateVendorMappings(
     // Step 4: Process changes in memory
     const mappingsToInsert = [];
     const mappingsToUpdate = [];
+    const processedProductIds = new Set<number>(); // Track processed products to avoid duplicates
 
     for (const pricingRecord of pricingRecords) {
       const upc = pricingRecord.universal_product_code?.trim();
@@ -424,6 +459,13 @@ async function bulkUpdateVendorMappings(
         stats.recordsSkipped++;
         continue;
       }
+
+      // ✅ FIX: Skip if we've already processed this product (CSV has duplicates)
+      if (processedProductIds.has(product.id)) {
+        stats.recordsSkipped++;
+        continue;
+      }
+      processedProductIds.add(product.id);
 
       const existingMapping = mappingMap.get(product.id);
       const mappingData = {
@@ -462,12 +504,24 @@ async function bulkUpdateVendorMappings(
       }
     }
 
-    // Step 5: Execute bulk operations
+    // Step 5: Execute bulk operations in batches to avoid stack overflow
     console.log(`🔄 Executing bulk operations: ${mappingsToInsert.length} inserts, ${mappingsToUpdate.length} updates`);
     
     if (mappingsToInsert.length > 0) {
-      await db.insert(vendorProductMappings).values(mappingsToInsert);
+      // Insert in batches of 1000 to avoid "Maximum call stack size exceeded"
+      const BATCH_SIZE = 1000;
+      const totalBatches = Math.ceil(mappingsToInsert.length / BATCH_SIZE);
+      console.log(`📦 Inserting ${mappingsToInsert.length} records in ${totalBatches} batches of ${BATCH_SIZE}...`);
+      
+      for (let i = 0; i < mappingsToInsert.length; i += BATCH_SIZE) {
+        const batch = mappingsToInsert.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        console.log(`📦 Batch ${batchNum}/${totalBatches}: Inserting ${batch.length} records...`);
+        await db.insert(vendorProductMappings).values(batch);
+      }
+      
       stats.recordsAdded = mappingsToInsert.length;
+      console.log(`✅ Successfully inserted all ${mappingsToInsert.length} records`);
     }
     
     if (mappingsToUpdate.length > 0) {

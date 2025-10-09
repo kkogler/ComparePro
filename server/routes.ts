@@ -619,7 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const { orderId, vendorId, productId, vendorProductId, gunBrokerItemId, quantity, unitCost, storeId, vendorSku, vendorMsrp, vendorMapPrice, priceOnPO } = req.body;
+      const { orderId, vendorId, productId, vendorProductId, gunBrokerItemId, quantity, unitCost, storeId, vendorSku, vendorMsrp, vendorMapPrice, priceOnPO, category } = req.body;
       
       // Validate required fields
       if (!vendorId || !productId || !quantity || !unitCost || !storeId) {

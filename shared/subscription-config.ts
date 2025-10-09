@@ -23,16 +23,19 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     displayName: 'Free',
     features: [
       'Up to 3 vendors', 
-      'Product search & comparison', 
+      'Product search & comparison',
+      'Order processing (up to 100 orders)',
+      'ASN processing',
+      'Webhooks & exports',
       'Basic reporting', 
       'Email support'
     ],
     limits: {
       maxUsers: 2,
       maxVendors: 3,
-      maxOrders: 0, // No ordering
-      canOrder: false,
-      canProcessASNs: false
+      maxOrders: 100, // ✅ ENABLED: Allow ordering
+      canOrder: true, // ✅ ENABLED: Allow ordering
+      canProcessASNs: true // ✅ ENABLED: Allow ASN processing
     }
   },
   standard: {
@@ -42,15 +45,18 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     features: [
       'Up to 6 vendors',
       'Product search & comparison',
+      'Order processing (up to 500 orders)',
+      'ASN processing',
+      'Webhooks & exports',
       'Advanced reporting', 
       'Priority email support'
     ],
     limits: {
       maxUsers: 5,
       maxVendors: 6,
-      maxOrders: 0, // No ordering
-      canOrder: false,
-      canProcessASNs: false
+      maxOrders: 500, // ✅ ENABLED: Allow ordering
+      canOrder: true, // ✅ ENABLED: Allow ordering
+      canProcessASNs: true // ✅ ENABLED: Allow ASN processing
     }
   },
   enterprise: {

@@ -62,8 +62,8 @@ interface PlanSettings {
   planName: string;
   trialLengthDays: number | null;
   planLengthDays: number | null;
-  maxUsers: number | null;
   maxVendors: number | null;
+  maxOrders: number | null;
   onlineOrdering: boolean;
   asnProcessing: boolean;
   webhookExport: boolean;
@@ -77,8 +77,8 @@ const planSettingsSchema = z.object({
   planName: z.string().min(1, "Plan name is required"),
   trialLengthDays: z.number().nullable(),
   planLengthDays: z.number().nullable(),
-  maxUsers: z.union([z.number().positive(), z.null()]),
   maxVendors: z.union([z.number().positive(), z.null()]),
+  maxOrders: z.union([z.number().positive(), z.null()]),
   onlineOrdering: z.boolean(),
   asnProcessing: z.boolean(),
   webhookExport: z.boolean(),
@@ -96,8 +96,8 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
       planName: plan.planName,
       trialLengthDays: plan.trialLengthDays,
       planLengthDays: plan.planLengthDays,
-      maxUsers: plan.maxUsers,
       maxVendors: plan.maxVendors,
+      maxOrders: plan.maxOrders,
       onlineOrdering: plan.onlineOrdering,
       asnProcessing: plan.asnProcessing,
       webhookExport: plan.webhookExport,
@@ -183,10 +183,10 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="maxUsers"
+                name="maxVendors"
                 render={({ field }) => (
                   <FormItem>
-                    <label className="text-sm font-medium">Max Users</label>
+                    <label className="text-sm font-medium">Max Vendors</label>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -206,10 +206,10 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
               
               <FormField
                 control={form.control}
-                name="maxVendors"
+                name="maxOrders"
                 render={({ field }) => (
                   <FormItem>
-                    <label className="text-sm font-medium">Max Vendors</label>
+                    <label className="text-sm font-medium">Max Orders</label>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -236,7 +236,7 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
                   name="onlineOrdering"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Online Ordering</label>
+                      <label className="text-sm font-medium">Create Vendor Orders</label>
                       <FormControl>
                         <Switch 
                           checked={field.value} 
@@ -306,8 +306,8 @@ function CreatePlanDialog({ onCreated }: { onCreated: () => void }) {
       planName: '',
       trialLengthDays: null,
       planLengthDays: null,
-      maxUsers: null,
       maxVendors: null,
+      maxOrders: null,
       onlineOrdering: false,
       asnProcessing: false,
       webhookExport: false,
@@ -394,10 +394,10 @@ function CreatePlanDialog({ onCreated }: { onCreated: () => void }) {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="maxUsers"
+                name="maxVendors"
                 render={({ field }) => (
                   <FormItem>
-                    <label className="text-sm font-medium">Max Users</label>
+                    <label className="text-sm font-medium">Max Vendors</label>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -417,10 +417,10 @@ function CreatePlanDialog({ onCreated }: { onCreated: () => void }) {
               
               <FormField
                 control={form.control}
-                name="maxVendors"
+                name="maxOrders"
                 render={({ field }) => (
                   <FormItem>
-                    <label className="text-sm font-medium">Max Vendors</label>
+                    <label className="text-sm font-medium">Max Orders</label>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -447,7 +447,7 @@ function CreatePlanDialog({ onCreated }: { onCreated: () => void }) {
                   name="onlineOrdering"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Online Ordering</label>
+                      <label className="text-sm font-medium">Create Vendor Orders</label>
                       <FormControl>
                         <Switch 
                           checked={field.value} 
@@ -678,9 +678,9 @@ export default function AdminPlanSettings() {
               <TableRow>
                 <TableHead>Plan</TableHead>
                 <TableHead>Trial Length</TableHead>
-                <TableHead>Max Users</TableHead>
                 <TableHead>Max Vendors</TableHead>
-                <TableHead>Online Ordering</TableHead>
+                <TableHead>Max Orders</TableHead>
+                <TableHead>Create Orders</TableHead>
                 <TableHead>ASN</TableHead>
                 <TableHead>Webhook/Export</TableHead>
                 <TableHead>Actions</TableHead>
@@ -706,10 +706,10 @@ export default function AdminPlanSettings() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {formatLimit(plan.maxUsers, <Users className="h-4 w-4 text-green-500" />)}
+                    {formatLimit(plan.maxVendors, <Building className="h-4 w-4 text-purple-500" />)}
                   </TableCell>
                   <TableCell>
-                    {formatLimit(plan.maxVendors, <Building className="h-4 w-4 text-purple-500" />)}
+                    {formatLimit(plan.maxOrders, <ShoppingCart className="h-4 w-4 text-green-500" />)}
                   </TableCell>
                   <TableCell>
                     {plan.onlineOrdering ? (

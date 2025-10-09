@@ -203,7 +203,8 @@ export default function VendorOrders() {
   // Mutation for deleting order
   const deleteOrderMutation = useMutation({
     mutationFn: async (orderId: number) => {
-      return await apiRequest(`/api/orders/${orderId}`, 'DELETE');
+      const baseUrl = organizationSlug ? `/org/${organizationSlug}/api/orders` : '/api/admin/orders';
+      return await apiRequest(`${baseUrl}/${orderId}`, 'DELETE');
     },
     onSuccess: () => {
       // Invalidate all organization-specific order queries

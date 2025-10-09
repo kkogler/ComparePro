@@ -27,7 +27,8 @@
     "db:sync:local": "tsx scripts/sync-databases.ts local",
     "db:sync:prod": "tsx scripts/sync-databases.ts production",
     "db:fastsync": "tsx scripts/copy-sync.ts",
-    "db:schema-diff": "tsx scripts/check-schema-diff.ts"
+    "db:schema-diff": "tsx scripts/check-schema-diff.ts",
+    "force:bill-hicks": "tsx scripts/force-bill-hicks-sync.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
