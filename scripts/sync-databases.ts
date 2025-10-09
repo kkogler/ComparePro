@@ -64,12 +64,24 @@ async function syncDatabases(options: SyncOptions) {
     const tables = tablesResult.rows.map((row: any) => row.table_name);
     console.log(`Found ${tables.length} tables to sync\n`);
 
-    // Truncate all tables in target first (to avoid foreign key issues, we'll do it in reverse order)
+    // Truncate all tables in target first (CASCADE handles foreign keys)
     console.log('🗑️  Clearing target database...');
-    await targetPool.query('SET session_replication_role = replica;'); // Disable FK checks
+    
+    // Try to disable FK checks if possible (works on some databases)
+    try {
+      await targetPool.query('SET session_replication_role = replica;');
+    } catch (e) {
+      // Not supported on managed databases like Neon, that's okay
+      console.log('   (FK checks remain enabled - using CASCADE mode)');
+    }
     
     for (const table of tables.reverse()) {
-      await targetPool.query(`TRUNCATE TABLE "${table}" CASCADE`);
+      try {
+        await targetPool.query(`TRUNCATE TABLE "${table}" CASCADE`);
+      } catch (truncError: any) {
+        // If truncate fails, try delete
+        await targetPool.query(`DELETE FROM "${table}"`);
+      }
     }
     
     tables.reverse(); // Restore original order
@@ -108,27 +120,60 @@ async function syncDatabases(options: SyncOptions) {
           continue;
         }
 
-        // Insert into target
-        for (const row of dataResult.rows) {
-          const values = columns.map(col => {
-            const value = row[col];
-            // Handle JSON columns - ensure they're properly formatted
-            if (value && typeof value === 'object') {
-              return JSON.stringify(value);
-            }
-            return value;
-          });
-          const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+        // Insert into target in batches (much faster!)
+        const batchSize = 1000;
+        let insertedCount = 0;
+        
+        for (let i = 0; i < dataResult.rows.length; i += batchSize) {
+          const batch = dataResult.rows.slice(i, i + batchSize);
+          
+          // Build multi-row insert
+          const valueGroups: string[] = [];
+          const allValues: any[] = [];
+          let paramIndex = 1;
+          
+          for (const row of batch) {
+            const rowValues = columns.map(col => {
+              const value = row[col];
+              // Handle JSON columns - ensure they're properly formatted
+              if (value && typeof value === 'object') {
+                return JSON.stringify(value);
+              }
+              return value;
+            });
+            
+            const placeholders = rowValues.map(() => `$${paramIndex++}`).join(', ');
+            valueGroups.push(`(${placeholders})`);
+            allValues.push(...rowValues);
+          }
           
           try {
             await targetPool.query(
-              `INSERT INTO "${table}" (${columnNames}) VALUES (${placeholders})`,
-              values
+              `INSERT INTO "${table}" (${columnNames}) VALUES ${valueGroups.join(', ')}`,
+              allValues
             );
+            insertedCount += batch.length;
           } catch (insertError: any) {
-            // Skip individual row errors (e.g., constraint violations)
-            if (!insertError.message.includes('duplicate key')) {
-              // Only log non-duplicate errors once at the end
+            // If batch fails, try row by row
+            for (const row of batch) {
+              const values = columns.map(col => {
+                const value = row[col];
+                if (value && typeof value === 'object') {
+                  return JSON.stringify(value);
+                }
+                return value;
+              });
+              const placeholders = values.map((_, idx) => `$${idx + 1}`).join(', ');
+              
+              try {
+                await targetPool.query(
+                  `INSERT INTO "${table}" (${columnNames}) VALUES (${placeholders})`,
+                  values
+                );
+                insertedCount++;
+              } catch (rowError: any) {
+                // Skip constraint violations
+              }
             }
           }
         }
@@ -140,8 +185,12 @@ async function syncDatabases(options: SyncOptions) {
       }
     }
 
-    // Re-enable FK checks
-    await targetPool.query('SET session_replication_role = DEFAULT;');
+    // Re-enable FK checks (if we disabled them)
+    try {
+      await targetPool.query('SET session_replication_role = DEFAULT;');
+    } catch (e) {
+      // Not needed if we couldn't disable them
+    }
 
     // Reset sequences
     console.log('\n🔢 Resetting sequences...');
