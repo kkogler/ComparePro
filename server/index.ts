@@ -159,8 +159,17 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Log the error for debugging
+    console.error('🚨 EXPRESS ERROR HANDLER:', {
+      status,
+      message,
+      stack: err.stack,
+      url: _req.url,
+      method: _req.method
+    });
+
+    // Send response and continue (don't throw - this crashes the server!)
     res.status(status).json({ message });
-    throw err;
   });
 
   // ENVIRONMENT DETECTION - Use NODE_ENV consistently throughout codebase
