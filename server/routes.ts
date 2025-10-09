@@ -2218,6 +2218,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin password reset endpoint - allows system admins to reset any user's password
+  app.post("/org/:slug/api/users/:id/reset-password", requireOrganizationAccess, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const organizationId = (req as any).organizationId;
+      const currentUser = (req as any).user;
+      const isSystemAdmin = currentUser?.companyId === null;
+      const isOrgAdmin = currentUser?.isAdmin === true;
+      
+      console.log('Admin password reset request:', {
+        userId,
+        organizationId,
+        currentUserId: currentUser?.id,
+        isSystemAdmin,
+        isOrgAdmin
+      });
+      
+      // Only system admins or org admins can reset passwords
+      if (!isSystemAdmin && !isOrgAdmin) {
+        return res.status(403).json({ message: "Only administrators can reset user passwords" });
+      }
+      
+      // Verify user belongs to organization
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser || existingUser.companyId !== organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Generate a secure random password
+      const newPassword = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!';
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update user password
+      await storage.updateUser(userId, { password: hashedPassword });
+      
+      console.log(`Password reset successfully for user ${userId} by admin ${currentUser?.id}`);
+      
+      // Return the new password so admin can share it with the user
+      res.status(200).json({ 
+        message: "Password reset successfully",
+        newPassword,
+        username: existingUser.username
+      });
+    } catch (error) {
+      console.error('Failed to reset user password:', error);
+      res.status(500).json({ message: "Failed to reset user password" });
+    }
+  });
+
   // Get user's store assignments
   app.get("/org/:slug/api/users/:id/stores", requireOrganizationAccess, async (req, res) => {
     try {

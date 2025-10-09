@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Users, Shield, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Shield, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { useParams } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select';
@@ -250,6 +250,36 @@ export default function CompanyUsers() {
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete user',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Reset password mutation
+  const resetPassword = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await apiRequest(`/org/${slug}/api/users/${userId}/reset-password`, 'POST');
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      // Copy the new password to clipboard
+      navigator.clipboard.writeText(data.newPassword);
+      toast({
+        title: 'Password Reset',
+        description: (
+          <div className="space-y-2">
+            <p>Password reset for user: <strong>{data.username}</strong></p>
+            <p className="font-mono text-sm bg-gray-100 p-2 rounded">{data.newPassword}</p>
+            <p className="text-xs text-gray-600">Password copied to clipboard!</p>
+          </div>
+        ),
+        duration: 10000, // Show for 10 seconds
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to reset password',
         variant: 'destructive',
       });
     },
