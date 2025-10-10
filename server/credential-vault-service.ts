@@ -328,14 +328,19 @@ export class CredentialVaultService {
 
       const existing = await storage.getCompanyVendorCredentials(companyId, supportedVendor.id).catch(() => null);
 
+      // ✅ FIX: Apply field aliases to existing credentials BEFORE merging
+      // This ensures existing credentials use the same field names as the schema
+      const existingWithAliases = existing ? await this.applyFieldAliases(vendorId, existing) : null;
+
       // Merge incoming credentials with existing ones (preserve existing values if masked)
-      const merged: Record<string, string> = { ...(existing || {}) };
+      const merged: Record<string, string> = { ...(existingWithAliases || {}) };
       
       console.log('🔍 CREDENTIAL MERGE DEBUG:', {
         vendorId,
         schemaFieldNames: schema.storeCredentials.map(f => f.name),
         incomingKeys: Object.keys(credentials),
-        existingKeys: Object.keys(existing || {})
+        existingKeys: Object.keys(existing || {}),
+        existingWithAliasesKeys: Object.keys(existingWithAliases || {})
       });
       
       for (const field of schema.storeCredentials) {
@@ -351,9 +356,9 @@ export class CredentialVaultService {
         });
         
         if (incoming === undefined || incoming === null || (incoming === '' || isMasked)) {
-          // Preserve existing value (if any)
-          if (existing && existing[field.name] !== undefined) {
-            merged[field.name] = existing[field.name];
+          // Preserve existing value (if any) - use aliased existing credentials
+          if (existingWithAliases && existingWithAliases[field.name] !== undefined) {
+            merged[field.name] = existingWithAliases[field.name];
           } else if (incoming) {
             merged[field.name] = incoming;
           }
