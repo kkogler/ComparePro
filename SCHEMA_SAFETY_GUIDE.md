@@ -15,49 +15,60 @@ The `credentials` column kept disappearing because:
    credentials: json("credentials").$type<Record<string, any>>()
    ```
 
-2. **Deployment changed** from dangerous `--force` to safe migrations:
+2. **Deployment no longer pushes schema**:
    ```bash
-   # OLD (DANGEROUS):
-   npm run db:push -- --force
+   # OLD (DANGEROUS - caused schema mismatch):
+   build = "npm ci && npm run build && npm run db:push -- --force"
 
-   # NEW (SAFE):
-   npm run db:migrate
+   # NEW (SAFE - only validates):
+   build = "npm ci && npm run build && npm run db:validate"
    ```
+
+3. **Schema changes are now manual** (prevents mismatches):
+   - Push to dev: `npm run db:push`
+   - Test changes
+   - Push to production: `DATABASE_URL=<prod> npm run db:push`
+   - Deploy code
 
 ## 🛡️ Safe Schema Change Workflow
 
-### Step 1: Make Schema Changes (Development)
+### Step 1: Make Schema Changes
 ```bash
 # Edit shared/schema.ts with your changes
 ```
 
-### Step 2: Generate Migration File (Development)
+### Step 2: Apply to Development Database
 ```bash
-npm run db:generate
-```
-This creates a migration file in `migrations/` with SQL for your changes.
-
-### Step 3: Review the Migration
-```bash
-# Check migrations/*.sql to see what will happen
-# Make sure it's doing what you expect!
-```
-
-### Step 4: Apply Locally (Development)
-```bash
-npm run db:migrate
-# OR for quick iteration in dev:
 npm run db:push
 ```
+This pushes changes to your dev database for testing.
 
-### Step 5: Commit & Deploy (Production)
+### Step 3: Test Your Changes
 ```bash
-git add migrations/*.sql shared/schema.ts
-git commit -m "Add [your change]"
+# Test the schema changes locally
+# Make sure everything works!
+```
+
+### Step 4: Apply to Production Database
+```bash
+# Set DATABASE_URL to production
+export DATABASE_URL="<production-database-url>"
+
+# Push schema to production
+npm run db:push
+
+# Restore dev DATABASE_URL
+export DATABASE_URL="<dev-database-url>"
+```
+
+### Step 5: Deploy the Code
+```bash
+git add shared/schema.ts
+git commit -m "Update schema: [your change]"
 git push
 ```
 
-Deployment will automatically run `npm run db:migrate` safely.
+Deployment will validate schema (but NOT push it - you already did that manually).
 
 ## 🚫 Never Use These in Production
 

@@ -273,7 +273,7 @@ export const companyVendorCredentials = pgTable("company_vendor_credentials", {
 	isActive: boolean("is_active").default(true),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
-	credentials: text().default('{}'),
+	credentials: json("credentials").$type<Record<string, any>>(),
 }, (table) => [
 	foreignKey({
 			columns: [table.companyId],

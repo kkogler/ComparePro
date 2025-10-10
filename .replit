@@ -54,5 +54,5 @@ args = "npm run prod:test"
 
 [deployment]
 deploymentTarget = "cloudrun"
-build = "npm ci && npm run build && npm run db:validate && npm run db:push -- --force"
+build = "npm ci && npm run build && npm run db:validate"
 run = "NODE_ENV=production PORT=$PORT node dist/index.js"

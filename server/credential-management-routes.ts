@@ -225,6 +225,15 @@ export function registerCredentialManagementRoutes(app: Express): void {
    * Store store-level credentials for a vendor
    */
   app.post('/org/:slug/api/vendors/:vendorSlug/credentials', requireOrganizationAccess, async (req, res) => {
+    console.log('🔍 CREDENTIAL SAVE ENDPOINT HIT:', {
+      slug: req.params.slug,
+      vendorSlug: req.params.vendorSlug,
+      hasBody: !!req.body,
+      bodyKeys: Object.keys(req.body || {}),
+      organizationId: (req as any).organizationId,
+      userId: (req as any).user?.id
+    });
+    
     try {
       const { vendorSlug } = req.params;
       const credentials = req.body.credentials || req.body; // Support both formats
@@ -280,6 +289,20 @@ export function registerCredentialManagementRoutes(app: Express): void {
         console.log('  - User ID:', userId);
       }
 
+      // Enhanced debugging for Lipsey's credentials
+      if (stringVendorId.toLowerCase().includes('lipseys') || stringVendorId.toLowerCase().includes('lipsey')) {
+        console.log('🔍 LIPSEYS CREDENTIAL SAVE DEBUG:');
+        console.log('  - Raw request body:', JSON.stringify(req.body, null, 2));
+        console.log('  - Extracted credentials:', JSON.stringify(credentials, null, 2));
+        console.log('  - Email value:', credentials.email);
+        console.log('  - Has password:', !!credentials.password);
+        console.log('  - Company ID:', companyId);
+        console.log('  - User ID:', userId);
+        console.log('  - Organization slug:', req.params.slug);
+        console.log('  - Vendor slug param:', vendorSlug);
+        console.log('  - String vendor ID:', stringVendorId);
+      }
+
       // HYBRID APPROACH: Pass credentials directly to vault (no transformation)
       // Credentials are saved to JSON column in database (matches admin pattern)
       console.log('📝 CREDENTIAL SAVE (HYBRID): Storing credentials with field names:', Object.keys(credentials));
@@ -301,14 +324,35 @@ export function registerCredentialManagementRoutes(app: Express): void {
       console.log('✅ VERIFICATION (HYBRID): Saved credentials keys:', Object.keys(savedCreds || {}));
       console.log('✅ VERIFICATION (HYBRID): Non-empty fields:', Object.entries(savedCreds || {}).filter(([k,v]) => v && v.toString().trim().length > 0).map(([k]) => k));
       
-      // Check if any required fields are still empty
+      // ✅ FIX: Flexible verification that handles field name variations (camelCase vs snake_case)
+      // Helper function to convert between naming conventions
+      const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      const toCamelCase = (str: string) => str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+      
+      // Check if any required fields are still empty (check both naming conventions)
       const emptyRequiredFields = Object.entries(credentials).filter(([key, val]) => {
-        const savedVal = savedCreds?.[key];
-        return val && val.toString().trim().length > 0 && (!savedVal || savedVal.toString().trim().length === 0);
+        if (!val || val.toString().trim().length === 0) {
+          return false; // Don't verify empty incoming values
+        }
+        
+        // Try multiple field name variations
+        const variations = [
+          key,                    // Exact match
+          toSnakeCase(key),       // camelCase -> snake_case
+          toCamelCase(key),       // snake_case -> camelCase
+          key.toLowerCase(),      // lowercase
+        ];
+        
+        // Check if ANY variation exists in saved credentials
+        const savedVal = variations.map(v => savedCreds?.[v]).find(v => v && v.toString().trim().length > 0);
+        
+        return !savedVal; // Return true if NOT found in any variation
       });
       
       if (emptyRequiredFields.length > 0) {
         console.error('❌ VERIFICATION FAILED: Fields not saved:', emptyRequiredFields.map(([k]) => k));
+        console.error('   Incoming fields:', Object.keys(credentials));
+        console.error('   Saved fields:', Object.keys(savedCreds || {}));
         throw new Error(`Credentials were not saved properly. Empty fields: ${emptyRequiredFields.map(([k]) => k).join(', ')}`);
       }
       
@@ -319,10 +363,22 @@ export function registerCredentialManagementRoutes(app: Express): void {
         message: `Store credentials saved successfully for ${stringVendorId}`
       });
     } catch (error: any) {
-      console.error('❌ CREDENTIAL SAVE FAILED:', error);
+      console.error('❌ CREDENTIAL SAVE FAILED:');
+      console.error('  - Error message:', error.message);
+      console.error('  - Error stack:', error.stack);
+      console.error('  - Error type:', error.constructor.name);
+      console.error('  - Vendor slug:', req.params.vendorSlug);
+      console.error('  - Organization slug:', req.params.slug);
+      console.error('  - Company ID:', (req as any).organizationId);
+      console.error('  - Credentials keys:', Object.keys(req.body.credentials || req.body || {}));
+      
       res.status(400).json({ 
         success: false, 
-        message: error.message 
+        message: error.message,
+        details: {
+          vendorSlug: req.params.vendorSlug,
+          orgSlug: req.params.slug
+        }
       });
     }
   });
