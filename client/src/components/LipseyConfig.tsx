@@ -188,6 +188,12 @@ export function LipseyConfig({
       // ✅ STANDARDIZED: Use vendor utility to get correct identifier
       const apiUrl = buildVendorApiUrl(organizationSlug, vendor || { id: vendorId }, 'credentials');
       console.log('🔍 LIPSEY SAVE API URL:', apiUrl);
+      console.log('🔍 LIPSEY SAVE: Sending credentials:', { 
+        email: credentials.email, 
+        hasPassword: !!credentials.password,
+        passwordLength: credentials.password?.length || 0,
+        credentialKeys: Object.keys(credentials)
+      });
       
       const response = await apiRequest(apiUrl, 'POST', credentials);
 
@@ -204,6 +210,7 @@ export function LipseyConfig({
         onOpenChange(false);
       } else {
         const error = await response.json();
+        console.error('🔍 LIPSEY SAVE ERROR:', error);
         throw new Error(error.message || 'Failed to save credentials');
       }
     } catch (error: any) {

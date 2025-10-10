@@ -43,7 +43,16 @@ author = 45098479
 task = "shell.exec"
 args = "npm run dev"
 
+[[workflows.workflow]]
+name = "Test Production Build"
+mode = "sequential"
+author = 45098479
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run prod:test"
+
 [deployment]
 deploymentTarget = "cloudrun"
-build = "npm ci && npm run build && npm run db:push -- --force"
+build = "npm ci && npm run build && npm run db:validate && npm run db:push"
 run = "NODE_ENV=production PORT=$PORT node dist/index.js"

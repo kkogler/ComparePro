@@ -118,16 +118,46 @@ export class BillHicksAPI {
   }
 
   /**
-   * Test connection - For Bill Hicks, this validates that we have working vendor mappings
+   * Test connection - Test actual FTP connection with provided credentials
    */
-  async testConnection(companyId: number): Promise<{ success: boolean; message: string }> {
+  async testConnection(companyId: number, credentials?: { ftpServer: string; ftpUsername: string; ftpPassword: string; ftpPort?: number }): Promise<{ success: boolean; message: string }> {
     try {
-      // Get Bill Hicks vendor ID dynamically if not already cached
+      // If credentials provided, test them directly (for Test Connection button)
+      if (credentials) {
+        const { testFtpConnection } = await import('./ftp-utils.js');
+        
+        // Clean hostname - remove protocol prefixes and trailing slashes
+        let hostname = credentials.ftpServer;
+        hostname = hostname.replace(/^(https?|ftps?):\/\//, '').replace(/\/$/, '');
+        
+        const ftpConfig = {
+          host: hostname,
+          port: credentials.ftpPort || 21,
+          username: credentials.ftpUsername,
+          password: credentials.ftpPassword
+        };
+        
+        console.log('🔍 BILL HICKS FTP TEST: Testing connection to', ftpConfig.host);
+        const result = await testFtpConnection(ftpConfig);
+        
+        if (result.success) {
+          return {
+            success: true,
+            message: `FTP connection successful to ${ftpConfig.host}`
+          };
+        } else {
+          return {
+            success: false,
+            message: result.message || 'FTP connection failed'
+          };
+        }
+      }
+      
+      // Otherwise, check if store has product mappings (for general status check)
       if (this.vendorId === null) {
         this.vendorId = await storage.getBillHicksVendorId();
       }
       
-      // Count how many Bill Hicks products this company has access to
       const mappingCount = await db.select()
         .from(vendorProductMappings)
         .where(
@@ -137,26 +167,22 @@ export class BillHicksAPI {
           )
         );
 
-      const inventoryCount = await db.select()
-        .from(vendorInventory)
-        .where(eq(vendorInventory.supportedVendorId, this.vendorId));
-
       if (mappingCount.length === 0) {
         return {
           success: false,
-          message: 'No Bill Hicks product mappings found for this company'
+          message: 'No Bill Hicks product mappings found. Contact support to get your products mapped.'
         };
       }
 
       return {
         success: true,
-        message: `Bill Hicks integration active: ${mappingCount.length} products mapped, ${inventoryCount.length} inventory records`
+        message: `Bill Hicks integration active: ${mappingCount.length} products mapped`
       };
 
     } catch (error) {
       return {
         success: false,
-        message: `Bill Hicks connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }

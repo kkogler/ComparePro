@@ -223,33 +223,23 @@ export class VendorRegistry {
         vendorName: 'Bill Hicks & Co.',
         apiType: 'ftp',
         testConnection: async (creds) => {
-          // Basic FTP connection test
+          // Use the BillHicksAPI testConnection method which now properly tests FTP
           try {
-            const { testFtpConnection } = await import('./ftp-utils');
+            const { BillHicksAPI } = await import('./bill-hicks-api.js');
+            const api = new BillHicksAPI();
             
-            // Clean hostname - remove protocol prefixes and trailing slashes
-            let hostname = creds.ftpHost || creds.ftpServer;
-            console.log('🔍 BILL HICKS FTP DEBUG: ftpHost =', creds.ftpHost);
-            console.log('🔍 BILL HICKS FTP DEBUG: ftpServer =', creds.ftpServer);
-            console.log('🔍 BILL HICKS FTP DEBUG: selected hostname =', hostname);
-            
-            hostname = hostname.replace(/^(https?|ftps?):\/\//, '').replace(/\/$/, '');
-            console.log('🔍 BILL HICKS FTP DEBUG: cleaned hostname =', hostname);
-            
-            const ftpConfig = {
-              host: hostname,
-              port: parseInt(creds.ftpPort) || 21,
-              username: creds.ftpUsername,
-              password: creds.ftpPassword
+            // Map credential field names (support both formats)
+            const ftpCreds = {
+              ftpServer: creds.ftpServer || creds.ftpHost,
+              ftpUsername: creds.ftpUsername,
+              ftpPassword: creds.ftpPassword,
+              ftpPort: parseInt(creds.ftpPort) || 21
             };
-            console.log('🔍 BILL HICKS FTP DEBUG: FTP config =', {
-              host: ftpConfig.host,
-              port: ftpConfig.port,
-              username: ftpConfig.username,
-              password: ftpConfig.password ? '***PRESENT***' : 'MISSING'
-            });
             
-            return await testFtpConnection(ftpConfig);
+            console.log('🔍 BILL HICKS FTP TEST: Testing with server:', ftpCreds.ftpServer);
+            
+            // Pass credentials to testConnection for actual FTP test
+            return await api.testConnection(0, ftpCreds);
           } catch (error) {
             return { success: false, message: `FTP connection failed: ${error.message}` };
           }
