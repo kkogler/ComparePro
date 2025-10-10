@@ -246,24 +246,31 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
             />
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-3 justify-between">
             <Button
               onClick={handleTestConnection}
               disabled={isTestingConnection || !credentials.userName || !credentials.password || !credentials.customerNumber}
               variant="outline"
-              className="flex-1"
             >
               <TestTube className="h-4 w-4 mr-2" />
               {isTestingConnection ? "Testing..." : "Test Connection"}
             </Button>
             
-            <Button
-              onClick={handleSave}
-              disabled={saveCredentials.isPending || !credentials.userName || !credentials.password || !credentials.customerNumber}
-              className="flex-1"
-            >
-              {saveCredentials.isPending ? "Saving..." : "Save"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={onClose}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saveCredentials.isPending || !credentials.userName || !credentials.password || !credentials.customerNumber}
+                className="btn-orange-action"
+              >
+                {saveCredentials.isPending ? "Saving..." : "Save"}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

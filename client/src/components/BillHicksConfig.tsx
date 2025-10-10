@@ -316,7 +316,7 @@ export function BillHicksConfig({
                       <FormControl>
                         <Input 
                           {...field} 
-                          placeholder="Enter FTP username"
+                          placeholder="Enter username"
                           data-testid="input-ftp-username"
                         />
                       </FormControl>
@@ -336,7 +336,7 @@ export function BillHicksConfig({
                           <Input
                             {...field}
                             type={showPassword ? "text" : "password"}
-                            placeholder="Enter FTP password"
+                            placeholder="Enter ' password"
                             data-testid="input-ftp-password"
                           />
                           <Button
@@ -370,10 +370,13 @@ export function BillHicksConfig({
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="ftp.billhicks.com"
+                            placeholder="Enter URL for Bill Hicks FP site"
                             data-testid="input-ftp-host"
                           />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Typically <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">billhicksco.hostedftp.com</code>
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -388,13 +391,13 @@ export function BillHicksConfig({
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="21"
+                            placeholder="Enter number of port"
                             type="number"
                             data-testid="input-ftp-port"
                           />
                         </FormControl>
-                        <FormDescription>
-                          Port 21 is typically used for FTP connections
+                        <FormDescription className="text-xs">
+                          Port <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">21</code> is typically used for FTP connections
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -411,19 +414,19 @@ export function BillHicksConfig({
                       <FormControl>
                         <Input 
                           {...field} 
-                          placeholder="/MicroBiz/Feeds"
+                          placeholder="Enter directory path of your folder"
                           data-testid="input-ftp-base-path"
                         />
                       </FormControl>
-                      <FormDescription>
-                        The FTP directory path where your store-specific pricing file (MicroBiz_Daily_Catalog.csv) is located. We recommend using <strong>/MicroBiz/Feeds</strong> unless Bill Hicks has provided a different path for your store.
+                      <FormDescription className="text-xs">
+                        The FTP directory path where your store-specific pricing file <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">MicroBiz_Daily_Catalog.csv</code> is located. We recommend using <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/MicroBiz/Feeds</code> unless Bill Hicks has provided a different path for your store.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="flex justify-end">
+                <div className="flex gap-3 justify-between">
                   <Button
                     type="button"
                     variant="outline"
@@ -433,6 +436,20 @@ export function BillHicksConfig({
                   >
                     {isTestingConnection ? "Testing..." : "Test FTP Connection"}
                   </Button>
+
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={onClose}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={saveConfigMutation.isPending}
+                      data-testid="button-save-bill-hicks-config"
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                      {saveConfigMutation.isPending ? "Saving..." : "Save Configuration"}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -480,15 +497,23 @@ export function BillHicksConfig({
                     </div>
                     <Button 
                       type="button" 
-                      variant="outline" 
                       size="sm"
                       onClick={handleManualDownload}
                       disabled={manualDownloadMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                       data-testid="button-manual-download"
                     >
                       {manualDownloadMutation.isPending ? "Syncing..." : "Manual Sync"}
                     </Button>
                   </div>
+                  
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                    <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Important</strong> - Run manual sync before searching for products
+                    </p>
+                  </div>
+
                   <p className="text-sm text-muted-foreground">
                     Your store-specific catalog containing current pricing and product availability is automatically downloaded at the time set below.
                   </p>
@@ -635,21 +660,6 @@ export function BillHicksConfig({
                 </div>
               </CardContent>
             </Card>
-
-
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={saveConfigMutation.isPending}
-                data-testid="button-save-bill-hicks-config"
-                className="bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                {saveConfigMutation.isPending ? "Saving..." : "Save Configuration"}
-              </Button>
-            </div>
             </div>
           </form>
         </Form>
