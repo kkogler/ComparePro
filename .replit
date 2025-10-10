@@ -45,5 +45,5 @@ args = "npm run dev"
 
 [deployment]
 deploymentTarget = "cloudrun"
-build = "npm run db:push -- --force"
+build = "npm ci && npm run build && npm run db:push -- --force"
 run = "NODE_ENV=production PORT=$PORT node dist/index.js"
