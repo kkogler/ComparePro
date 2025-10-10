@@ -1,6 +1,7 @@
 import { db } from './db';
 import { products, vendorProducts, companies, pricingConfigurations } from '@shared/schema';
 import { eq, inArray, and } from 'drizzle-orm';
+import { getCategoryDisplayName } from '../shared/category-config';
 // PricingService removed - no calculated values allowed, only authentic vendor API data
 // import { PricingService, type PricingInputs } from './pricing-service';
 
@@ -402,7 +403,7 @@ export class WebhookServiceV2 {
           model: product?.model || null, // Always include Model field
           manufacturer_part_number: product?.manufacturerPartNumber || null, // Always include MFG Part Number field
           caliber: product?.caliber || undefined,
-          category: product?.category || undefined,
+          category: item.category ? getCategoryDisplayName(item.category) : (product?.category || undefined), // Convert slug to display name
           subcategory1: product?.subcategory1 || undefined,
           subcategory2: product?.subcategory2 || undefined,
           subcategory3: product?.subcategory3 || undefined,

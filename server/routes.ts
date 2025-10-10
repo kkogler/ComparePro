@@ -1012,6 +1012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Format order data for CSV export
+      const { getCategoryDisplayName } = await import('../shared/category-config.js');
       const orderForExport = {
         id: order.id,
         orderNumber: order.orderNumber,
@@ -1029,6 +1030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           vendorMsrp: item.vendorMsrp?.toString() || null,
           vendorMapPrice: item.vendorMapPrice?.toString() || null,
           retailPrice: item.retailPrice?.toString() || null, // Include configured price from Add to Order modal
+          category: item.category ? getCategoryDisplayName(item.category) : null, // Convert slug to display name
           product: {
             name: (item as any).productName || '',
             upc: (item as any).productUpc || null,
@@ -1201,6 +1203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Generate Swipe Simple CSV content with PriceCompare mapping
+      const { getCategoryDisplayName } = await import('../shared/category-config.js');
       const csvRows = [];
       
       // Add header row (no quotes needed for headers)
@@ -1219,7 +1222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'active', // Status - always export with value 'active'
           trackInventorySetting, // Track_inventory - Based on setting
           item.quantity.toString(), // on_hand_count - Order quantity as specified
-          (item as any).productCategory || '' // Category - product category as specified
+          item.category ? getCategoryDisplayName(item.category) : '' // Convert slug to display name
         ]);
       }
       

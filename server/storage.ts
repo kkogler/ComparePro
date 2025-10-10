@@ -1136,6 +1136,7 @@ export class DatabaseStorage implements IStorage {
       vendorSku: orderItems.vendorSku, // Get vendor SKU from order_items table where it's stored
       vendor_msrp: orderItems.vendorMsrp, // Get vendor MSRP from order_items table where it's stored
       vendor_map_price: orderItems.vendorMapPrice, // Get vendor MAP from order_items table where it's stored
+      category: orderItems.category, // User-selected category from Add to Order modal
       productName: products.name,
       productUpc: products.upc,
       productMfgPartNumber: products.manufacturerPartNumber,
