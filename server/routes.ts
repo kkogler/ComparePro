@@ -903,7 +903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/org/:slug/api/reports/ordered-items", requireOrganizationAccess, async (req, res) => {
     try {
       const organizationId = (req as any).organizationId;
-      const { startDate, endDate, search } = req.query;
+      const { startDate, endDate, search, reportType } = req.query;
       
       if (!startDate || !endDate) {
         return res.status(400).json({ message: "Start date and end date are required" });
@@ -912,11 +912,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
       
-      // Get all orders within the date range
+      // Get all orders within the date range and filter by status based on reportType
       const orders = await storage.getOrdersByCompany(organizationId);
       const filteredOrders = orders.filter(order => {
         const orderDate = new Date(order.orderDate);
-        return orderDate >= start && orderDate <= end;
+        const inDateRange = orderDate >= start && orderDate <= end;
+        
+        // Filter by order status based on reportType
+        if (!inDateRange) return false;
+        
+        if (reportType === 'draft') {
+          return order.status === 'draft';
+        } else if (reportType === 'open') {
+          return order.status === 'open';
+        } else if (reportType === 'complete') {
+          return order.status === 'complete';
+        }
+        
+        // If no reportType specified, return all orders in date range
+        return true;
       });
 
       // Get all vendors for lookups

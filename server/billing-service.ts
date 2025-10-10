@@ -442,12 +442,21 @@ export class BillingService {
 
   private async logBillingEvent(event: BillingWebhookPayload): Promise<void> {
     // Find organization by billing customer ID
+    // Match the same extraction logic as in routes.ts webhook handler (lines 7526-7529)
     const customerIdField = event.billingProvider === 'zoho' ? 
-      event.data.data?.customer?.customer_id || event.data.data?.subscription?.customer_id :
+      event.data.customer_id || // Top level
+      event.data.data?.customer_id || // One level down
+      event.data.customer?.customer_id || // From customer object
+      event.data.subscription?.customer_id : // From subscription object
       event.data.account?.account_code || event.data.subscription?.account?.account_code;
 
     if (!customerIdField) {
-      console.error('No customer ID found in billing event');
+      console.error('⚠️ BillingService: No customer ID found in billing event, skipping event logging', {
+        eventType: event.eventType,
+        eventId: event.eventId,
+        billingProvider: event.billingProvider,
+        availableKeys: Object.keys(event.data || {})
+      });
       return;
     }
 
@@ -2277,7 +2286,7 @@ export class BillingService {
         .from(billingEvents)
         .where(and(
           eq(billingEvents.externalId, eventId),
-          eq(billingEvents.metadata, provider) // Store provider in metadata for now
+          eq(billingEvents.billingProvider, provider) // ✅ Use billingProvider TEXT column, not metadata JSON
         ))
         .limit(1);
       
