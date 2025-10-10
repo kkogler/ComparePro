@@ -330,9 +330,24 @@ export class CredentialVaultService {
 
       // Merge incoming credentials with existing ones (preserve existing values if masked)
       const merged: Record<string, string> = { ...(existing || {}) };
+      
+      console.log('🔍 CREDENTIAL MERGE DEBUG:', {
+        vendorId,
+        schemaFieldNames: schema.storeCredentials.map(f => f.name),
+        incomingKeys: Object.keys(credentials),
+        existingKeys: Object.keys(existing || {})
+      });
+      
       for (const field of schema.storeCredentials) {
         const incoming = credentials[field.name];
         const isMasked = typeof incoming === 'string' && incoming.trim().startsWith('•');
+        
+        console.log(`🔍 FIELD MERGE: ${field.name}`, {
+          incoming: incoming ? `${incoming.substring(0, 2)}...` : 'NONE',
+          isMasked,
+          willUseExisting: incoming === undefined || incoming === null || (incoming === '' || isMasked)
+        });
+        
         if (incoming === undefined || incoming === null || (incoming === '' || isMasked)) {
           // Preserve existing value (if any)
           if (existing && existing[field.name] !== undefined) {
@@ -344,6 +359,11 @@ export class CredentialVaultService {
           merged[field.name] = incoming;
         }
       }
+
+      console.log('🔍 MERGED CREDENTIALS:', {
+        keys: Object.keys(merged),
+        nonEmptyKeys: Object.entries(merged).filter(([k,v]) => v && v.trim()).map(([k]) => k)
+      });
 
       // Validate merged credentials against schema
       this.validateCredentials(merged, schema.storeCredentials);

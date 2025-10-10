@@ -3674,6 +3674,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const organizationId = (req as any).organizationId;
       console.log(`🔄 BILL HICKS STORE SYNC: Starting store-specific pricing sync for organization ${organizationId}`);
       
+      // ✅ PRE-VALIDATION: Check if credentials are configured before attempting sync
+      const billHicksVendorId = await storage.getBillHicksVendorId();
+      if (!billHicksVendorId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bill Hicks vendor not found in system. Please contact support.'
+        });
+      }
+      
+      const existingCredentials = await storage.getCompanyVendorCredentials(organizationId, billHicksVendorId);
+      if (!existingCredentials || !existingCredentials.ftpServer || !existingCredentials.ftpUsername || !existingCredentials.ftpPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bill Hicks FTP credentials not configured. Please configure credentials before running sync.'
+        });
+      }
+      
       // Trigger store-specific pricing sync (uses store's FTP credentials and folder)
       const { syncStoreSpecificBillHicksPricing } = await import('./bill-hicks-store-pricing-sync');
       const result = await syncStoreSpecificBillHicksPricing(organizationId);
@@ -3693,10 +3710,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error: any) {
       console.error('Bill Hicks store pricing sync error:', error);
-      res.status(500).json({
-        success: false,
-        message: `Failed to sync store pricing: ${error.message}`
-      });
+      // Ensure we ALWAYS send a response and don't crash
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: `Failed to sync store pricing: ${error.message || 'Unknown error'}`
+        });
+      }
     }
   });
 

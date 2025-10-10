@@ -211,8 +211,14 @@ export async function syncStoreSpecificBillHicksPricing(companyId: number): Prom
  */
 async function downloadStoreSpecificBillHicksPricing(companyId: number, credentials: BillHicksFTPCredentials): Promise<string> {
   const client = new FTPClient();
+  let connected = false;
   
   try {
+    // Validate credentials before attempting connection
+    if (!credentials.ftpServer || !credentials.ftpUsername || !credentials.ftpPassword) {
+      throw new Error('Missing FTP credentials: server, username, or password not configured');
+    }
+    
     // Clean hostname - remove protocol and trailing slashes
     const cleanHost = credentials.ftpServer
       .replace(/^https?:\/\//, '')  // Remove protocol (http://, https://)
@@ -220,14 +226,23 @@ async function downloadStoreSpecificBillHicksPricing(companyId: number, credenti
     
     console.log(`📡 BILL HICKS STORE: Connecting to FTP server: ${cleanHost}`);
     
-    // Connect to FTP
-    await client.access({
+    // Connect to FTP with timeout protection
+    const connectPromise = client.access({
       host: cleanHost,
       user: credentials.ftpUsername,
       password: credentials.ftpPassword,
       port: credentials.ftpPort || 21,
       secure: false
     });
+    
+    // 30 second timeout for FTP connection
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('FTP connection timeout after 30 seconds')), 30000)
+    );
+    
+    await Promise.race([connectPromise, timeoutPromise]);
+    connected = true;
+    console.log(`✅ BILL HICKS STORE: FTP connection established`);
 
     // Navigate to store-specific folder
     // Store folders are typically organized by customer name or number
@@ -286,8 +301,32 @@ async function downloadStoreSpecificBillHicksPricing(companyId: number, credenti
     const content = readFileSync(tempFile, 'utf-8');
     return content;
     
+  } catch (error: any) {
+    // Enhanced error logging with context
+    console.error(`❌ BILL HICKS STORE: FTP download failed for company ${companyId}:`, {
+      error: error.message,
+      stack: error.stack,
+      connected,
+      credentials: {
+        server: credentials.ftpServer,
+        username: credentials.ftpUsername,
+        hasPassword: !!credentials.ftpPassword,
+        port: credentials.ftpPort,
+        basePath: credentials.ftpBasePath
+      }
+    });
+    throw error; // Re-throw after logging
   } finally {
-    client.close();
+    // Always close FTP connection, even on error
+    try {
+      if (connected) {
+        console.log(`🔌 BILL HICKS STORE: Closing FTP connection for company ${companyId}`);
+        client.close();
+      }
+    } catch (closeError: any) {
+      console.error(`⚠️ BILL HICKS STORE: Error closing FTP connection:`, closeError.message);
+      // Don't re-throw - we're already in cleanup
+    }
   }
 }
 
@@ -513,33 +552,54 @@ async function bulkUpdateVendorMappings(
       const totalBatches = Math.ceil(mappingsToInsert.length / BATCH_SIZE);
       console.log(`📦 Inserting ${mappingsToInsert.length} records in ${totalBatches} batches of ${BATCH_SIZE}...`);
       
+      let insertedCount = 0;
       for (let i = 0; i < mappingsToInsert.length; i += BATCH_SIZE) {
         const batch = mappingsToInsert.slice(i, i + BATCH_SIZE);
         const batchNum = Math.floor(i / BATCH_SIZE) + 1;
         console.log(`📦 Batch ${batchNum}/${totalBatches}: Inserting ${batch.length} records...`);
-        await db.insert(vendorProductMappings).values(batch);
+        
+        try {
+          await db.insert(vendorProductMappings).values(batch);
+          insertedCount += batch.length;
+          console.log(`✅ Batch ${batchNum}/${totalBatches}: Successfully inserted ${batch.length} records`);
+        } catch (batchError: any) {
+          console.error(`❌ Batch ${batchNum}/${totalBatches}: Insert failed:`, batchError.message);
+          // Log first few SKUs in failed batch for debugging
+          const failedSkus = batch.slice(0, 5).map(m => m.vendorSku).join(', ');
+          console.error(`❌ First few SKUs in failed batch: ${failedSkus}`);
+          // Continue with next batch instead of crashing
+          stats.recordsErrors += batch.length;
+        }
       }
       
-      stats.recordsAdded = mappingsToInsert.length;
-      console.log(`✅ Successfully inserted all ${mappingsToInsert.length} records`);
+      stats.recordsAdded = insertedCount;
+      console.log(`✅ Successfully inserted ${insertedCount} out of ${mappingsToInsert.length} records`);
     }
     
     if (mappingsToUpdate.length > 0) {
-      await db.transaction(async (tx) => {
-        for (const update of mappingsToUpdate) {
-          await tx.update(vendorProductMappings)
-            .set({
-              vendorSku: update.vendorSku,
-              vendorCost: update.vendorCost,
-              msrpPrice: update.msrpPrice,
-              mapPrice: update.mapPrice,
-              lastPriceUpdate: update.lastPriceUpdate,
-              updatedAt: update.updatedAt
-            })
-            .where(eq(vendorProductMappings.id, update.id));
-        }
-      });
-      stats.recordsUpdated = mappingsToUpdate.length;
+      console.log(`📦 Updating ${mappingsToUpdate.length} existing records...`);
+      try {
+        await db.transaction(async (tx) => {
+          for (const update of mappingsToUpdate) {
+            await tx.update(vendorProductMappings)
+              .set({
+                vendorSku: update.vendorSku,
+                vendorCost: update.vendorCost,
+                msrpPrice: update.msrpPrice,
+                mapPrice: update.mapPrice,
+                lastPriceUpdate: update.lastPriceUpdate,
+                updatedAt: update.updatedAt
+              })
+              .where(eq(vendorProductMappings.id, update.id));
+          }
+        });
+        stats.recordsUpdated = mappingsToUpdate.length;
+        console.log(`✅ Successfully updated ${mappingsToUpdate.length} records`);
+      } catch (updateError: any) {
+        console.error(`❌ Update transaction failed:`, updateError.message);
+        stats.recordsErrors += mappingsToUpdate.length;
+        // Don't crash - log and continue
+      }
     }
 
     console.log(`✅ Bulk operations completed: ${stats.recordsAdded} added, ${stats.recordsUpdated} updated, ${stats.recordsSkipped} skipped`);
