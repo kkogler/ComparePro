@@ -340,10 +340,12 @@ export class CredentialVaultService {
       
       for (const field of schema.storeCredentials) {
         const incoming = credentials[field.name];
-        const isMasked = typeof incoming === 'string' && incoming.trim().startsWith('•');
+        // ✅ FIX: Safely check for masked value with proper type checking
+        const incomingStr = typeof incoming === 'string' ? incoming : String(incoming || '');
+        const isMasked = incomingStr.trim().startsWith('•');
         
         console.log(`🔍 FIELD MERGE: ${field.name}`, {
-          incoming: incoming ? `${incoming.substring(0, 2)}...` : 'NONE',
+          incoming: incomingStr ? `${incomingStr.substring(0, 2)}...` : 'NONE',
           isMasked,
           willUseExisting: incoming === undefined || incoming === null || (incoming === '' || isMasked)
         });
@@ -362,7 +364,11 @@ export class CredentialVaultService {
 
       console.log('🔍 MERGED CREDENTIALS:', {
         keys: Object.keys(merged),
-        nonEmptyKeys: Object.entries(merged).filter(([k,v]) => v && v.trim()).map(([k]) => k)
+        nonEmptyKeys: Object.entries(merged).filter(([k,v]) => {
+          // ✅ FIX: Safely check for non-empty values
+          const vStr = typeof v === 'string' ? v : String(v || '');
+          return vStr.trim().length > 0;
+        }).map(([k]) => k)
       });
 
       // Validate merged credentials against schema
@@ -559,22 +565,25 @@ export class CredentialVaultService {
         }
       }
       
-      if (field.required && (!value || value.trim() === '')) {
+      // ✅ FIX: Ensure value is a string before calling .trim()
+      const stringValue = value != null ? String(value) : '';
+      
+      if (field.required && (!stringValue || stringValue.trim() === '')) {
         throw new Error(`Required field missing: ${field.label}`);
       }
 
-      if (value && field.validation) {
+      if (stringValue && field.validation) {
         const validation = field.validation;
 
-        if (validation.minLength && value.length < validation.minLength) {
+        if (validation.minLength && stringValue.length < validation.minLength) {
           throw new Error(`${field.label} must be at least ${validation.minLength} characters`);
         }
 
-        if (validation.maxLength && value.length > validation.maxLength) {
+        if (validation.maxLength && stringValue.length > validation.maxLength) {
           throw new Error(`${field.label} must be no more than ${validation.maxLength} characters`);
         }
 
-        if (validation.pattern && !new RegExp(validation.pattern).test(value)) {
+        if (validation.pattern && !new RegExp(validation.pattern).test(stringValue)) {
           throw new Error(`${field.label} format is invalid`);
         }
       }
