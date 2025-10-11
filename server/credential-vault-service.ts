@@ -381,6 +381,12 @@ export class CredentialVaultService {
 
       // HYBRID APPROACH: Pass credentials through directly (no transformation)
       // Storage layer will save to JSON column as-is (matches admin pattern)
+      // 
+      // TECHNICAL DEBT: This bypasses processCredentials() which causes field name issues
+      // See: docs/CREDENTIAL_MANAGEMENT_TECHNICAL_DEBT.md
+      // PROPOSED FIX: Apply processCredentials() here to normalize field names automatically
+      //   const processedCredentials = this.processCredentials(merged, schema.storeCredentials);
+      //   await storage.saveCompanyVendorCredentials(companyId, supportedVendor.id, processedCredentials);
       console.log('🔐 CREDENTIAL VAULT (HYBRID): Passing credentials to storage without transformation');
       console.log('🔐 CREDENTIAL VAULT (HYBRID): Credential keys:', Object.keys(merged));
 
@@ -799,6 +805,9 @@ export class CredentialVaultService {
       }
       
       // ✅ BILL HICKS: Map FTP field variations (snake_case ↔ camelCase)
+      // TECHNICAL DEBT: This vendor-specific aliasing is a workaround for inconsistent use of processCredentials()
+      // See: docs/CREDENTIAL_MANAGEMENT_TECHNICAL_DEBT.md
+      // TODO: Remove this when processCredentials() is applied to store credentials (Phase 3)
       if (vendorId.toLowerCase().includes('bill') && vendorId.toLowerCase().includes('hicks')) {
         console.log('🔧 BILL HICKS: Applying FTP field aliases');
         
