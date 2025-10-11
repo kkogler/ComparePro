@@ -770,13 +770,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid item ID" });
       }
 
+      // Get the current item to calculate totalCost if quantity or unitCost changes
+      const currentItem = await storage.getOrderItem(itemId);
+      if (!currentItem) {
+        return res.status(404).json({ message: "Order item not found" });
+      }
+
+      // Calculate totalCost if quantity or unitCost is being updated
+      if (updates.quantity !== undefined || updates.unitCost !== undefined) {
+        const newQuantity = updates.quantity !== undefined ? updates.quantity : currentItem.quantity;
+        const newUnitCost = updates.unitCost !== undefined ? parseFloat(updates.unitCost) : parseFloat(currentItem.unitCost);
+        updates.totalCost = (newQuantity * newUnitCost).toFixed(2);
+        console.log(`ORDER ITEM UPDATE: Recalculating totalCost = ${newQuantity} × ${newUnitCost} = ${updates.totalCost}`);
+      }
+
       // Update the order item
       const updatedItem = await storage.updateOrderItem(itemId, updates);
       
       if (!updatedItem) {
-        return res.status(404).json({ message: "Order item not found" });
+        return res.status(404).json({ message: "Order item not found after update" });
       }
 
+      console.log(`ORDER ITEM UPDATE: Successfully updated item ${itemId}`, updates);
       res.json(updatedItem);
     } catch (error: any) {
       console.error('Update order item error:', error);
