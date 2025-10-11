@@ -2432,11 +2432,20 @@ export class DatabaseStorage implements IStorage {
       console.log('📖 STORAGE (HYBRID): Reading credentials from JSON column');
       console.log('📖 STORAGE (HYBRID): JSON credential keys:', Object.keys(result.credentials));
       
+      // ✅ FIX: Check if there's a nested credentials object (the actual credential values)
+      // The JSON column may contain the entire row data with a nested 'credentials' object
+      let actualCredentials = result.credentials;
+      
+      if (result.credentials.credentials && typeof result.credentials.credentials === 'object') {
+        console.log('📖 STORAGE (HYBRID): Found nested credentials object, using that');
+        actualCredentials = result.credentials.credentials;
+      }
+      
       // Return the entire result object but credentials come from JSON
       return {
         ...result,
-        // Merge JSON credentials into the result (they override old columns)
-        ...result.credentials
+        // Merge actual credentials into the result (they override old columns and null values)
+        ...actualCredentials
       };
     }
     
@@ -2495,7 +2504,8 @@ export class DatabaseStorage implements IStorage {
     console.log('💾 STORAGE (HYBRID): Saving company vendor credentials');
     console.log('💾 STORAGE (HYBRID): Company ID:', companyId);
     console.log('💾 STORAGE (HYBRID): Supported Vendor ID:', supportedVendorId);
-    console.log('💾 STORAGE (HYBRID): Credentials keys:', Object.keys(credentials));
+    console.log('💾 STORAGE (HYBRID): Incoming credentials keys:', Object.keys(credentials));
+    console.log('💾 STORAGE (HYBRID): Incoming credentials sample:', JSON.stringify(credentials, null, 2).substring(0, 500));
     
     // NEW HYBRID APPROACH:
     // 1. Save raw credentials to JSON column (primary storage)
@@ -2555,6 +2565,8 @@ export class DatabaseStorage implements IStorage {
     if (credentialFields.username) saveData.userName = credentialFields.username;  // Chattanooga
     
     console.log('💾 STORAGE (HYBRID): Saving to JSON column + legacy columns');
+    console.log('💾 STORAGE (HYBRID): saveData.credentials keys:', Object.keys(saveData.credentials || {}));
+    console.log('💾 STORAGE (HYBRID): saveData.credentials sample:', JSON.stringify(saveData.credentials, null, 2).substring(0, 500));
     
     const [result] = await db
       .insert(companyVendorCredentials)
