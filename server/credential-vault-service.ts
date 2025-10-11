@@ -798,6 +798,31 @@ export class CredentialVaultService {
         }
       }
       
+      // ✅ BILL HICKS: Map FTP field variations (snake_case ↔ camelCase)
+      if (vendorId.toLowerCase().includes('bill') && vendorId.toLowerCase().includes('hicks')) {
+        console.log('🔧 BILL HICKS: Applying FTP field aliases');
+        
+        // Bidirectional mapping: camelCase ↔ snake_case
+        const ftpFieldMappings = [
+          ['ftpServer', 'ftp_server'],
+          ['ftpUsername', 'ftp_username'],
+          ['ftpPassword', 'ftp_password'],
+          ['ftpPort', 'ftp_port'],
+          ['ftpBasePath', 'ftp_base_path']
+        ];
+        
+        for (const [camelCase, snakeCase] of ftpFieldMappings) {
+          if (result[snakeCase] && !result[camelCase]) {
+            result[camelCase] = result[snakeCase];
+            console.log(`🔧 ALIAS: ${snakeCase} → ${camelCase}`);
+          }
+          if (result[camelCase] && !result[snakeCase]) {
+            result[snakeCase] = result[camelCase];
+            console.log(`🔧 ALIAS: ${camelCase} → ${snakeCase}`);
+          }
+        }
+      }
+      
       // Get vendor from database to access credential field schema
       let supportedVendor = await storage.getSupportedVendorByName(vendorId);
       if (!supportedVendor) {
