@@ -2571,6 +2571,9 @@ export class DatabaseStorage implements IStorage {
     console.log('💾 STORAGE (HYBRID): Saving to JSON column + legacy columns');
     console.log('💾 STORAGE (HYBRID): saveData.credentials keys:', Object.keys(saveData.credentials || {}));
     console.log('💾 STORAGE (HYBRID): saveData.credentials sample:', JSON.stringify(saveData.credentials, null, 2).substring(0, 500));
+    console.log('💾 STORAGE (HYBRID): saveData.ftpUsername (legacy column):', saveData.ftpUsername);
+    console.log('💾 STORAGE (HYBRID): saveData.ftpServer (legacy column):', saveData.ftpServer);
+    console.log('💾 STORAGE (HYBRID): saveData.ftpBasePath (legacy column):', saveData.ftpBasePath);
     
     const [result] = await db
       .insert(companyVendorCredentials)
