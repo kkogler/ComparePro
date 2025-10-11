@@ -88,11 +88,11 @@ export function BillHicksConfig({
   const form = useForm<BillHicksConfigForm>({
     resolver: zodResolver(billHicksConfigSchema),
     defaultValues: {
-      ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || "ftp.billhicks.com",
-      ftpUsername: vendor?.credentials?.ftpUsername || "",
-      ftpPassword: vendor?.credentials?.ftpPassword || "",
-      ftpPort: vendor?.credentials?.ftpPort || "21",
-      ftpBasePath: vendor?.credentials?.ftpBasePath || "/MicroBiz/Feeds",
+      ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || vendor?.credentials?.credentials?.ftp_server || "",
+      ftpUsername: vendor?.credentials?.ftpUsername || vendor?.credentials?.credentials?.ftp_username || "",
+      ftpPassword: vendor?.credentials?.ftpPassword || vendor?.credentials?.credentials?.ftp_password || "",
+      ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "",
+      ftpBasePath: vendor?.credentials?.ftpBasePath || vendor?.credentials?.credentials?.ftp_base_path || "/MicroBiz/Feeds",
       enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
       syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
     },
@@ -104,11 +104,11 @@ export function BillHicksConfig({
       console.log('🔄 BILL HICKS CONFIG: useEffect triggered, vendor credentials:', vendor?.credentials);
       
       const formData = {
-        ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || "ftp.billhicks.com",
-        ftpUsername: vendor?.credentials?.ftpUsername || "",
-        ftpPassword: vendor?.credentials?.ftpPassword || "",
-        ftpPort: vendor?.credentials?.ftpPort || "21",
-        ftpBasePath: vendor?.credentials?.ftpBasePath || "/MicroBiz/Feeds",
+        ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || vendor?.credentials?.credentials?.ftp_server || "",
+        ftpUsername: vendor?.credentials?.ftpUsername || vendor?.credentials?.credentials?.ftp_username || "",
+        ftpPassword: vendor?.credentials?.ftpPassword || vendor?.credentials?.credentials?.ftp_password || "",
+        ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "",
+        ftpBasePath: vendor?.credentials?.ftpBasePath || vendor?.credentials?.credentials?.ftp_base_path || "/MicroBiz/Feeds",
         enablePriceComparison: vendor?.credentials?.enablePriceComparison ?? true,
         enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
         syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
@@ -370,12 +370,12 @@ export function BillHicksConfig({
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="Enter URL for Bill Hicks FP site"
+                            placeholder="e.g., http://billhicksco.hostedftp.com"
                             data-testid="input-ftp-host"
                           />
                         </FormControl>
                         <FormDescription className="text-xs">
-                          Typically <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">billhicksco.hostedftp.com</code>
+                          Typically <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">http://billhicksco.hostedftp.com</code>
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -391,8 +391,8 @@ export function BillHicksConfig({
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="Enter number of port"
-                            type="number"
+                            placeholder="e.g., 21"
+                            type="text"
                             data-testid="input-ftp-port"
                           />
                         </FormControl>
