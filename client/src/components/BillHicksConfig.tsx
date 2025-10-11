@@ -336,7 +336,7 @@ export function BillHicksConfig({
                           <Input
                             {...field}
                             type={showPassword ? "text" : "password"}
-                            placeholder="Enter ' password"
+                            placeholder="Enter password"
                             data-testid="input-ftp-password"
                           />
                           <Button
@@ -417,6 +417,9 @@ export function BillHicksConfig({
                           data-testid="input-ftp-base-path"
                         />
                       </FormControl>
+                      <FormDescription className="text-xs">
+                        The FTP directory path where your store-specific pricing file <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">MicroBiz_Daily_Catalog.csv</code> is located. We recommend using <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/MicroBiz/Feeds</code> unless Bill Hicks has provided a different path for your store.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
