@@ -2513,8 +2513,9 @@ export class DatabaseStorage implements IStorage {
       inventorySyncSchedule: credentials.inventory_sync_schedule ?? credentials.inventorySyncSchedule,
     };
     
-    // Extract credential fields (everything except operational fields)
+    // Extract credential fields (everything except operational fields and row metadata)
     const credentialFields = { ...credentials };
+    // Remove operational fields
     delete credentialFields.catalog_sync_enabled;
     delete credentialFields.catalogSyncEnabled;
     delete credentialFields.catalog_sync_schedule;
@@ -2523,6 +2524,44 @@ export class DatabaseStorage implements IStorage {
     delete credentialFields.inventorySyncEnabled;
     delete credentialFields.inventory_sync_schedule;
     delete credentialFields.inventorySyncSchedule;
+    // Remove row metadata that shouldn't be in credentials JSON
+    delete credentialFields.id;
+    delete credentialFields.companyId;
+    delete credentialFields.supportedVendorId;
+    delete credentialFields.createdAt;
+    delete credentialFields.updatedAt;
+    delete credentialFields.isActive;
+    delete credentialFields.connectionStatus;
+    delete credentialFields.lastConnectionTest;
+    delete credentialFields.connectionError;
+    delete credentialFields.lastCatalogSync;
+    delete credentialFields.catalogSyncStatus;
+    delete credentialFields.catalogSyncError;
+    delete credentialFields.lastCatalogRecordsCreated;
+    delete credentialFields.lastCatalogRecordsUpdated;
+    delete credentialFields.lastCatalogRecordsDeactivated;
+    delete credentialFields.lastCatalogRecordsSkipped;
+    delete credentialFields.lastCatalogRecordsFailed;
+    delete credentialFields.lastCatalogRecordsProcessed;
+    delete credentialFields.lastInventorySync;
+    delete credentialFields.inventorySyncStatus;
+    delete credentialFields.inventorySyncError;
+    delete credentialFields.lastInventoryRecordsUpdated;
+    delete credentialFields.lastInventorySkusProcessed;
+    // Remove legacy camelCase fields to prevent conflicts with snake_case
+    delete credentialFields.ftpServer;
+    delete credentialFields.ftpUsername;
+    delete credentialFields.ftpPassword;
+    delete credentialFields.ftpPort;
+    delete credentialFields.ftpBasePath;
+    delete credentialFields.userName;
+    delete credentialFields.password;
+    delete credentialFields.customerNumber;
+    delete credentialFields.apiKey;
+    delete credentialFields.apiSecret;
+    delete credentialFields.sid;
+    delete credentialFields.token;
+    delete credentialFields.credentials; // Remove nested credentials object
     
     console.log('💾 STORAGE (HYBRID): Credential fields for JSON:', Object.keys(credentialFields));
     console.log('💾 STORAGE (HYBRID): Operational fields:', operationalFields);
