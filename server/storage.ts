@@ -1553,12 +1553,6 @@ export class DatabaseStorage implements IStorage {
     return result || undefined;
   }
 
-  async getSupportedVendorByShortCode(shortCode: string): Promise<SupportedVendor | undefined> {
-    const [result] = await db.select().from(supportedVendors).where(eq(supportedVendors.shortCode, shortCode));
-    return result || undefined;
-  }
-
-
   async createSupportedVendor(vendor: any): Promise<SupportedVendor> {
     // ✅ ENFORCE: vendorShortCode MUST be lowercase to match handler IDs
     if (vendor.vendorShortCode) {
