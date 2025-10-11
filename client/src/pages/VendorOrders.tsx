@@ -366,15 +366,20 @@ export default function VendorOrders() {
       if (quantity !== undefined) updates.quantity = quantity;
       if (unitCost !== undefined) updates.unitCost = unitCost;
       if (customerReference !== undefined) updates.customerReference = customerReference;
-      return await apiRequest(`/api/order-items/${itemId}`, 'PATCH', updates);
+      console.log(`🔄 ORDER ITEM UPDATE: Sending update for item ${itemId}:`, updates);
+      const result = await apiRequest(`/api/order-items/${itemId}`, 'PATCH', updates);
+      console.log(`✅ ORDER ITEM UPDATE: Update successful for item ${itemId}:`, result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log(`🔄 ORDER ITEM UPDATE: Invalidating queries after successful update of item ${variables.itemId}`);
       // Invalidate order details to refresh the data
       const baseUrl = organizationSlug ? `/org/${organizationSlug}/api/orders` : '/api/admin/orders';
       queryClient.invalidateQueries({ queryKey: [baseUrl, selectedOrderId, 'details'] });
       queryClient.invalidateQueries({ queryKey: [baseUrl] });
     },
-    onError: (error: any) => {
+    onError: (error: any, variables) => {
+      console.error(`❌ ORDER ITEM UPDATE: Failed to update item ${variables.itemId}:`, error);
       toast({
         title: "Update Failed",
         description: error.message || "Failed to update item quantity",
@@ -868,15 +873,27 @@ export default function VendorOrders() {
   // Handler for quantity input blur (save changes)
   const handleQuantityBlur = (itemId: number, unitCost: string) => {
     const newQuantity = editingQuantities[itemId];
+    console.log(`🔄 QUANTITY BLUR: Item ${itemId}, newQuantity: ${newQuantity}, unitCost: ${unitCost}`);
     if (newQuantity && newQuantity > 0) {
+      console.log(`✅ QUANTITY BLUR: Calling handleUpdateQuantity for item ${itemId}`);
       handleUpdateQuantity(itemId, newQuantity, unitCost);
+      // Clear the editing state only after initiating the update
+      // The mutation will invalidate queries and refresh the data
+      setEditingQuantities(prev => {
+        const newState = { ...prev };
+        delete newState[itemId];
+        console.log(`🔄 QUANTITY BLUR: Cleared editing state for item ${itemId}`);
+        return newState;
+      });
+    } else {
+      // If invalid quantity, just clear the editing state without saving
+      console.log(`⚠️ QUANTITY BLUR: Invalid quantity for item ${itemId}, not saving`);
+      setEditingQuantities(prev => {
+        const newState = { ...prev };
+        delete newState[itemId];
+        return newState;
+      });
     }
-    // Clear the editing state
-    setEditingQuantities(prev => {
-      const newState = { ...prev };
-      delete newState[itemId];
-      return newState;
-    });
   };
 
   // Handler for customer reference input changes
