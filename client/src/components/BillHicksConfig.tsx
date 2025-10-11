@@ -88,10 +88,10 @@ export function BillHicksConfig({
   const form = useForm<BillHicksConfigForm>({
     resolver: zodResolver(billHicksConfigSchema),
     defaultValues: {
-      ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || vendor?.credentials?.credentials?.ftp_server || "",
+      ftpHost: vendor?.credentials?.ftpHost || vendor?.credentials?.ftpServer || vendor?.credentials?.credentials?.ftp_server || "",
       ftpUsername: vendor?.credentials?.ftpUsername || vendor?.credentials?.credentials?.ftp_username || "",
       ftpPassword: vendor?.credentials?.ftpPassword || vendor?.credentials?.credentials?.ftp_password || "",
-      ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "",
+      ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "21",
       ftpBasePath: vendor?.credentials?.ftpBasePath || vendor?.credentials?.credentials?.ftp_base_path || "/MicroBiz/Feeds",
       enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
       syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
@@ -104,10 +104,10 @@ export function BillHicksConfig({
       console.log('🔄 BILL HICKS CONFIG: useEffect triggered, vendor credentials:', vendor?.credentials);
       
       const formData = {
-        ftpHost: vendor?.credentials?.ftpServer || vendor?.credentials?.ftpHost || vendor?.credentials?.credentials?.ftp_server || "",
+        ftpHost: vendor?.credentials?.ftpHost || vendor?.credentials?.ftpServer || vendor?.credentials?.credentials?.ftp_server || "",
         ftpUsername: vendor?.credentials?.ftpUsername || vendor?.credentials?.credentials?.ftp_username || "",
         ftpPassword: vendor?.credentials?.ftpPassword || vendor?.credentials?.credentials?.ftp_password || "",
-        ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "",
+        ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "21",
         ftpBasePath: vendor?.credentials?.ftpBasePath || vendor?.credentials?.credentials?.ftp_base_path || "/MicroBiz/Feeds",
         enablePriceComparison: vendor?.credentials?.enablePriceComparison ?? true,
         enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
@@ -370,7 +370,7 @@ export function BillHicksConfig({
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="e.g., http://billhicksco.hostedftp.com"
+                            placeholder="Enter URL"
                             data-testid="input-ftp-host"
                           />
                         </FormControl>
@@ -391,7 +391,6 @@ export function BillHicksConfig({
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="e.g., 21"
                             type="text"
                             data-testid="input-ftp-port"
                           />
@@ -414,13 +413,10 @@ export function BillHicksConfig({
                       <FormControl>
                         <Input 
                           {...field} 
-                          placeholder="Enter directory path of your folder"
+                          placeholder="/"
                           data-testid="input-ftp-base-path"
                         />
                       </FormControl>
-                      <FormDescription className="text-xs">
-                        The FTP directory path where your store-specific pricing file <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">MicroBiz_Daily_Catalog.csv</code> is located. We recommend using <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/MicroBiz/Feeds</code> unless Bill Hicks has provided a different path for your store.
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

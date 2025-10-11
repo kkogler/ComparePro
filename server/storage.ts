@@ -2537,12 +2537,22 @@ export class DatabaseStorage implements IStorage {
     };
     
     // BACKWARD COMPATIBILITY: Also save to old columns (will be removed in Phase 3)
-    // Map common FTP fields
-    if (credentialFields.ftpServer) saveData.ftpServer = credentialFields.ftpServer;
-    if (credentialFields.ftpPort) saveData.ftpPort = credentialFields.ftpPort;
-    if (credentialFields.ftpUsername) saveData.ftpUsername = credentialFields.ftpUsername;
-    if (credentialFields.ftpPassword) saveData.ftpPassword = credentialFields.ftpPassword;
-    if (credentialFields.ftpBasePath) saveData.ftpBasePath = credentialFields.ftpBasePath;
+    // Map common FTP fields - support both snake_case and camelCase
+    if (credentialFields.ftpServer || credentialFields.ftp_server) {
+      saveData.ftpServer = credentialFields.ftpServer || credentialFields.ftp_server;
+    }
+    if (credentialFields.ftpPort || credentialFields.ftp_port) {
+      saveData.ftpPort = credentialFields.ftpPort || credentialFields.ftp_port;
+    }
+    if (credentialFields.ftpUsername || credentialFields.ftp_username) {
+      saveData.ftpUsername = credentialFields.ftpUsername || credentialFields.ftp_username;
+    }
+    if (credentialFields.ftpPassword || credentialFields.ftp_password) {
+      saveData.ftpPassword = credentialFields.ftpPassword || credentialFields.ftp_password;
+    }
+    if (credentialFields.ftpBasePath || credentialFields.ftp_base_path) {
+      saveData.ftpBasePath = credentialFields.ftpBasePath || credentialFields.ftp_base_path;
+    }
     
     // Map API fields - accept both camelCase (new) and snake_case (old)
     if (credentialFields.userName) saveData.userName = credentialFields.userName;
