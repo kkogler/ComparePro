@@ -102,13 +102,16 @@ export function BillHicksConfig({
   useEffect(() => {
     if (isOpen) {
       console.log('🔄 BILL HICKS CONFIG: useEffect triggered, vendor credentials:', vendor?.credentials);
+      console.log('🔍 BILL HICKS CONFIG: ftpBasePath from vendor.credentials:', vendor?.credentials?.ftpBasePath);
+      console.log('🔍 BILL HICKS CONFIG: ftp_base_path from vendor.credentials:', vendor?.credentials?.ftp_base_path);
+      console.log('🔍 BILL HICKS CONFIG: credentials.credentials:', vendor?.credentials?.credentials);
       
       const formData = {
         ftpHost: vendor?.credentials?.ftpHost || vendor?.credentials?.ftpServer || vendor?.credentials?.credentials?.ftp_server || "",
         ftpUsername: vendor?.credentials?.ftpUsername || vendor?.credentials?.credentials?.ftp_username || "",
         ftpPassword: vendor?.credentials?.ftpPassword || vendor?.credentials?.credentials?.ftp_password || "",
         ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "21",
-        ftpBasePath: vendor?.credentials?.ftpBasePath || vendor?.credentials?.credentials?.ftp_base_path || "/MicroBiz/Feeds",
+        ftpBasePath: vendor?.credentials?.ftpBasePath || vendor?.credentials?.ftp_base_path || vendor?.credentials?.credentials?.ftp_base_path || "/MicroBiz/Feeds",
         enablePriceComparison: vendor?.credentials?.enablePriceComparison ?? true,
         enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
         syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
@@ -415,7 +418,7 @@ export function BillHicksConfig({
                       <FormControl>
                         <Input 
                           {...field} 
-                          placeholder="/"
+                          placeholder="Enter path to FTP folder"
                           data-testid="input-ftp-base-path"
                         />
                       </FormControl>
