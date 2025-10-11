@@ -310,6 +310,11 @@ export function registerCredentialManagementRoutes(app: Express): void {
         acc[key] = typeof val === 'string' && val.length > 0 ? `${val[0]}***${val[val.length-1]}` : '<empty>';
         return acc;
       }, {} as Record<string, string>));
+      
+      // Debug: Check ftp_base_path specifically
+      if (stringVendorId.toLowerCase().includes('bill') && stringVendorId.toLowerCase().includes('hicks')) {
+        console.log('🔍 BILL HICKS SAVE: ftp_base_path value:', credentials.ftp_base_path, '(length:', credentials.ftp_base_path?.length || 0, ')');
+      }
 
       await credentialVault.storeStoreCredentials(stringVendorId, companyId, credentials, userId, auditInfo);
 

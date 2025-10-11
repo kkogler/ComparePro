@@ -218,6 +218,8 @@ export function BillHicksConfig({
         ftpServer: credentials.ftpHost,
         ftpUsername: credentials.ftpUsername,
         ftpPassword: credentials.ftpPassword,
+        ftpBasePath: formData.ftpBasePath,
+        ftpPort: credentials.ftpPort,
         inventorySyncEnabled: credentials.enableAutomaticSync
       });
 

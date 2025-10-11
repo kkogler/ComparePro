@@ -3528,12 +3528,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (billHicksCredentials) {
             console.log('BILL HICKS CREDENTIALS: Creating vendor credentials object');
+            console.log('BILL HICKS CREDENTIALS: Raw ftpBasePath from DB:', billHicksCredentials.ftpBasePath, '(type:', typeof billHicksCredentials.ftpBasePath, ')');
+            console.log('BILL HICKS CREDENTIALS: Raw ftp_base_path from DB:', billHicksCredentials.ftp_base_path);
             vendorCredentials = {
               ftpHost: billHicksCredentials.ftpServer,
               ftpUsername: billHicksCredentials.ftpUsername,
               ftpPassword: billHicksCredentials.ftpPassword, // Include password for B2B automation
               ftpPort: billHicksCredentials.ftpPort?.toString() || '21',
-              ftpBasePath: billHicksCredentials.ftpBasePath || '/MicroBiz/Feeds',
+              ftpBasePath: billHicksCredentials.ftpBasePath || billHicksCredentials.ftp_base_path || '/MicroBiz/Feeds',
               enablePriceComparison: billHicksCredentials.catalogSyncEnabled || false,
               enableAutomaticSync: billHicksCredentials.inventorySyncEnabled || false,
               lastCatalogSync: billHicksCredentials.lastCatalogSync,
