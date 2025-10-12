@@ -54,8 +54,9 @@ export function BillHicksConfig({
 
   // Get company data for timezone display
   const { data: companyData } = useQuery({
-    queryKey: ['/api/organization'],
+    queryKey: [`/org/${organizationSlug}/api/organization`],
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!organizationSlug,
   });
 
   // Get vendor data for last sync info
@@ -88,11 +89,11 @@ export function BillHicksConfig({
   const form = useForm<BillHicksConfigForm>({
     resolver: zodResolver(billHicksConfigSchema),
     defaultValues: {
-      ftpHost: vendor?.credentials?.ftpHost || vendor?.credentials?.ftpServer || vendor?.credentials?.credentials?.ftp_server || "",
-      ftpUsername: vendor?.credentials?.ftpUsername || vendor?.credentials?.credentials?.ftp_username || "",
-      ftpPassword: vendor?.credentials?.ftpPassword || vendor?.credentials?.credentials?.ftp_password || "",
-      ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "21",
-      ftpBasePath: vendor?.credentials?.ftpBasePath || vendor?.credentials?.credentials?.ftp_base_path || "/MicroBiz/Feeds",
+      ftpHost: vendor?.credentials?.ftp_server || vendor?.credentials?.ftpHost || vendor?.credentials?.ftpServer || "",
+      ftpUsername: vendor?.credentials?.ftp_username || vendor?.credentials?.ftpUsername || "",
+      ftpPassword: vendor?.credentials?.ftp_password || vendor?.credentials?.ftpPassword || "",
+      ftpPort: vendor?.credentials?.ftp_port?.toString() || vendor?.credentials?.ftpPort?.toString() || "21",
+      ftpBasePath: vendor?.credentials?.ftp_base_path || vendor?.credentials?.ftpBasePath || "/MicroBiz/Feeds",
       enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
       syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
     },
@@ -107,11 +108,11 @@ export function BillHicksConfig({
       console.log('🔍 BILL HICKS CONFIG: credentials.credentials:', vendor?.credentials?.credentials);
       
       const formData = {
-        ftpHost: vendor?.credentials?.ftpHost || vendor?.credentials?.ftpServer || vendor?.credentials?.credentials?.ftp_server || "",
-        ftpUsername: vendor?.credentials?.ftpUsername || vendor?.credentials?.credentials?.ftp_username || "",
-        ftpPassword: vendor?.credentials?.ftpPassword || vendor?.credentials?.credentials?.ftp_password || "",
-        ftpPort: vendor?.credentials?.ftpPort?.toString() || vendor?.credentials?.credentials?.ftp_port?.toString() || "21",
-        ftpBasePath: vendor?.credentials?.ftpBasePath || vendor?.credentials?.ftp_base_path || vendor?.credentials?.credentials?.ftp_base_path || "/MicroBiz/Feeds",
+        ftpHost: vendor?.credentials?.ftp_server || vendor?.credentials?.ftpHost || vendor?.credentials?.ftpServer || "",
+        ftpUsername: vendor?.credentials?.ftp_username || vendor?.credentials?.ftpUsername || "",
+        ftpPassword: vendor?.credentials?.ftp_password || vendor?.credentials?.ftpPassword || "",
+        ftpPort: vendor?.credentials?.ftp_port?.toString() || vendor?.credentials?.ftpPort?.toString() || "21",
+        ftpBasePath: vendor?.credentials?.ftp_base_path || vendor?.credentials?.ftpBasePath || "/MicroBiz/Feeds",
         enablePriceComparison: vendor?.credentials?.enablePriceComparison ?? true,
         enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
         syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
@@ -124,7 +125,7 @@ export function BillHicksConfig({
     if (isOpen && vendor?.vendorShortCode !== undefined) {
       setShortCode(vendor.vendorShortCode || '');
     }
-  }, [isOpen, vendor?.credentials?.ftpUsername, vendor?.credentials?.ftpPassword, vendor?.credentials?.ftpServer, vendor?.credentials?.ftpHost, vendor?.credentials?.ftpPort, vendor?.credentials?.ftpBasePath, form]);
+  }, [isOpen, vendor?.credentials?.ftp_username, vendor?.credentials?.ftp_password, vendor?.credentials?.ftp_server, vendor?.credentials?.ftp_port, vendor?.credentials?.ftp_base_path, form]);
 
   const testConnectionMutation = useMutation({
     mutationFn: async (formData: BillHicksConfigForm) => {

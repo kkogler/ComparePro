@@ -20,10 +20,10 @@ interface SportsSouthConfigProps {
 export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, organizationSlug }: SportsSouthConfigProps) {
   const [open, setOpen] = useState(isOpen);
   const [credentials, setCredentials] = useState({
-    userName: vendor?.credentials?.userName || '',
+    userName: vendor?.credentials?.user_name || vendor?.credentials?.userName || '',
     password: vendor?.credentials?.password || '',
     source: vendor?.credentials?.source || '',
-    customerNumber: vendor?.credentials?.customerNumber || ''
+    customerNumber: vendor?.credentials?.customer_number || vendor?.credentials?.customerNumber || ''
   });
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { toast } = useToast();

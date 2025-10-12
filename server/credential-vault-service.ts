@@ -832,6 +832,28 @@ export class CredentialVaultService {
         }
       }
       
+      // ✅ SPORTS SOUTH: Map REST API field variations (snake_case ↔ camelCase)
+      if (vendorId.toLowerCase().includes('sports') && vendorId.toLowerCase().includes('south')) {
+        console.log('🔧 SPORTS SOUTH: Applying REST API field aliases');
+        
+        // Bidirectional mapping: camelCase ↔ snake_case
+        const apiFieldMappings = [
+          ['userName', 'user_name'],
+          ['customerNumber', 'customer_number']
+        ];
+        
+        for (const [camelCase, snakeCase] of apiFieldMappings) {
+          if (result[snakeCase] && !result[camelCase]) {
+            result[camelCase] = result[snakeCase];
+            console.log(`🔧 ALIAS: ${snakeCase} → ${camelCase}`);
+          }
+          if (result[camelCase] && !result[snakeCase]) {
+            result[snakeCase] = result[camelCase];
+            console.log(`🔧 ALIAS: ${camelCase} → ${snakeCase}`);
+          }
+        }
+      }
+      
       // Get vendor from database to access credential field schema
       let supportedVendor = await storage.getSupportedVendorByName(vendorId);
       if (!supportedVendor) {
