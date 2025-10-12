@@ -14,5 +14,4 @@ export default defineConfig({
   // Disable automatic schema pushing during deployment
   // We use manual SQL migrations instead
   schemaFilter: ["public"],
-  tablesFilter: ["!plan_settings"],
 });
