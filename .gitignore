@@ -18,6 +18,9 @@ backups/
 *.sql
 *.dump
 
+# But allow migration files to be committed
+!migrations/*.sql
+
 # Logs
 logs/
 *.log
