@@ -2548,20 +2548,9 @@ export class DatabaseStorage implements IStorage {
     delete credentialFields.inventorySyncError;
     delete credentialFields.lastInventoryRecordsUpdated;
     delete credentialFields.lastInventorySkusProcessed;
-    // Remove legacy camelCase fields to prevent conflicts with snake_case
-    delete credentialFields.ftpServer;
-    delete credentialFields.ftpUsername;
-    delete credentialFields.ftpPassword;
-    delete credentialFields.ftpPort;
-    delete credentialFields.ftpBasePath;
-    delete credentialFields.userName;
-    delete credentialFields.password;
-    delete credentialFields.customerNumber;
-    delete credentialFields.apiKey;
-    delete credentialFields.apiSecret;
-    delete credentialFields.sid;
-    delete credentialFields.token;
-    delete credentialFields.credentials; // Remove nested credentials object
+    // Keep original credential fields - DON'T DELETE THEM
+    // They will be saved to BOTH the JSON column AND legacy columns for backward compatibility
+    delete credentialFields.credentials; // Remove nested credentials object to avoid duplication
     
     console.log('💾 STORAGE (HYBRID): Credential fields for JSON:', Object.keys(credentialFields));
     console.log('💾 STORAGE (HYBRID): Operational fields:', operationalFields);
