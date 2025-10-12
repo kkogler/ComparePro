@@ -1,0 +1,53 @@
+Summary of the Issue
+What Happened:
+Oct 9: A code change (commit 596e41b) modified shared/schema.ts to add maxOrders column to the plan_settings table
+Problem: No database migration was actually run - the databases never got updated
+Result: Schema file says "should have max_orders" but databases don't have it
+Deployment Error: Replit compares:
+schema.ts (your code) ✅ HAS maxOrders defined
+Dev database ❌ MISSING max_orders column
+Production database ❓ Status unknown
+Replit thinks: "Dev doesn't have it, so delete it from production!"
+What We've Tried:
+✅ Removed old Drizzle migration metadata
+✅ Created new baseline with max_orders included
+✅ Added max_orders column to dev database
+❌ Still getting the error
+Why It's Still Failing:
+The deployment might be cached or there's another database Replit is checking. Let me verify what's actually in dev now:
+                                            Table "public.plan_settings"
+      Column       |            Type             | Collation | Nullable |                  Default                  
+-------------------+-----------------------------+-----------+----------+-------------------------------------------
+ id                | integer                     |           | not null | nextval('plan_settings_id_seq'::regclass)
+ plan_id           | text                        |           | not null | 
+ plan_name         | text                        |           | not null | 
+ trial_length_days | integer                     |           |          | 
+ plan_length_days  | integer                     |           |          | 
+ max_vendors       | integer                     |           |          | 
+ online_ordering   | boolean                     |           |          | false
+ asn_processing    | boolean                     |           |          | false
+ webhook_export    | boolean                     |           |          | false
+ is_active         | boolean                     |           |          | true
+ sort_order        | integer                     |           |          | 0
+ created_at        | timestamp without time zone |           | not null | now()
+ updated_at        | timestamp without time zone |           | not null | now()
+ max_users         | integer                     |           |          | 
+ max_orders        | integer                     |           |          | 
+Indexes:
+    "plan_settings_pkey" PRIMARY KEY, btree (id)
+    "plan_settings_plan_id_unique" UNIQUE CONSTRAINT, btree (plan_id)
+
+Good! Dev database DOES have max_orders now (line 15).
+The Real Issue:
+Replit's deployment is likely using a cached snapshot of your dev database from before we added the column, OR it's comparing against the old 0000_neat_lake.sql migration baseline.
+What We Need To Do:
+Option 1: Just approve the deployment (Simplest)
+The warning is misleading - it's based on stale data
+Approve it, let it sync everything
+Run the restoration script if needed
+Future deployments will work correctly
+Option 2: Force Replit to refresh
+Delete the old baseline migration file: migrations/0000_neat_lake.sql
+Force Replit to use the new baseline we created
+Try deploying again
+Which would you prefer? I recommend Option 1 since we've already fixed the actual issue (dev now has max_orders), and the deployment system just needs to catch up.
