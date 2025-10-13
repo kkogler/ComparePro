@@ -280,7 +280,7 @@ export default function VendorComparison() {
 
   // Query for user's assigned stores
   const { data: userStores } = useQuery({
-    queryKey: ['/api/user/stores'],
+    queryKey: [`/org/${orgSlug}/api/user/stores`],
     queryFn: async () => {
       const response = await fetch(`/org/${orgSlug}/api/user/stores`, {
         credentials: "include",
