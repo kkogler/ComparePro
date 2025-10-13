@@ -376,7 +376,13 @@ export default function VendorOrders() {
       // Invalidate order details to refresh the data
       const baseUrl = organizationSlug ? `/org/${organizationSlug}/api/orders` : '/api/admin/orders';
       queryClient.invalidateQueries({ queryKey: [baseUrl, selectedOrderId, 'details'] });
-      queryClient.invalidateQueries({ queryKey: [baseUrl] });
+      // Invalidate all orders queries (including those with status filters)
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && 
+          query.queryKey[0] === baseUrl &&
+          query.queryKey.length <= 2 // Match [baseUrl] or [baseUrl, statusFilter]
+      });
     },
     onError: (error: any, variables) => {
       console.error(`❌ ORDER ITEM UPDATE: Failed to update item ${variables.itemId}:`, error);
@@ -397,7 +403,13 @@ export default function VendorOrders() {
       // Invalidate order details to refresh the data
       const baseUrl = organizationSlug ? `/org/${organizationSlug}/api/orders` : '/api/admin/orders';
       queryClient.invalidateQueries({ queryKey: [baseUrl, selectedOrderId, 'details'] });
-      queryClient.invalidateQueries({ queryKey: [baseUrl] });
+      // Invalidate all orders queries (including those with status filters)
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && 
+          query.queryKey[0] === baseUrl &&
+          query.queryKey.length <= 2
+      });
       toast({
         title: "Item Deleted",
         description: "Order item deleted successfully",
@@ -422,7 +434,13 @@ export default function VendorOrders() {
       // Invalidate order details to refresh the data
       const baseUrl = organizationSlug ? `/org/${organizationSlug}/api/orders` : '/api/admin/orders';
       queryClient.invalidateQueries({ queryKey: [baseUrl, selectedOrderId, 'details'] });
-      queryClient.invalidateQueries({ queryKey: [baseUrl] });
+      // Invalidate all orders queries (including those with status filters)
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && 
+          query.queryKey[0] === baseUrl &&
+          query.queryKey.length <= 2
+      });
       toast({
         title: "Items Consolidated",
         description: data.message || "Duplicate order items consolidated successfully",
