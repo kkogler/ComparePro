@@ -270,7 +270,8 @@ export const vendorProductMappings = pgTable("vendor_product_mappings", {
 export const supportedVendors = pgTable("supported_vendors", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
-  vendorShortCode: text("vendor_short_code"), // Short code for display (e.g., "Lipsey's")
+  vendorSlug: text("vendor_slug").notNull().unique(), // Immutable system identifier for routing/API (e.g., "lipseys")
+  vendorShortCode: text("vendor_short_code"), // Editable short name for reports/CSV exports (e.g., "Lipsey's", "LSY")
   description: text("description").notNull(),
   apiType: text("api_type").notNull(), // 'rest_api', 'soap', 'ftp', 'excel'
   logoUrl: text("logo_url"),
@@ -423,8 +424,9 @@ export const vendors = pgTable("vendors", {
   companyId: integer("company_id").references(() => companies.id).notNull(),
   supportedVendorId: integer("supported_vendor_id").references(() => supportedVendors.id),
   name: text("name").notNull(), // Full vendor name (e.g., "Lipsey's Inc.")
-  vendorShortCode: text("vendor_short_code"), // Short code for display (e.g., "Lipsey's")
-  slug: text("slug").notNull(), // Auto-generated from vendorShortCode, immutable, used for all system references
+  vendorSlug: text("vendor_slug"), // Immutable vendor type identifier (e.g., "lipseys") - copied from supported_vendors
+  vendorShortCode: text("vendor_short_code"), // Editable short name for display/reports (e.g., "Lipsey's", "LSY")
+  slug: text("slug").notNull(), // Per-organization instance identifier (e.g., "lipseys-1", "lipseys-2"), immutable, used for URL routing
   status: text("status").notNull().default('offline'), // 'online', 'offline', 'syncing', 'error'
   isArchived: boolean("is_archived").default(false), // Organization can archive vendors
   integrationType: text("integration_type").notNull(), // 'api', 'excel'
@@ -1238,7 +1240,8 @@ export const planSettings = pgTable("plan_settings", {
   trialLengthDays: integer("trial_length_days"), // null for no trial, number for trial days
   planLengthDays: integer("plan_length_days"), // null for unlimited, number for limited plans
   
-  // Vendor and order limits
+  // Subscription limits (must match companies table structure)
+  maxUsers: integer("max_users"), // null for unlimited, number for limit
   maxVendors: integer("max_vendors"), // null for unlimited, number for limit
   maxOrders: integer("max_orders"), // null for unlimited, number for limit
   

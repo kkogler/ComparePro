@@ -1554,28 +1554,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSupportedVendor(vendor: any): Promise<SupportedVendor> {
-    // ✅ ENFORCE: vendorShortCode MUST be lowercase to match handler IDs
-    if (vendor.vendorShortCode) {
-      const normalized = vendor.vendorShortCode.toLowerCase();
-      if (vendor.vendorShortCode !== normalized) {
-        console.warn(`⚠️  Auto-normalizing vendorShortCode: "${vendor.vendorShortCode}" → "${normalized}"`);
-        vendor.vendorShortCode = normalized;
+    // ✅ ENFORCE: vendorSlug MUST be lowercase to match handler IDs (immutable system identifier)
+    if (vendor.vendorSlug) {
+      const normalized = vendor.vendorSlug.toLowerCase();
+      if (vendor.vendorSlug !== normalized) {
+        console.warn(`⚠️  Auto-normalizing vendorSlug: "${vendor.vendorSlug}" → "${normalized}"`);
+        vendor.vendorSlug = normalized;
       }
     }
+
+    // vendorShortCode is now editable - no normalization required
+    // It's only used for display/reports, not for system routing
     
     const [result] = await db.insert(supportedVendors).values(vendor).returning();
     return result;
   }
 
   async updateSupportedVendor(id: number, updates: any): Promise<SupportedVendor | undefined> {
-    // ✅ ENFORCE: vendorShortCode MUST be lowercase to match handler IDs
-    if (updates.vendorShortCode) {
-      const normalized = updates.vendorShortCode.toLowerCase();
-      if (updates.vendorShortCode !== normalized) {
-        console.warn(`⚠️  Auto-normalizing vendorShortCode: "${updates.vendorShortCode}" → "${normalized}"`);
-        updates.vendorShortCode = normalized;
-      }
+    // ⚠️  SECURITY: vendorSlug should NOT be editable after creation (immutable)
+    // Remove vendorSlug from updates if present to prevent accidental changes
+    if (updates.vendorSlug) {
+      console.warn(`⚠️  REJECTED: Attempt to modify immutable vendorSlug for vendor ID ${id}`);
+      delete updates.vendorSlug; // Silently ignore - don't break the update
     }
+
+    // vendorShortCode is now editable - no normalization required
+    // It's only used for display/reports, not for system routing
     
     // Handle retail vertical assignments if provided
     if ('retailVerticalIds' in updates && Array.isArray(updates.retailVerticalIds)) {
@@ -1810,16 +1814,17 @@ export class DatabaseStorage implements IStorage {
         break; // Stop adding vendors once limit is reached
       }
       
-      // Generate slug from vendorShortCode (or fallback to name)
+      // Generate slug from vendorSlug (or fallback to name)
       const { generateVendorSlug, generateVendorSlugFromName } = await import('./slug-utils');
-      const slug = supported.vendorShortCode 
-        ? generateVendorSlug(supported.vendorShortCode)
+      const slug = supported.vendorSlug 
+        ? generateVendorSlug(supported.vendorSlug)
         : generateVendorSlugFromName(supported.name);
       
       await this.createVendor({
         name: supported.name,
-        slug, // ✅ Required field for vendor identification
-        vendorShortCode: supported.vendorShortCode || null,
+        slug, // ✅ Required field for vendor identification (per-org instance)
+        vendorSlug: supported.vendorSlug || null, // ✅ Immutable vendor type identifier
+        vendorShortCode: supported.vendorShortCode || null, // ✅ Editable display name
         companyId,
         supportedVendorId: supported.id,
         integrationType: 'api', // Default integration type
@@ -3089,9 +3094,16 @@ export class DatabaseStorage implements IStorage {
    * @param shortCode Vendor short code to search for
    * @returns SupportedVendor or undefined if not found
    */
-  async getSupportedVendorByShortCode(shortCode: string): Promise<SupportedVendor | undefined> {
+  // ✅ NEW: Get supported vendor by immutable slug (for system routing)
+  async getSupportedVendorBySlug(slug: string): Promise<SupportedVendor | undefined> {
     const vendors = await this.getAllSupportedVendors();
-    return vendors.find(v => v.vendorShortCode?.toLowerCase() === shortCode.toLowerCase());
+    return vendors.find(v => v.vendorSlug?.toLowerCase() === slug.toLowerCase());
+  }
+
+  // 🔄 DEPRECATED: Use getSupportedVendorBySlug instead
+  // Kept for backward compatibility during migration
+  async getSupportedVendorByShortCode(shortCode: string): Promise<SupportedVendor | undefined> {
+    return this.getSupportedVendorBySlug(shortCode);
   }
   
   /**
