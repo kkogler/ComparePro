@@ -1985,7 +1985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (company.billingProvider === 'zoho' && company.billingSubscriptionId) {
         try {
           // Import Zoho billing service
-          const { zohoBillingService } = await import('./zoho-billing');
+          const { zohoBillingService } = await import('./zoho-billing-service');
           
           // Use Zoho API to change plan
           const result = await zohoBillingService.changePlan(
