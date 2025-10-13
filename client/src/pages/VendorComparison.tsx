@@ -1557,27 +1557,27 @@ export default function VendorComparison() {
                   </RadioGroup>
                 </div>
                 
-                {/* Delivery Store Selection - Only shown when creating new order */}
-                {selectedOrderId === "new" && (
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    <Label className="text-sm font-medium text-gray-700 mb-3 block">Delivery Store</Label>
-                    <Select 
-                      value={selectedStoreId} 
-                      onValueChange={setSelectedStoreId}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Main Store..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stores?.map((store: any) => (
-                          <SelectItem key={store.id} value={store.id.toString()}>
-                            {store.name} ({store.shortName})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                {/* Delivery Store Selection - Required for all orders */}
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                    Delivery Store {!selectedStoreId && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Select 
+                    value={selectedStoreId} 
+                    onValueChange={setSelectedStoreId}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select store..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stores?.map((store: any) => (
+                        <SelectItem key={store.id} value={store.id.toString()}>
+                          {store.name} ({store.shortName})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
                 {/* Existing Draft Orders - Only for non-new orders */}
                 {draftOrders && draftOrders.length > 0 && (
@@ -1663,7 +1663,8 @@ export default function VendorComparison() {
                 disabled={
                   addItemToOrderMutation.isPending || 
                   !orgSlug || 
-                  (selectedOrderId === "new" && !selectedStoreId)
+                  !selectedStoreId || // Store required for all orders
+                  (requireCategory && !selectedCategory?.trim())
                 }
                 className="btn-orange-action"
               >
