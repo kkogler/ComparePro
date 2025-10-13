@@ -50,7 +50,8 @@ import type { UploadResult } from '@uppy/core';
 interface SupportedVendor {
   id: number;
   name: string;
-  vendorShortCode?: string;
+  vendorSlug: string; // Immutable system identifier
+  vendorShortCode?: string; // Editable display name
   description: string;
   apiType: string;
   logoUrl: string | null;
@@ -1041,13 +1042,34 @@ function VendorFormModal({
               />
             </div>
             <div className="col-span-2">
-              <Label htmlFor="vendorShortCode">Vendor Short Code</Label>
+              <Label htmlFor="vendorSlug">
+                Vendor Slug (System Identifier)
+                {vendor && <Badge variant="secondary" className="ml-2">Read-Only</Badge>}
+              </Label>
+              <Input
+                id="vendorSlug"
+                value={vendor?.vendorSlug || 'Will be auto-generated from name'}
+                disabled={true}
+                className="bg-gray-50 cursor-not-allowed"
+                title="Immutable system identifier used for API routing and vendor handlers"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                🔒 This field is immutable and used throughout the system for vendor identification
+              </p>
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="vendorShortCode">
+                Vendor Short Code (Display Name)
+              </Label>
               <Input
                 id="vendorShortCode"
                 value={formData.vendorShortCode || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, vendorShortCode: e.target.value }))}
-                placeholder="VENDOR_CODE"
+                placeholder="Optional: Custom name for reports and CSV exports (e.g., LSY, BH)"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                ✏️ Editable display name used in reports and CSV exports (optional)
+              </p>
             </div>
             <div className="col-span-2">
               <Label htmlFor="description">Description</Label>
@@ -1268,12 +1290,28 @@ function VendorFormModal({
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label>Field Name</Label>
+                      <Label>
+                        Field Name
+                        {vendor && <Badge variant="secondary" className="ml-2">Read-Only</Badge>}
+                      </Label>
                       <Input
                         value={field.name}
                         onChange={(e) => updateCredentialField(index, { name: e.target.value })}
                         placeholder="accountNumber"
+                        disabled={!!vendor}
+                        className={vendor ? "bg-gray-50 cursor-not-allowed" : ""}
+                        title={vendor ? "System identifier - cannot be changed after creation" : "Internal field name (e.g., username, apiKey)"}
                       />
+                      {vendor && (
+                        <p className="text-xs text-red-600 mt-1">
+                          🔒 Cannot edit after creation - system identifier used for credential storage
+                        </p>
+                      )}
+                      {!vendor && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Internal field name (e.g., username, apiKey, password)
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label>Display Label</Label>
@@ -1282,6 +1320,9 @@ function VendorFormModal({
                         onChange={(e) => updateCredentialField(index, { label: e.target.value })}
                         placeholder="Account Number"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        ✏️ User-facing label shown in forms (editable)
+                      </p>
                     </div>
                     <div>
                       <Label>Field Type</Label>
