@@ -62,6 +62,7 @@ interface PlanSettings {
   planName: string;
   trialLengthDays: number | null;
   planLengthDays: number | null;
+  maxUsers: number | null;
   maxVendors: number | null;
   maxOrders: number | null;
   onlineOrdering: boolean;
@@ -77,6 +78,7 @@ const planSettingsSchema = z.object({
   planName: z.string().min(1, "Plan name is required"),
   trialLengthDays: z.number().nullable(),
   planLengthDays: z.number().nullable(),
+  maxUsers: z.union([z.number().positive(), z.null()]),
   maxVendors: z.union([z.number().positive(), z.null()]),
   maxOrders: z.union([z.number().positive(), z.null()]),
   onlineOrdering: z.boolean(),
@@ -96,6 +98,7 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
       planName: plan.planName,
       trialLengthDays: plan.trialLengthDays,
       planLengthDays: plan.planLengthDays,
+      maxUsers: plan.maxUsers,
       maxVendors: plan.maxVendors,
       maxOrders: plan.maxOrders,
       onlineOrdering: plan.onlineOrdering,
@@ -180,7 +183,31 @@ function EditPlanDialog({ plan, onUpdate }: { plan: PlanSettings; onUpdate: () =
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="maxUsers"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-sm font-medium">Max Users</label>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Leave empty for unlimited"
+                        {...field}
+                        value={field.value === null ? '' : field.value}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          field.onChange(val === '' ? null : parseInt(val) || null);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+
               <FormField
                 control={form.control}
                 name="maxVendors"
@@ -306,6 +333,7 @@ function CreatePlanDialog({ onCreated }: { onCreated: () => void }) {
       planName: '',
       trialLengthDays: null,
       planLengthDays: null,
+      maxUsers: null,
       maxVendors: null,
       maxOrders: null,
       onlineOrdering: false,
@@ -390,8 +418,32 @@ function CreatePlanDialog({ onCreated }: { onCreated: () => void }) {
                 )}
               />
             </div>
+              <FormField
+                control={form.control}
+                name="maxUsers"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-sm font-medium">Max Users</label>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Leave empty for unlimited"
+                        {...field}
+                        value={field.value === null ? '' : field.value}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          field.onChange(val === '' ? null : parseInt(val) || null);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="grid grid-cols-2 gap-4">
+
+
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="maxVendors"
@@ -678,6 +730,7 @@ export default function AdminPlanSettings() {
               <TableRow>
                 <TableHead>Plan</TableHead>
                 <TableHead>Trial Length</TableHead>
+                <TableHead>Max Users</TableHead>
                 <TableHead>Max Vendors</TableHead>
                 <TableHead>Max Orders</TableHead>
                 <TableHead>Create Orders</TableHead>
@@ -704,6 +757,9 @@ export default function AdminPlanSettings() {
                     ) : (
                       <span className="text-gray-500">No trial</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    {formatLimit(plan.maxUsers, <Users className="h-4 w-4 text-blue-500" />)}
                   </TableCell>
                   <TableCell>
                     {formatLimit(plan.maxVendors, <Building className="h-4 w-4 text-purple-500" />)}
