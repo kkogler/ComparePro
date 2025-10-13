@@ -4,8 +4,9 @@
 
 -- Link all enabled supported vendors to Firearms retail vertical (ID 1)
 -- This ensures vendors show up for Firearms stores
-INSERT INTO supported_vendor_retail_verticals (supported_vendor_id, retail_vertical_id)
-SELECT sv.id, 1
+-- Priority is set to match each vendor's global product_record_priority
+INSERT INTO supported_vendor_retail_verticals (supported_vendor_id, retail_vertical_id, priority)
+SELECT sv.id, 1, sv.product_record_priority
 FROM supported_vendors sv
 WHERE sv.is_enabled = true
   AND NOT EXISTS (
