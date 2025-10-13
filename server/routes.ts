@@ -5094,7 +5094,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(vendor);
     } catch (error) {
       console.error('Error updating supported vendor:', error);
-      res.status(500).json({ error: 'Failed to update supported vendor' });
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        vendorId: req.params.id,
+        updateKeys: Object.keys(req.body)
+      });
+      res.status(500).json({ 
+        error: 'Failed to update supported vendor',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
+      });
     }
   });
 
@@ -5155,7 +5164,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: 'Priority updated successfully' });
     } catch (error) {
       console.error('Error updating vendor priority:', error);
-      res.status(500).json({ error: 'Failed to update vendor priority' });
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        vendorId: req.params.id,
+        retailVerticalId: req.params.retailVerticalId,
+        priority: req.body.priority
+      });
+      res.status(500).json({ 
+        error: 'Failed to update vendor priority',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
+      });
     }
   });
 
@@ -6133,18 +6152,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/org/:slug/api/vendors/:vendorSlug/test-connection", requireOrganizationAccess, async (req, res) => {
     try {
       const organizationId = (req as any).organizationId;
-      const vendorIdentifier = req.params.vendorSlug; // This is actually vendorShortCode from frontend
+      const vendorIdentifier = req.params.vendorSlug;
       
       if (!vendorIdentifier || typeof vendorIdentifier !== 'string') {
         return res.status(400).json({ success: false, message: 'Invalid vendor identifier' });
       }
       
-      console.log('🔍 TEST CONNECTION: Looking up vendor by shortCode:', vendorIdentifier, 'for company:', organizationId);
+      console.log('🔍 TEST CONNECTION: Vendor identifier:', vendorIdentifier, 'for company:', organizationId);
       
-      // Look up the supported vendor first (by shortCode)
-      const supportedVendor = await storage.getSupportedVendorByShortCode(vendorIdentifier);
+      // ✅ FIX: Frontend sends per-org slug like "lipseys-1", we need vendorSlug like "lipseys"
+      // Strip the instance suffix (-1, -2, etc.) to get the vendorSlug
+      const vendorSlug = vendorIdentifier.replace(/-\d+$/, '');
+      console.log('🔍 TEST CONNECTION: Extracted vendorSlug:', vendorSlug);
+      
+      // Look up the supported vendor first (by vendorSlug)
+      const supportedVendor = await storage.getSupportedVendorBySlug(vendorSlug);
       if (!supportedVendor) {
-        console.error('🔍 TEST CONNECTION: Supported vendor not found for shortCode:', vendorIdentifier);
+        console.error('🔍 TEST CONNECTION: Supported vendor not found for vendorSlug:', vendorSlug);
         return res.status(404).json({ 
           success: false, 
           message: `Vendor '${vendorIdentifier}' not found in system` 
@@ -6203,7 +6227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Test the connection using the vendor registry with store-level credentials
         // Use slug normalization to handle legacy format conversions (sports_south -> sports-south)
         const { getStandardizedSlug } = await import('./slug-utils');
-        const rawSlug = supportedVendor.shortCode || supportedVendor.name;
+        const rawSlug = supportedVendor.vendorShortCode || supportedVendor.name;
         const normalizedSlug = getStandardizedSlug(rawSlug) || rawSlug.toLowerCase().replace(/\s+/g, '-');
         
         console.log('VENDOR TEST CONNECTION: Raw slug:', rawSlug, '→ Normalized slug:', normalizedSlug);
@@ -6246,13 +6270,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test FTP connection for Bill Hicks (special endpoint for FTP testing)
   app.post("/org/:slug/api/vendors/:vendorId/test-ftp-connection", requireOrganizationAccess, async (req, res) => {
     try {
-      const vendorId = parseInt(req.params.vendorId);
+      const organizationId = (req as any).organizationId;
+      const vendorIdentifier = req.params.vendorId;
       const { ftpHost, ftpUsername, ftpPassword, ftpPort } = req.body;
       
-      console.log(`BILL HICKS FTP TEST: Testing FTP connection for vendor ${vendorId}`);
+      console.log(`BILL HICKS FTP TEST: Testing FTP connection for vendor ${vendorIdentifier}`);
+      
+      // ✅ FIX: Handle both numeric ID and slug format (e.g., "bill-hicks-1")
+      let vendorId: number | undefined;
+      if (!isNaN(Number(vendorIdentifier))) {
+        vendorId = parseInt(vendorIdentifier);
+      } else {
+        // Lookup vendor by slug
+        const allCompanyVendors = await storage.getVendorsByCompany(organizationId);
+        const vendor = allCompanyVendors.find(v => v.slug === vendorIdentifier);
+        if (vendor) {
+          vendorId = vendor.id;
+        }
+      }
       
       // Basic validation with detailed logging
       console.log('BILL HICKS FTP TEST: Received data:', { 
+        vendorId,
+        vendorIdentifier,
         ftpHost: ftpHost ? 'PROVIDED' : 'MISSING', 
         ftpUsername: ftpUsername ? 'PROVIDED' : 'MISSING',
         ftpPassword: ftpPassword ? 'PROVIDED' : 'MISSING',
@@ -7380,8 +7420,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secretPrefix: webhookSecret?.substring(0, 4)
       });
       
-      // **TEMPORARY DEBUGGING**: Relax signature verification to diagnose webhook issues
-      // TODO: Re-enable strict verification once webhook is working
       if (!webhookSecret) {
         console.error('❌ WEBHOOK SECURITY: No webhook secret configured - rejecting for security', { requestId });
         return res.status(401).json({
@@ -7511,10 +7549,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             signatureMatch: normalizedSignature === expectedSignature
           });
 
-          // **TEMPORARY DEBUGGING BYPASS**: Allow webhook to proceed for debugging
-          // TODO: Remove this bypass once signature verification is fixed
-          console.log('🚨 TEMPORARY DEBUGGING: Allowing webhook to proceed despite invalid signature', { requestId });
-          // return res.status(401).json({ ... }); // <- Re-enable this line once fixed
+          return res.status(401).json({
+            error: 'Webhook signature verification failed',
+            code: 'INVALID_SIGNATURE',
+            requestId
+          });
         }
 
         console.log('✅ WEBHOOK SECURITY: HMAC signature verified successfully', { requestId });
@@ -7537,10 +7576,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tokenMatch: normalizedAuthToken === webhookSecret
           });
 
-          // **TEMPORARY DEBUGGING BYPASS**: Allow webhook to proceed for debugging
-          // TODO: Remove this bypass once signature verification is fixed
-          console.log('🚨 TEMPORARY DEBUGGING: Allowing webhook to proceed despite invalid token', { requestId });
-          // return res.status(401).json({ ... }); // <- Re-enable this line once fixed
+          return res.status(401).json({
+            error: 'Webhook authorization failed',
+            code: 'INVALID_TOKEN',
+            requestId
+          });
         }
 
         console.log('✅ WEBHOOK SECURITY: Authorization token verified successfully', { requestId });
@@ -9743,39 +9783,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Run admin user check on startup
   await ensureAdminUserExists();
 
-  // ONE-TIME ADMIN: Manual schema sync endpoint (temporary)
-  app.post('/api/admin/sync-schema', requireAdminAuth, async (req, res) => {
-    try {
-      console.log('🔧 ADMIN: Manual schema sync requested');
-      const { exec } = await import('child_process');
-      const { promisify } = await import('util');
-      const execAsync = promisify(exec);
-      
-      const { stdout, stderr } = await execAsync('npm run db:push -- --force', {
-        cwd: process.cwd(),
-        env: process.env
-      });
-      
-      console.log('✅ ADMIN: Schema sync completed');
-      console.log('STDOUT:', stdout);
-      if (stderr) console.log('STDERR:', stderr);
-      
-      res.json({
-        success: true,
-        message: 'Schema sync completed successfully',
-        output: stdout,
-        errors: stderr || null
-      });
-    } catch (error: any) {
-      console.error('❌ ADMIN: Schema sync failed:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        output: error.stdout,
-        stderr: error.stderr
-      });
-    }
-  });
+  // ❌ REMOVED: Dangerous schema sync endpoint that was deleting fields
+  // This endpoint ran 'db:push --force' which deleted any columns not in schema.ts
+  // Schema changes must be done manually with migrations to prevent data loss
+  // 
+  // OLD CODE (DO NOT RESTORE):
+  // app.post('/api/admin/sync-schema', ...) runs db:push --force
+  //
+  // CORRECT WORKFLOW:
+  // 1. Create migration: migrations/XXXX_description.sql
+  // 2. Test in dev: psql $DEV_DATABASE_URL -f migrations/XXXX.sql
+  // 3. Apply to prod: psql $PROD_DATABASE_URL -f migrations/XXXX.sql
+  // 4. Deploy code changes
 
   // STARTUP: Check and log proxy configuration
   const proxyConfigured = !!(

@@ -22,6 +22,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     name: 'free',
     displayName: 'Free',
     features: [
+      'Unlimited users', // ✅ CHANGED: No user limits
       'Up to 3 vendors', 
       'Product search & comparison',
       'Order processing (up to 100 orders)',
@@ -31,7 +32,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
       'Email support'
     ],
     limits: {
-      maxUsers: 2,
+      maxUsers: -1, // ✅ CHANGED: Unlimited users (was 2)
       maxVendors: 3,
       maxOrders: 100, // ✅ ENABLED: Allow ordering
       canOrder: true, // ✅ ENABLED: Allow ordering
@@ -43,6 +44,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     name: 'standard',
     displayName: 'Standard',
     features: [
+      'Unlimited users', // ✅ CHANGED: No user limits
       'Up to 6 vendors',
       'Product search & comparison',
       'Order processing (up to 500 orders)',
@@ -52,7 +54,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
       'Priority email support'
     ],
     limits: {
-      maxUsers: 5,
+      maxUsers: -1, // ✅ CHANGED: Unlimited users (was 5)
       maxVendors: 6,
       maxOrders: 500, // ✅ ENABLED: Allow ordering
       canOrder: true, // ✅ ENABLED: Allow ordering
@@ -64,6 +66,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     name: 'enterprise',
     displayName: 'Enterprise',
     features: [
+      'Unlimited users',
       'Unlimited vendors',
       'Full ordering system',
       'ASN processing', 
