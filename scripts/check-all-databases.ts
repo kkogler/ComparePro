@@ -78,17 +78,14 @@ async function main() {
 
   const databases = [
     {
-      name: '1. Hosted NEON (Development)',
+      name: '1. Development NEON',
       url: process.env.DATABASE_URL || '',
     },
     {
       name: '2. Production NEON',
       url: process.env.PRODUCTION_DATABASE_URL || 'NOT_SET',
     },
-    {
-      name: '3. Local PostgreSQL',
-      url: process.env.LOCAL_DATABASE_URL || `postgresql://user:password@localhost:5432/pricecompare`,
-    },
+    // Note: Local PostgreSQL is deprecated and no longer used
   ];
 
   const results: DatabaseInfo[] = [];
@@ -182,23 +179,23 @@ async function main() {
   console.log('='.repeat(80));
   console.log('💡 RECOMMENDATIONS\n');
 
-  const hostedNeon = results[0];
+  const developmentNeon = results[0];
   const productionNeon = results[1];
 
-  if (!hostedNeon.error && hostedNeon.productCount > 0) {
-    console.log(`✅ Hosted NEON has ${hostedNeon.productCount.toLocaleString()} products`);
+  if (!developmentNeon.error && developmentNeon.productCount > 0) {
+    console.log(`✅ Development NEON has ${developmentNeon.productCount.toLocaleString()} products`);
     console.log(`   This appears to be your most complete database.\n`);
   }
 
-  if (!productionNeon.error && productionNeon.productCount < hostedNeon.productCount) {
+  if (!productionNeon.error && productionNeon.productCount < developmentNeon.productCount) {
     console.log(`⚠️  Production has only ${productionNeon.productCount.toLocaleString()} products`);
-    console.log(`   Consider migrating data from Hosted NEON to Production.\n`);
+    console.log(`   Consider syncing data from Development NEON to Production.\n`);
   }
 
   console.log('Next steps:');
-  console.log('1. Run: npm run db:export-hosted    (export from Hosted NEON)');
-  console.log('2. Run: npm run db:import-prod      (import to Production)');
-  console.log('3. Run: npm run db:import-local     (import to Local Dev)\n');
+  console.log('1. Run: npm run db:export           (export from Development NEON)');
+  console.log('2. Run: npm run db:sync:prod        (sync to Production NEON)');
+  console.log('3. Run: npm run dev:cursor          (start development)\n');
 
   console.log('='.repeat(80));
 }

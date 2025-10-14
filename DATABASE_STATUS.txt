@@ -22,22 +22,21 @@ Current Status:
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 3. LOCAL POSTGRESQL DATABASE                                                │
-│    Products: 0 (empty)                                                      │
-│    Tables: 37 ✅                                                            │
-│    Status: ✅ READY TO RECEIVE DATA                                         │
-│    Access: ./start-dev.sh                                                   │
+│    Status: ❌ DEPRECATED - NO LONGER USED                                   │
+│    Note: Application now uses only NEON cloud databases                    │
+│    Recommendation: Ignore local PostgreSQL references                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Schema Consistency: ✅ VERIFIED - All databases have matching structure (37 tables)
+Schema Consistency: ✅ VERIFIED - Development and Production NEON databases have matching structure (37 tables)
 
 ================================================================================
 
 ✅ TOOLS CREATED:
 
-  • npm run db:check         - Check status of all databases
+  • npm run db:check         - Check status of NEON databases (dev/prod)
   • npm run db:export         - Export current database to backup
   • npm run db:import:prod    - Import backup to production
-  • npm run db:import:local   - Import backup to local development
+  • npm run db:sync:prod      - Sync development to production
 
 ================================================================================
 
@@ -54,41 +53,40 @@ Schema Consistency: ✅ VERIFIED - All databases have matching structure (37 tab
 
 🎯 RECOMMENDED NEXT STEPS:
 
-  1. npm run db:check                   - See current status
+  1. npm run db:check                   - See current NEON database status
   2. npm run db:export                  - Create backup (IMPORTANT!)
-  3. cat START_HERE.md                  - Read simple guide
-  4. npm run db:import:local            - Set up local dev
-  5. ./start-dev.sh                     - Start working locally
+  3. npm run dev:cursor                  - Start development (uses NEON)
+  4. npm run db:sync:prod               - Sync to production when ready
 
 ================================================================================
 
 ❓ YOUR QUESTION ANSWERED:
 
-Q: Can the Hosted NEON database (with correct structure) be copied to 
-   Production and Development?
+Q: Can the Development NEON database (with correct structure) be copied to 
+   Production?
 
-A: YES! ✅ The Hosted NEON database has the most recent changes and correct
-   schema. All three databases have matching structures (37 tables). You can
-   safely copy data from Hosted NEON to both Production and Local Development.
+A: YES! ✅ The Development NEON database has the most recent changes and correct
+   schema. Both NEON databases have matching structures (37 tables). You can
+   safely sync data from Development NEON to Production NEON.
 
 ================================================================================
 
 💡 MIGRATION OPTIONS:
 
-Option 1: Sync All Three Databases (Recommended)
+Option 1: Sync Development to Production (Recommended)
   Time: 10-20 minutes
-  Result: All databases have same data (66,982 products)
+  Result: Production has same data as development (69,806 products)
 
-Option 2: Just Set Up Local Development
-  Time: 5-10 minutes
-  Result: Work locally, update production later
-
-Option 3: Keep Current Setup
+Option 2: Keep Current Setup
   Time: 0 minutes
-  Result: Continue using Hosted NEON for development
+  Result: Continue using Development NEON for development
+
+Option 3: Manual Production Update
+  Time: 30+ minutes
+  Result: Manual production database updates
 
 ================================================================================
 
-For detailed instructions: cat START_HERE.md
+For detailed instructions: cat DATABASE_ARCHITECTURE.md
 
 ================================================================================
