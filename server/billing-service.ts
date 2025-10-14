@@ -2264,10 +2264,8 @@ export class BillingService {
       )
       .limit(1);
 
-    if (monthlyOrders && monthlyOrders.value >= (org.maxOrders || 100)) {
-      violations.push('Monthly order limit exceeded');
-    }
-
+    // Note: Monthly order limits removed - no restrictions on order count
+    
     return {
       withinLimits: violations.length === 0,
       violations
@@ -2550,11 +2548,11 @@ export class BillingService {
       // Generate unique slug
       const slug = await this.generateUniqueSlug(data.companyName);
 
-      // Map plan limits
+      // Map plan limits (no order limits - unlimited orders for all plans)
       const planLimits = {
-        free: { maxUsers: 5, maxVendors: 3, maxOrders: 100 },
-        standard: { maxUsers: 25, maxVendors: 6, maxOrders: 1000 },
-        enterprise: { maxUsers: 100, maxVendors: 999, maxOrders: 10000 }
+        free: { maxUsers: 5, maxVendors: 3 },
+        standard: { maxUsers: 25, maxVendors: 6 },
+        enterprise: { maxUsers: 100, maxVendors: 999 }
       };
 
       const limits = planLimits[data.plan as keyof typeof planLimits] || planLimits.free;
@@ -2572,7 +2570,6 @@ export class BillingService {
         billingSubscriptionId: `MANUAL-SUB-${Date.now()}`,
         maxUsers: limits.maxUsers,
         maxVendors: limits.maxVendors,
-        maxOrders: limits.maxOrders,
         features: data.plan === 'enterprise' ? 
           { apiAccess: true, advancedAnalytics: true, orderProcessing: true, asnProcessing: true } : 
           data.plan === 'standard' ?

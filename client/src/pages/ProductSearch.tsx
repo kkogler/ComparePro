@@ -263,7 +263,7 @@ export default function ProductSearch(): JSX.Element {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      className="w-full pl-12 pr-4 py-6 text-lg font-medium border-[3px] border-gray-500 dark:border-gray-500 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg shadow-sm"
+                      className="w-full pl-12 pr-4 py-7 text-lg font-medium border-[3px] border-gray-500 dark:border-gray-500 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg shadow-sm"
                       data-testid="input-search-query"
                     />
                   </div>
@@ -271,12 +271,12 @@ export default function ProductSearch(): JSX.Element {
                     variant="secondary"
                     size="default"
                     onClick={clearSearch}
-                    className="py-6 px-4 bg-gray-400 dark:bg-gray-600 hover:bg-gray-500 dark:hover:bg-gray-500 text-white rounded-lg border-[3px] border-gray-400 dark:border-gray-600"
+                    className="py-7 px-4 bg-gray-400 dark:bg-gray-600 hover:bg-gray-500 dark:hover:bg-gray-500 text-white rounded-lg border-[3px] border-gray-400 dark:border-gray-600"
                     data-testid="button-clear-search"
                   >
                     <FilterX className="w-5 h-5" />
                   </Button>
-                  <Button onClick={handleSearch} className="btn-orange-action py-9 px-8 text-xl font-semibold shadow-lg hover:shadow-xl transition-shadow" disabled={isLoading} data-testid="button-search">
+                  <Button onClick={handleSearch} className="btn-orange-action py-7 px-8 text-xl font-semibold shadow-lg hover:shadow-xl transition-shadow" disabled={isLoading} data-testid="button-search">
                     <Search className="w-6 h-6 mr-2" />
                     {isLoading ? 'Searching...' : 'Search'}
                   </Button>

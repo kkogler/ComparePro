@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const getSupportsOrdering = (h: any): boolean => !!(h && h.capabilities && h.capabilities.supportsOrdering);
   // Add request logging for debugging
   app.use((req, res, next) => {
-    console.log(`🔍 ROUTES DEBUG: ${req.method} ${req.url}`);
+    // console.log(`🔍 ROUTES DEBUG: ${req.method} ${req.url}`); // Disabled - too verbose
     if (req.url.includes('/vendors')) {
       }
     next();
@@ -1904,10 +1904,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           vendors: {
             current: vendors.length,
             limit: organization.maxVendors
-          },
-          orders: {
-            current: monthlyOrders.length,
-            limit: organization.maxOrders
           }
         }
       };
@@ -1931,7 +1927,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           features: {
             maxUsers: 3,
             maxVendors: 2,
-            maxOrders: 100,
             advancedAnalytics: false,
             apiAccess: false
           }
@@ -1944,7 +1939,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           features: {
             maxUsers: 10,
             maxVendors: 5,
-            maxOrders: 500,
             advancedAnalytics: true,
             apiAccess: false
           }
@@ -1957,7 +1951,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           features: {
             maxUsers: 50,
             maxVendors: 20,
-            maxOrders: 2000,
             advancedAnalytics: true,
             apiAccess: true
           }
@@ -2011,9 +2004,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // For organizations without billing provider, update locally
         const planLimits = {
-          basic: { maxUsers: 3, maxVendors: 2, maxOrders: 100 },
-          professional: { maxUsers: 10, maxVendors: 5, maxOrders: 500 },
-          enterprise: { maxUsers: 50, maxVendors: 20, maxOrders: 2000 }
+          basic: { maxUsers: 3, maxVendors: 2 },
+          professional: { maxUsers: 10, maxVendors: 5 },
+          enterprise: { maxUsers: 50, maxVendors: 20 }
         };
         
         const limits = planLimits[planCode as keyof typeof planLimits] || planLimits.basic;
@@ -2021,8 +2014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateCompany(companyId, {
           plan: planCode,
           maxUsers: limits.maxUsers,
-          maxVendors: limits.maxVendors,
-          maxOrders: limits.maxOrders
+          maxVendors: limits.maxVendors
         });
         
         res.json({
@@ -3550,12 +3542,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ftpUsername: billHicksCredentials.ftpUsername,
               ftpPassword: billHicksCredentials.ftpPassword, // Include password for B2B automation
               ftpPort: billHicksCredentials.ftpPort?.toString() || '21',
-              ftpBasePath: billHicksCredentials.ftpBasePath || billHicksCredentials.ftp_base_path || '/MicroBiz/Feeds',
+              ftpBasePath: billHicksCredentials.ftpBasePath !== undefined ? billHicksCredentials.ftpBasePath : (billHicksCredentials.ftp_base_path || ''),
               enablePriceComparison: billHicksCredentials.catalogSyncEnabled || false,
               enableAutomaticSync: billHicksCredentials.inventorySyncEnabled || false,
               lastCatalogSync: billHicksCredentials.lastCatalogSync,
               catalogSyncStatus: billHicksCredentials.catalogSyncStatus,
               catalogSyncSchedule: billHicksCredentials.catalogSyncSchedule,
+              // Sync statistics for Last Sync section
+              lastCatalogRecordsCreated: billHicksCredentials.lastCatalogRecordsCreated || 0,
+              lastCatalogRecordsUpdated: billHicksCredentials.lastCatalogRecordsUpdated || 0,
+              lastCatalogRecordsSkipped: billHicksCredentials.lastCatalogRecordsSkipped || 0,
+              lastCatalogRecordsFailed: billHicksCredentials.lastCatalogRecordsFailed || 0,
+              lastCatalogRecordsProcessed: billHicksCredentials.lastCatalogRecordsProcessed || 0,
+              catalogSyncError: billHicksCredentials.catalogSyncError || null,
             };
             console.log('BILL HICKS CREDENTIALS: Final vendor credentials:', JSON.stringify(vendorCredentials, null, 2));
           } else {
@@ -3689,7 +3688,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/org/:slug/api/vendor-credentials/bill-hicks/sync', requireOrganizationAccess, async (req, res) => {
     try {
       const organizationId = (req as any).organizationId;
-      console.log(`🔄 BILL HICKS STORE SYNC: Starting store-specific pricing sync for organization ${organizationId}`);
+      console.log(`🔄 BILL HICKS STORE SYNC: Request body:`, req.body);
+      const forceFull = req.body?.forceFull === true;
+      console.log(`🔄 BILL HICKS STORE SYNC: Starting store-specific pricing sync for organization ${organizationId} (forceFull: ${forceFull}, raw: ${req.body?.forceFull})`);
       
       // ✅ PRE-VALIDATION: Check if credentials are configured before attempting sync
       const billHicksVendorId = await storage.getBillHicksVendorId();
@@ -3710,7 +3711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Trigger store-specific pricing sync (uses store's FTP credentials and folder)
       const { syncStoreSpecificBillHicksPricing } = await import('./bill-hicks-store-pricing-sync');
-      const result = await syncStoreSpecificBillHicksPricing(organizationId);
+      const result = await syncStoreSpecificBillHicksPricing(organizationId, forceFull);
       
       if (result.success) {
         res.json({
@@ -7302,97 +7303,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test route for SUB-00068 sync (temporary debugging)
-  app.post("/api/test-sub-00068-sync", async (req, res) => {
-    try {
-      console.log('🧪 TEST: Starting SUB-00068 sync test...');
-      
-      const { BillingService } = await import('./billing-service');
-      const billingService = new BillingService();
-      
-      const result = await billingService.syncSubscriptionFromZoho('SUB-00068');
-      
-      console.log('🧪 TEST: SUB-00068 sync result:', result);
-      
-      res.json({
-        success: true,
-        message: 'SUB-00068 sync test completed',
-        syncResult: result,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('🧪 TEST: SUB-00068 sync failed:', error);
-      res.status(500).json({
-        success: false,
-        message: 'SUB-00068 sync test failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
-    }
-  });
-
   // Zoho Billing webhook endpoints
   app.get('/api/webhooks/zoho', (req, res) => {
     res.json({ status: "Platform Zoho Webhook Endpoint Ready", method: "GET" });
-  });
-
-  // Webhook testing endpoint for debugging signature issues
-  app.post('/api/webhooks/zoho/test', async (req, res) => {
-    try {
-      console.log('🧪 WEBHOOK TEST - Headers:', Object.keys(req.headers));
-      console.log('🧪 WEBHOOK TEST - Body keys:', Object.keys(req.body));
-      
-      // Get webhook secret from environment variables
-      const webhookSecret = process.env.ZOHO_WEBHOOK_SECRET || process.env.ZOHO_BILLING_WEBHOOK_SECRET;
-      
-      console.log('🧪 WEBHOOK TEST - Secret configured:', !!webhookSecret);
-      console.log('🧪 WEBHOOK TEST - Secret source:', 
-        process.env.ZOHO_WEBHOOK_SECRET ? 'ZOHO_WEBHOOK_SECRET' :
-        process.env.ZOHO_BILLING_WEBHOOK_SECRET ? 'ZOHO_BILLING_WEBHOOK_SECRET' : 'none');
-      
-      const signature = req.headers['x-zoho-webhook-signature'] || 
-                       req.headers['x-webhook-signature'] || 
-                       req.headers['x-signature'] ||
-                       req.headers['authorization'];
-      
-      console.log('🧪 WEBHOOK TEST - Signature header found:', !!signature);
-      console.log('🧪 WEBHOOK TEST - Signature header name:', 
-        req.headers['x-zoho-webhook-signature'] ? 'x-zoho-webhook-signature' :
-        req.headers['x-webhook-signature'] ? 'x-webhook-signature' :
-        req.headers['x-signature'] ? 'x-signature' :
-        req.headers['authorization'] ? 'authorization' : 'none');
-      
-      let signatureValid = false;
-      if (webhookSecret && signature) {
-        const rawBody = (req as any).rawBody || JSON.stringify(req.body);
-        signatureValid = verifyZohoWebhookSignature(rawBody, signature as string, webhookSecret);
-        console.log('🧪 WEBHOOK TEST - Signature valid:', signatureValid);
-      }
-      
-      res.json({
-        success: true,
-        debug: {
-          hasSecret: !!webhookSecret,
-          secretSource: process.env.ZOHO_WEBHOOK_SECRET ? 'ZOHO_WEBHOOK_SECRET' :
-                       process.env.ZOHO_BILLING_WEBHOOK_SECRET ? 'ZOHO_BILLING_WEBHOOK_SECRET' : 'none',
-          hasSignature: !!signature,
-          signatureHeader: req.headers['x-zoho-webhook-signature'] ? 'x-zoho-webhook-signature' :
-                          req.headers['x-webhook-signature'] ? 'x-webhook-signature' :
-                          req.headers['x-signature'] ? 'x-signature' :
-                          req.headers['authorization'] ? 'authorization' : 'none',
-          signatureValid: signatureValid,
-          headers: Object.keys(req.headers),
-          bodyKeys: Object.keys(req.body)
-        }
-      });
-    } catch (error: any) {
-      console.error('🧪 WEBHOOK TEST ERROR:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message,
-        debug: { stage: 'error_handler' }
-      });
-    }
   });
 
   app.post('/api/webhooks/zoho', async (req, res) => {
@@ -7585,8 +7498,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log('✅ WEBHOOK SECURITY: Authorization token verified successfully', { requestId });
       } else {
-        // No signature or authorization provided - Zoho's default behavior relies on URL secrecy
-        console.log('✅ WEBHOOK SECURITY: No authentication provided - allowing based on URL secrecy (normal for Zoho)', { requestId });
+        // SECURITY: Reject webhooks without proper authentication
+        console.error('❌ WEBHOOK SECURITY: No authentication provided - rejecting for security', {
+          requestId,
+          hasSignature: !!normalizedSignature,
+          hasAuthToken: !!normalizedAuthToken,
+          message: 'Webhooks must provide either HMAC signature or authorization token'
+        });
+
+        return res.status(401).json({
+          error: 'Webhook authentication required',
+          code: 'MISSING_AUTHENTICATION',
+          message: 'Webhooks must provide either x-zoho-webhook-signature or Authorization header',
+          requestId
+        });
       }
       
       const payload = req.body;
@@ -8183,113 +8108,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Real-time webhook debugging - shows exactly what happens step by step
-  app.post('/api/debug-webhook-live', async (req, res) => {
-    const debugLog: string[] = [];
-    const originalConsoleLog = console.log;
-    const originalConsoleError = console.error;
-    
-    // Capture all console output
-    console.log = (...args) => {
-      debugLog.push(`[LOG] ${args.join(' ')}`);
-      originalConsoleLog(...args);
-    };
-    console.error = (...args) => {
-      debugLog.push(`[ERROR] ${args.join(' ')}`);
-      originalConsoleError(...args);
-    };
-    
-    try {
-      debugLog.push(`[START] Processing webhook at ${new Date().toISOString()}`);
-      debugLog.push(`[PAYLOAD] ${JSON.stringify(req.body, null, 2)}`);
-      
-      // Use the same normalization and processing as the main webhook endpoint
-      const { normalizeZohoPayload } = await import('./zoho-webhook-normalizer');
-      const normalized = normalizeZohoPayload(req.body);
-
-      const { BillingService } = await import('./billing-service');
-      const billingService = new BillingService();
-
-      await billingService.processZohoWebhook(normalized);
-      
-      debugLog.push(`[SUCCESS] Webhook processing completed`);
-      
-      res.json({
-        success: true,
-        message: "Webhook processed with live debugging",
-        debugLog: debugLog,
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error: any) {
-      debugLog.push(`[FATAL_ERROR] ${error.message}`);
-      debugLog.push(`[STACK] ${error.stack}`);
-      
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        debugLog: debugLog,
-        timestamp: new Date().toISOString()
-      });
-    } finally {
-      // Restore original console methods
-      console.log = originalConsoleLog;
-      console.error = originalConsoleError;
-    }
-  });
-
-  // Debug SUB-00107 webhook processing
-  app.post('/api/debug-sub-107', async (req, res) => {
-    try {
-      console.log('🔍 DEBUG: Testing SUB-00107 webhook processing...');
-      
-      // Exact webhook data for SUB-00107 (Menton Firearms)
-      const sub107WebhookData = {
-        subscription: {
-          subscription_id: "4899864000001933003",
-          subscription_number: "SUB-00107",
-          customer_id: "4899864000001821594",
-          status: "live",
-          plan: {
-            plan_code: "free-plan-v1",
-            name: "Free Plan"
-          },
-          customer: {
-            customer_id: "4899864000001821594",
-            display_name: "Menton Firearms",
-            company_name: "Menton Firearms", 
-            email: "melo@mentonarms.com",
-            first_name: "Melo",
-            last_name: "Menton"
-          }
-        }
-      };
-      
-      console.log('🎯 Processing webhook data:', JSON.stringify(sub107WebhookData, null, 2));
-      
-      // Import and use BillingService for debugging
-      const { BillingService } = await import('./billing-service');
-      const billingService = new BillingService();
-      
-      // Process the webhook with detailed logging
-      await billingService.processZohoWebhook(sub107WebhookData);
-      
-      res.json({
-        success: true,
-        message: 'SUB-00107 debug processing completed',
-        data: sub107WebhookData
-      });
-      
-    } catch (error: any) {
-      console.error('🚨 DEBUG SUB-00107 ERROR:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        stack: error.stack
-      });
-    }
-  });
-
   // Test Zoho webhook for development
   app.post('/api/test-zoho-webhook', async (req, res) => {
     // Block in production environment
@@ -8365,7 +8183,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         billingSubscriptionId: subscription.subscription_number || subscription.subscription_id,
         maxUsers: subscriptionTier === 'enterprise' ? 100 : subscriptionTier === 'standard' ? 25 : 5,
         maxVendors: subscriptionTier === 'enterprise' ? 999 : subscriptionTier === 'standard' ? 6 : 3,
-        maxOrders: subscriptionTier === 'enterprise' ? 10000 : subscriptionTier === 'standard' ? 1000 : 100,
         features: subscriptionTier === 'enterprise' ? 
           { apiAccess: true, advancedAnalytics: true, orderProcessing: true, asnProcessing: true } : 
           subscriptionTier === 'standard' ?
@@ -8612,8 +8429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         features: company.features,
         limits: {
           maxUsers: company.maxUsers,
-          maxVendors: company.maxVendors,
-          maxOrders: company.maxOrders || company.maxOrdersPerMonth
+          maxVendors: company.maxVendors
         },
         billingProvider: company.billingProvider
       };
@@ -9227,23 +9043,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Failed to initialize subscription services:', error);
   }
 
-  // STARTUP: Validate vendor priority consistency
-  try {
-    console.log('🔧 STARTUP: Validating vendor priority consistency...');
-    const { validateVendorPriorityConsistency } = await import('./vendor-priority');
-    const validationResult = await validateVendorPriorityConsistency();
-    
-    if (validationResult.isValid) {
-      console.log('✅ STARTUP: Vendor priority system is consistent -', validationResult.totalVendors, 'vendors in proper 1-N sequence');
-    } else {
-      console.warn('⚠️  STARTUP: Vendor priority inconsistencies detected!');
-      console.warn('Issues found:', validationResult.issues.join('; '));
-      console.warn('Recommendations:', validationResult.recommendations.join('; '));
-      console.warn('Use /api/admin/vendor-priorities/fix endpoint to auto-repair');
+  // STARTUP: Validate vendor priority consistency (delayed to avoid connection pool race conditions)
+  setTimeout(async () => {
+    try {
+      console.log('🔧 STARTUP: Validating vendor priority consistency...');
+      const { validateVendorPriorityConsistency } = await import('./vendor-priority');
+      const validationResult = await validateVendorPriorityConsistency();
+      
+      if (validationResult.isValid) {
+        console.log('✅ STARTUP: Vendor priority system is consistent -', validationResult.totalVendors, 'vendors in proper 1-N sequence');
+      } else {
+        console.warn('⚠️  STARTUP: Vendor priority inconsistencies detected!');
+        console.warn('Issues found:', validationResult.issues.join('; '));
+        console.warn('Recommendations:', validationResult.recommendations.join('; '));
+        console.warn('Use /api/admin/vendor-priorities/fix endpoint to auto-repair');
+      }
+    } catch (error) {
+      console.error('❌ STARTUP: Failed to validate vendor priority consistency:', error);
     }
-  } catch (error) {
-    console.error('❌ STARTUP: Failed to validate vendor priority consistency:', error);
-  }
+  }, 2000); // 2 second delay to let connection pool stabilize
 
   // Admin endpoint to check vendor priority consistency
   app.get('/api/admin/vendor-priorities/validate', requireAdminAuth, async (req, res) => {

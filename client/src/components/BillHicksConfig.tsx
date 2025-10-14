@@ -21,7 +21,7 @@ const billHicksConfigSchema = z.object({
   ftpUsername: z.string().min(1, "FTP Username is required"),
   ftpPassword: z.string().min(1, "FTP Password is required"),
   ftpPort: z.string().optional().default("21"),
-  ftpBasePath: z.string().optional().default("/MicroBiz/Feeds"),
+  ftpBasePath: z.string().optional().default(""),
   
   // Sync Settings
   enableAutomaticSync: z.boolean().default(true),
@@ -61,6 +61,22 @@ export function BillHicksConfig({
 
   // Get vendor data for last sync info
   const vendorData = vendor?.credentials;
+  
+  // Debug logging
+  useEffect(() => {
+    if (isOpen && vendorData) {
+      console.log('🔍 BILL HICKS SYNC DATA:', {
+        catalogSyncStatus: vendorData.catalogSyncStatus,
+        lastCatalogSync: vendorData.lastCatalogSync,
+        lastCatalogRecordsCreated: vendorData.lastCatalogRecordsCreated,
+        lastCatalogRecordsUpdated: vendorData.lastCatalogRecordsUpdated,
+        lastCatalogRecordsSkipped: vendorData.lastCatalogRecordsSkipped,
+        lastCatalogRecordsFailed: vendorData.lastCatalogRecordsFailed,
+        lastCatalogRecordsProcessed: vendorData.lastCatalogRecordsProcessed,
+        catalogSyncError: vendorData.catalogSyncError,
+      });
+    }
+  }, [isOpen, vendorData]);
 
   // Format last sync date
   const formatLastSync = (lastSync: string | null) => {
@@ -93,7 +109,7 @@ export function BillHicksConfig({
       ftpUsername: vendor?.credentials?.ftp_username || vendor?.credentials?.ftpUsername || "",
       ftpPassword: vendor?.credentials?.ftp_password || vendor?.credentials?.ftpPassword || "",
       ftpPort: vendor?.credentials?.ftp_port?.toString() || vendor?.credentials?.ftpPort?.toString() || "21",
-      ftpBasePath: vendor?.credentials?.ftp_base_path || vendor?.credentials?.ftpBasePath || "/MicroBiz/Feeds",
+      ftpBasePath: vendor?.credentials?.ftp_base_path || vendor?.credentials?.ftpBasePath || "",
       enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
       syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
     },
@@ -112,7 +128,7 @@ export function BillHicksConfig({
         ftpUsername: vendor?.credentials?.ftp_username || vendor?.credentials?.ftpUsername || "",
         ftpPassword: vendor?.credentials?.ftp_password || vendor?.credentials?.ftpPassword || "",
         ftpPort: vendor?.credentials?.ftp_port?.toString() || vendor?.credentials?.ftpPort?.toString() || "21",
-        ftpBasePath: vendor?.credentials?.ftp_base_path || vendor?.credentials?.ftpBasePath || "/MicroBiz/Feeds",
+        ftpBasePath: vendor?.credentials?.ftp_base_path || vendor?.credentials?.ftpBasePath || "",
         enablePriceComparison: vendor?.credentials?.enablePriceComparison ?? true,
         enableAutomaticSync: vendor?.credentials?.enableAutomaticSync ?? true,
         syncTime: parseSyncTime(vendor?.credentials?.catalogSyncSchedule),
@@ -171,20 +187,27 @@ export function BillHicksConfig({
 
   // Mutation for manual download
   const manualDownloadMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest(`/org/${organizationSlug}/api/vendor-credentials/bill-hicks/sync`, 'POST');
-      return response.json();
+    mutationFn: async ({ forceFull = false }: { forceFull?: boolean } = {}) => {
+      console.log(`🚀 BILL HICKS MANUAL SYNC: Calling API endpoint... (forceFull: ${forceFull})`);
+      const response = await apiRequest(`/org/${organizationSlug}/api/vendor-credentials/bill-hicks/sync`, 'POST', { forceFull });
+      const data = await response.json();
+      console.log('🚀 BILL HICKS MANUAL SYNC: API response:', data);
+      return data;
     },
     onSuccess: async (data) => {
+      console.log('✅ BILL HICKS MANUAL SYNC: Success!', data);
       toast({
         title: data.success ? "Sync Completed" : "Sync Started",
         description: data.message || "Bill Hicks sync has been completed successfully.",
       });
       // Invalidate and refetch to update UI with new sync timestamp and stats
+      console.log('🔄 BILL HICKS MANUAL SYNC: Refreshing vendor data...');
       await queryClient.invalidateQueries({ queryKey: [`/org/${organizationSlug}/api/supported-vendors`] });
       await queryClient.refetchQueries({ queryKey: [`/org/${organizationSlug}/api/supported-vendors`] });
+      console.log('🔄 BILL HICKS MANUAL SYNC: Data refresh complete');
     },
     onError: (error: any) => {
+      console.error('❌ BILL HICKS MANUAL SYNC: Error!', error);
       toast({
         title: "Sync Failed",
         description: error.message || "Failed to start Bill Hicks sync",
@@ -197,7 +220,14 @@ export function BillHicksConfig({
 
   // Handle manual download
   const handleManualDownload = async () => {
-    manualDownloadMutation.mutate();
+    console.log('🚀 BILL HICKS MANUAL SYNC: Button clicked, starting differential sync...');
+    manualDownloadMutation.mutate({ forceFull: false });
+  };
+
+  // Handle force full sync
+  const handleForceFullSync = async () => {
+    console.log('🚀 BILL HICKS FORCE FULL SYNC: Button clicked, starting full sync...');
+    manualDownloadMutation.mutate({ forceFull: true });
   };
 
   const saveConfigMutation = useMutation({
@@ -236,7 +266,7 @@ export function BillHicksConfig({
         ftp_username: credentials.ftpUsername,
         ftp_password: credentials.ftpPassword,
         ftp_port: credentials.ftpPort || '21',
-        ftp_base_path: formData.ftpBasePath || '/MicroBiz/Feeds',
+        ftp_base_path: formData.ftpBasePath || '',
         catalog_sync_enabled: true, // Always enable catalog sync for store-level
         catalog_sync_schedule: catalogSyncSchedule,
         inventory_sync_enabled: credentials.enableAutomaticSync
@@ -419,7 +449,7 @@ export function BillHicksConfig({
                       <FormControl>
                         <Input 
                           {...field} 
-                          placeholder="Enter path to FTP folder"
+                          placeholder="Enter URL or path of FTP download site"
                           data-testid="input-ftp-base-path"
                         />
                       </FormControl>
@@ -500,16 +530,29 @@ export function BillHicksConfig({
                       <Download className="h-4 w-4" />
                       <h3 className="font-medium">Daily Catalog Sync</h3>
                     </div>
-                    <Button 
-                      type="button" 
-                      size="sm"
-                      onClick={handleManualDownload}
-                      disabled={manualDownloadMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      data-testid="button-manual-download"
-                    >
-                      {manualDownloadMutation.isPending ? "Syncing..." : "Manual Sync"}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        size="sm"
+                        variant="outline"
+                        onClick={handleForceFullSync}
+                        disabled={manualDownloadMutation.isPending}
+                        className="border-orange-600 text-orange-600 hover:bg-orange-50"
+                        data-testid="button-force-full-sync"
+                      >
+                        {manualDownloadMutation.isPending ? "Syncing..." : "Force Full Sync"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        size="sm"
+                        onClick={handleManualDownload}
+                        disabled={manualDownloadMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        data-testid="button-manual-download"
+                      >
+                        {manualDownloadMutation.isPending ? "Syncing..." : "Manual Sync"}
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
@@ -517,6 +560,11 @@ export function BillHicksConfig({
                     <p className="text-sm text-amber-800 dark:text-amber-200">
                       <strong>Important</strong> - Run manual sync before searching for products
                     </p>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground space-y-1 bg-gray-50 p-3 rounded">
+                    <p><strong>Manual Sync:</strong> Smart sync that only updates changed products (first sync processes all products)</p>
+                    <p><strong>Force Full Sync:</strong> Processes all products regardless of changes. Use this to recover from sync issues or refresh all data.</p>
                   </div>
 
                   <p className="text-sm text-muted-foreground">
@@ -555,112 +603,62 @@ export function BillHicksConfig({
                     />
                   )}
                   
-                  {/* Catalog Sync Status Section */}
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                    {/* Catalog Sync Status */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-sm flex items-center gap-2">
-                        <Database className="w-4 h-4" />
-                        Catalog Sync Status
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">Status:</span>
-                          <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                            vendorData?.catalogSyncStatus === 'success' ? 'bg-green-100 text-green-800' :
-                            vendorData?.catalogSyncStatus === 'error' ? 'bg-red-100 text-red-800' :
-                            vendorData?.catalogSyncStatus === 'in_progress' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {vendorData?.catalogSyncStatus === 'success' ? 'Success' :
-                             vendorData?.catalogSyncStatus === 'error' ? 'Error' :
-                             vendorData?.catalogSyncStatus === 'in_progress' ? 'In Progress' : 'Never'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium">Last Sync:</span>
-                          <span className="ml-2 text-gray-600">
-                            {vendorData?.lastCatalogSync 
-                              ? new Date(vendorData.lastCatalogSync).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' }) + ' at ' + new Date(vendorData.lastCatalogSync).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Los_Angeles', timeZoneName: 'short' })
-                              : 'Never'
-                            }
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    
-                    {/* Last Sync Metrics - matching format from Admin view */}
-                    {vendorData?.lastCatalogSync && (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                          {/* Status and Last Sync on same row */}
+                  {/* Last Sync Section - matching format from Admin view */}
+                  <div>
+                    <h5 className="font-medium text-sm mb-2">Last Sync</h5>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="font-medium text-gray-700">Status:</span>
+                            <span className="font-medium">Status:</span>
                             <span className={`ml-2 ${
-                              vendorData.catalogSyncStatus === 'success' ? 'text-green-600' :
-                              vendorData.catalogSyncStatus === 'error' ? 'text-red-600' :
-                              vendorData.catalogSyncStatus === 'in_progress' ? 'text-blue-600' :
-                              'text-gray-600'
+                              vendorData?.catalogSyncStatus === 'success' ? 'text-green-700' :
+                              vendorData?.catalogSyncStatus === 'error' ? 'text-red-700' :
+                              vendorData?.catalogSyncStatus === 'in_progress' ? 'text-blue-700' : 'text-gray-500'
                             }`}>
-                              {vendorData.catalogSyncStatus === 'success' ? 'Success' :
-                               vendorData.catalogSyncStatus === 'error' ? 'Error' :
-                               vendorData.catalogSyncStatus === 'in_progress' ? 'In Progress' :
-                               'Never Synced'}
+                              {vendorData?.catalogSyncStatus === 'success' ? 'Success' :
+                               vendorData?.catalogSyncStatus === 'error' ? 'Error' :
+                               vendorData?.catalogSyncStatus === 'in_progress' ? 'In Progress' : 'Never'}
                             </span>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Last Sync:</span>
-                            <span className="ml-2 text-gray-900">
-                              {new Date(vendorData.lastCatalogSync).toLocaleString('en-US', {
-                                month: '2-digit',
-                                day: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: true,
-                                timeZoneName: 'short'
-                              })}
+                            <span className="font-medium">Last Sync:</span>
+                            <span className="ml-2 text-gray-600">
+                              {vendorData?.lastCatalogSync 
+                                ? new Date(vendorData.lastCatalogSync).toLocaleDateString('en-US') + ' at ' + new Date(vendorData.lastCatalogSync).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
+                                : 'Never'
+                              }
                             </span>
                           </div>
-                          
-                          {/* Metrics */}
-                          <div>
-                            <span className="font-medium text-gray-700">Added:</span>
-                            <span className="ml-2 text-green-600">{(vendorData.lastCatalogRecordsCreated || 0).toLocaleString()}</span>
+                        </div>
+                        
+                        {/* Display sync statistics */}
+                        {vendorData?.catalogSyncStatus === 'success' && vendorData?.lastCatalogSync && (
+                          <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div><span className="font-medium text-green-700">Added:</span> {(vendorData.lastCatalogRecordsCreated || 0).toLocaleString()}</div>
+                              <div><span className="font-medium text-blue-700">Updated:</span> {(vendorData.lastCatalogRecordsUpdated || 0).toLocaleString()}</div>
+                              <div><span className="font-medium text-gray-700">Skipped:</span> {(vendorData.lastCatalogRecordsSkipped || 0).toLocaleString()}</div>
+                              <div><span className="font-medium text-red-700">Failed:</span> {(vendorData.lastCatalogRecordsFailed || 0).toLocaleString()}</div>
+                            </div>
+                            <div className="mt-1 text-center"><span className="font-medium">Processed:</span> {(vendorData.lastCatalogRecordsProcessed || 0).toLocaleString()}</div>
                           </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Updated:</span>
-                            <span className="ml-2 text-blue-600">{(vendorData.lastCatalogRecordsUpdated || 0).toLocaleString()}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Skipped:</span>
-                            <span className="ml-2 text-gray-600">{(vendorData.lastCatalogRecordsSkipped || 0).toLocaleString()}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Failed:</span>
-                            <span className="ml-2 text-red-600">{(vendorData.lastCatalogRecordsFailed || 0).toLocaleString()}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Processed:</span>
-                            <span className="ml-2 text-gray-900">{(vendorData.lastCatalogRecordsProcessed || 0).toLocaleString()}</span>
+                        )}
+                      </div>
+                      
+                      {/* Error display for catalog sync */}
+                      {vendorData?.catalogSyncError && (
+                        <div className="mt-3 bg-red-50 border border-red-200 p-3 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm">
+                              <div className="font-medium text-red-800 mb-1">Sync Error</div>
+                              <div className="text-red-700">{vendorData.catalogSyncError}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    
-                    
-                    {/* Error display for catalog sync */}
-                    {vendorData?.catalogSyncError && (
-                      <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-sm">
-                            <div className="font-medium text-red-800 mb-1">Catalog Sync Error</div>
-                            <div className="text-red-700">{vendorData.catalogSyncError}</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>

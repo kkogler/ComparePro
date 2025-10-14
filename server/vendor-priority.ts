@@ -217,15 +217,22 @@ export async function validateVendorPriorityConsistency(): Promise<{
   const issues: string[] = [];
   const recommendations: string[] = [];
   
-  try {
-    // Get all vendors with their priorities
-    const vendors = await db
-      .select({
-        id: supportedVendors.id,
-        name: supportedVendors.name,
-        priority: supportedVendors.productRecordPriority
-      })
-      .from(supportedVendors);
+  // Retry configuration for database connection issues
+  const maxRetries = 3;
+  const retryDelay = 1000; // 1 second
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`VENDOR PRIORITY VALIDATION: Attempt ${attempt}/${maxRetries}`);
+      
+      // Get all vendors with their priorities
+      const vendors = await db
+        .select({
+          id: supportedVendors.id,
+          name: supportedVendors.name,
+          priority: supportedVendors.productRecordPriority
+        })
+        .from(supportedVendors);
     
     const totalVendors = vendors.length;
     console.log('VENDOR PRIORITY VALIDATION: Found', totalVendors, 'vendors to validate');
@@ -305,32 +312,59 @@ export async function validateVendorPriorityConsistency(): Promise<{
       recommendations.push('Priority values must be positive integers starting from 1');
     }
     
-    const isValid = issues.length === 0;
-    
-    console.log('VENDOR PRIORITY VALIDATION: Completed -', isValid ? 'VALID' : 'ISSUES FOUND');
-    console.log('VENDOR PRIORITY VALIDATION: Total vendors:', totalVendors, 'Issues found:', issues.length);
-    
-    if (!isValid) {
-      console.log('VENDOR PRIORITY VALIDATION: Issues:', issues);
-      console.log('VENDOR PRIORITY VALIDATION: Recommendations:', recommendations);
+      const isValid = issues.length === 0;
+      
+      console.log('VENDOR PRIORITY VALIDATION: Completed -', isValid ? 'VALID' : 'ISSUES FOUND');
+      console.log('VENDOR PRIORITY VALIDATION: Total vendors:', totalVendors, 'Issues found:', issues.length);
+      
+      if (!isValid) {
+        console.log('VENDOR PRIORITY VALIDATION: Issues:', issues);
+        console.log('VENDOR PRIORITY VALIDATION: Recommendations:', recommendations);
+      }
+      
+      return {
+        isValid,
+        totalVendors,
+        issues,
+        recommendations
+      };
+      
+    } catch (error: any) {
+      console.error(`VENDOR PRIORITY VALIDATION: Attempt ${attempt} failed:`, error.message);
+      
+      // Check if this is a connection error that we should retry
+      const isConnectionError = 
+        error.code === '57P01' || // admin_shutdown
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT' ||
+        error.message?.includes('terminating connection') ||
+        error.message?.includes('connection') ||
+        error.message?.includes('timeout');
+      
+      if (isConnectionError && attempt < maxRetries) {
+        console.log(`VENDOR PRIORITY VALIDATION: Connection error, retrying in ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay * attempt)); // Exponential backoff
+        continue; // Retry
+      }
+      
+      // Non-retryable error or max retries exceeded
+      console.error('VENDOR PRIORITY VALIDATION: Failed after', attempt, 'attempts');
+      return {
+        isValid: false,
+        totalVendors: 0,
+        issues: [`Database error during validation: ${error.message || String(error)}`],
+        recommendations: ['Check database connection and schema', 'Verify connection pool settings']
+      };
     }
-    
-    return {
-      isValid,
-      totalVendors,
-      issues,
-      recommendations
-    };
-    
-  } catch (error) {
-    console.error('VENDOR PRIORITY VALIDATION: Database error during consistency check:', error);
-    return {
-      isValid: false,
-      totalVendors: 0,
-      issues: [`Database error during validation: ${error instanceof Error ? error.message : String(error)}`],
-      recommendations: ['Check database connection and schema']
-    };
   }
+  
+  // Should never reach here due to return statements in try/catch
+  return {
+    isValid: false,
+    totalVendors: 0,
+    issues: ['Unexpected validation flow'],
+    recommendations: ['Check validation logic']
+  };
 }
 
 /**

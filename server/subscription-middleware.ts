@@ -178,9 +178,9 @@ export function requireFeature(feature: string) {
 }
 
 /**
- * Middleware to check usage limits (users, vendors, orders)
+ * Middleware to check usage limits (users, vendors)
  */
-export function checkUsageLimit(limitType: 'users' | 'vendors' | 'orders') {
+export function checkUsageLimit(limitType: 'users' | 'vendors') {
   return async function(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       // Skip for admin users
@@ -209,15 +209,10 @@ export function checkUsageLimit(limitType: 'users' | 'vendors' | 'orders') {
           break;
           
         case 'vendors':
-          // TODO: Implement vendor count check
-          currentUsage = 0;
+          // Count active vendors (exclude archived)
+          const vendorsList = await storage.getVendorsByCompany(company.id, false);
+          currentUsage = vendorsList.length;
           limit = company.maxVendors;
-          break;
-          
-        case 'orders':
-          // TODO: Implement monthly order count check  
-          currentUsage = 0;
-          limit = company.maxOrders || company.maxOrdersPerMonth || 1000;
           break;
       }
 

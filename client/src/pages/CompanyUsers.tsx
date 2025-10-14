@@ -344,6 +344,44 @@ export default function CompanyUsers() {
   };
 
   const handleSubmit = () => {
+    // Validate required fields
+    if (!formData.username.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Username is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Password is required only for new users
+    if (!editingUser && !formData.password.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Password is required for new users',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!formData.defaultStoreId || formData.defaultStoreId === 'none') {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select a Default Store for Orders',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (selectedStores.length === 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select at least one Store Assignment',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     if (editingUser) {
       const updateData: any = { ...formData, id: editingUser.id };
       if (!updateData.password) {
@@ -625,7 +663,6 @@ export default function CompanyUsers() {
                       <SelectValue placeholder="Select default store for this user's orders" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No default store</SelectItem>
                       {stores.map((store: any) => (
                         <SelectItem key={store.id} value={store.id.toString()}>
                           {store.name}

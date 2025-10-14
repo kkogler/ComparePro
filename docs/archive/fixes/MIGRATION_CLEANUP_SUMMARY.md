@@ -79,13 +79,23 @@ Renamed 5 migrations to follow the numbered convention:
 | `create-category-templates.sql` | `0038_create_category_templates.sql` |
 | `fix-settings-schema-v2.sql` | `0034_fix_settings_schema.sql` |
 
+### 4. ✅ Fixed Duplicate Migration Numbers
+
+**Issue:** Two migrations both numbered `0001`
+- `0001_add_category_to_order_items.sql` (created Oct 6, 2025)
+- `0001_remove_store_email.sql` (created Oct 4, 2025)
+
+**Solution:** Based on git history, `0001_remove_store_email.sql` was created first
+- ✅ Kept: `0001_remove_store_email.sql` (earlier, Oct 4)
+- ✅ Renumbered: `0001_add_category_to_order_items.sql` → `0002_add_category_to_order_items.sql` (later, Oct 6)
+
 **New Convention:** `NNNN_descriptive_name.sql`
 - `NNNN` = Zero-padded sequential number
 - `descriptive_name` = Lowercase with underscores
 
 ---
 
-### 4. ✅ Created Migration Order Documentation
+### 5. ✅ Created Migration Order Documentation
 
 **New File:** `migrations/MIGRATION_ORDER.md`
 
@@ -108,8 +118,8 @@ Renamed 5 migrations to follow the numbered convention:
 **Schema Migrations (run in order):**
 ```
 0000_fresh_baseline.sql                    ← Baseline schema
-0001_add_category_to_order_items.sql
 0001_remove_store_email.sql
+0002_add_category_to_order_items.sql       ← Renumbered from 0001
 0028_add_default_pricing_to_admin_settings.sql
 0030_add_priority_to_vendor_retail_verticals.sql
 0031_fix_billing_events_provider.sql
@@ -142,11 +152,11 @@ PRODUCTION_MIGRATION_GUIDE.md             ← Existing
 
 ## Git Changes
 
-**Commit:** `c35e12d`
+**Commits:** `c35e12d`, `[current]`
 
 **Files Changed:**
 - **Deleted:** 2 files (duplicates)
-- **Renamed:** 5 files (standardized)
+- **Renamed:** 6 files (5 standardized + 1 renumbered)
 - **Added:** 1 file (documentation)
 
 **Diff Summary:**

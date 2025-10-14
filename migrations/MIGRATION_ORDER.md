@@ -32,9 +32,11 @@ This creates all core tables, indexes, and initial structure.
 Execute these in sequential order:
 
 ```bash
-# Order Items Category Addition
-psql $DATABASE_URL -f migrations/0001_add_category_to_order_items.sql
+# Store Email Removal
 psql $DATABASE_URL -f migrations/0001_remove_store_email.sql
+
+# Order Items Category Addition
+psql $DATABASE_URL -f migrations/0002_add_category_to_order_items.sql
 
 # Admin Settings Default Pricing
 psql $DATABASE_URL -f migrations/0028_add_default_pricing_to_admin_settings.sql
@@ -256,6 +258,10 @@ We don't currently have automated rollbacks. To revert a migration:
 - `fix-credentials-column-type.sql` → `0036_fix_credentials_column_type.sql`
 - `fix-short-name-length.sql` → `0037_fix_short_name_length.sql`
 - `create-category-templates.sql` → `0038_create_category_templates.sql`
+
+**Fixed Duplicate Numbering:**
+- `0001_add_category_to_order_items.sql` → `0002_add_category_to_order_items.sql`
+  - Reason: Both migrations had number `0001`. Based on git history (Oct 4 vs Oct 6), `0001_remove_store_email.sql` was created first and kept `0001`.
 
 **Why:** Eliminated confusion, established naming convention, improved maintainability.
 

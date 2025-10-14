@@ -278,11 +278,12 @@ export default function VendorComparison() {
     staleTime: 10000 // 10 seconds
   });
 
-  // Query for user's assigned stores
-  const { data: userStores } = useQuery({
-    queryKey: [`/org/${orgSlug}/api/user/stores`],
+  // Query for ALL company stores (not just user-assigned)
+  // This allows any store to be selected as a delivery destination when creating orders
+  const { data: stores = [] } = useQuery({
+    queryKey: [`/org/${orgSlug}/api/stores`],
     queryFn: async () => {
-      const response = await fetch(`/org/${orgSlug}/api/user/stores`, {
+      const response = await fetch(`/org/${orgSlug}/api/stores`, {
         credentials: "include",
       });
       if (!response.ok) {
@@ -293,9 +294,6 @@ export default function VendorComparison() {
     enabled: !!orgSlug,
     staleTime: 30000 // 30 seconds
   });
-
-  // Extract stores from user store assignments
-  const stores = userStores?.map((assignment: any) => assignment.store) || [];
   
   // Smart defaults for store selection based on requirements:
   // Priority: User's defaultStoreId > Single store > No default
@@ -961,7 +959,16 @@ export default function VendorComparison() {
                       <TableCell>
                         <div className={`flex items-center text-sm ${getAvailabilityColor(vendor.availability)}`} title={vendor.apiMessage || ''}>
                           {getAvailabilityIcon(vendor.availability)}
-                          <span className="cursor-help">{getAvailabilityText(vendor.availability, vendor.stock || 0)}</span>
+                          {vendor.availability === 'config_required' ? (
+                            <button
+                              onClick={() => setLocation(`/org/${orgSlug}/supported-vendors`)}
+                              className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                            >
+                              {getAvailabilityText(vendor.availability, vendor.stock || 0)}
+                            </button>
+                          ) : (
+                            <span className="cursor-help">{getAvailabilityText(vendor.availability, vendor.stock || 0)}</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -1000,7 +1007,7 @@ export default function VendorComparison() {
 
       {/* Order Confirmation Modal */}
       <Dialog open={isOrderModalOpen} onOpenChange={setIsOrderModalOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl">
           <DialogHeader>
             <DialogTitle>Add to Order</DialogTitle>
           </DialogHeader>
@@ -1447,25 +1454,105 @@ export default function VendorComparison() {
                                 }
                               }
                             }}
-                            className="w-16 text-center text-lg font-semibold text-green-600 border-green-300"
+                            className="w-24 text-center text-lg font-semibold text-green-600 border-green-300"
                             data-testid="input-manual-margin"
                           />
                           <span className="ml-1 text-sm">%</span>
                         </div>
                       )}
                     </div>
-                    <div className="text-right flex items-center">
-                      <div className="flex items-center space-x-2">
+                    <div className="text-right flex flex-col items-end">
+                      <Label htmlFor="manual-price" className="text-sm font-medium mb-2">
+                        Adjust Price
+                      </Label>
+                      <div className="flex items-center">
                         <input
                           type="checkbox"
                           id="manual-price"
                           checked={manualPriceMode}
                           onChange={(e) => {
                             const isChecked = e.target.checked;
-                            setManualPriceMode(isChecked);
                             
-                            // If unchecking, clear manual price and margin to return to calculated price
-                            if (!isChecked) {
+                            if (isChecked) {
+                              // When checking: populate manual fields with current calculated values
+                              const isGunBroker = orderDetails.vendor.name.includes('GunBroker');
+                              const defaultPricingConfig = pricingConfigurations?.find((config: any) => config.isDefault);
+                              
+                              if (defaultPricingConfig && orderDetails.vendorProduct.cost) {
+                                try {
+                                  const cost = parseFloat(orderDetails.vendorProduct.cost.toString().replace('$', ''));
+                                  const msrp = orderDetails.vendorProduct.msrp ? parseFloat(orderDetails.vendorProduct.msrp.toString().replace('$', '')) : undefined;
+                                  const mapPrice = orderDetails.vendorProduct.map ? parseFloat(orderDetails.vendorProduct.map.toString().replace('$', '')) : undefined;
+                                  
+                                  // Apply pricing strategy
+                                  let calculatedPrice = null;
+                                  
+                                  switch (defaultPricingConfig.strategy) {
+                                    case 'msrp':
+                                      calculatedPrice = msrp || cost * (1 + (defaultPricingConfig.markupPercentage || 20) / 100);
+                                      break;
+                                    case 'map':
+                                      calculatedPrice = mapPrice || cost * (1 + (defaultPricingConfig.markupPercentage || 20) / 100);
+                                      break;
+                                    case 'percentage_markup':
+                                      calculatedPrice = isGunBroker ? cost : cost * (1 + (defaultPricingConfig.markupPercentage || 20) / 100);
+                                      break;
+                                    case 'targeted_margin':
+                                      if (isGunBroker) {
+                                        calculatedPrice = cost;
+                                      } else {
+                                        const targetMargin = defaultPricingConfig.targetMarginPercentage || 20;
+                                        calculatedPrice = cost / (1 - targetMargin / 100);
+                                      }
+                                      break;
+                                    case 'premium_over_map':
+                                      if (isGunBroker) {
+                                        calculatedPrice = cost;
+                                      } else if (mapPrice) {
+                                        calculatedPrice = mapPrice + (defaultPricingConfig.premiumAmount || 0);
+                                      } else {
+                                        calculatedPrice = cost * (1 + (defaultPricingConfig.markupPercentage || 20) / 100);
+                                      }
+                                      break;
+                                    case 'discount_to_msrp':
+                                      if (isGunBroker) {
+                                        calculatedPrice = cost;
+                                      } else if (msrp) {
+                                        calculatedPrice = msrp * (1 - (defaultPricingConfig.discountPercentage || 0) / 100);
+                                      } else {
+                                        calculatedPrice = cost * (1 + (defaultPricingConfig.markupPercentage || 20) / 100);
+                                      }
+                                      break;
+                                    default:
+                                      calculatedPrice = isGunBroker ? cost : cost * (1 + (defaultPricingConfig.markupPercentage || 20) / 100);
+                                  }
+                                  
+                                  if (calculatedPrice && calculatedPrice > 0) {
+                                    setManualPrice(calculatedPrice.toFixed(2));
+                                    
+                                    // Calculate gross margin
+                                    const margin = ((calculatedPrice - cost) / calculatedPrice * 100);
+                                    setManualGrossMargin(margin.toFixed(1));
+                                  }
+                                } catch (error) {
+                                  console.warn('Error calculating initial manual price:', error);
+                                }
+                              } else if (orderDetails.vendorProduct.msrp) {
+                                // Fallback to MSRP
+                                const msrpValue = parseFloat(orderDetails.vendorProduct.msrp.toString().replace('$', ''));
+                                setManualPrice(msrpValue.toFixed(2));
+                                
+                                if (orderDetails.unitCost !== 'N/A' && orderDetails.unitCost) {
+                                  const cost = parseFloat(String(orderDetails.unitCost).replace('$', ''));
+                                  const margin = ((msrpValue - cost) / msrpValue * 100);
+                                  setManualGrossMargin(margin.toFixed(1));
+                                }
+                              }
+                              
+                              setManualPriceMode(true);
+                            } else {
+                              // If unchecking, clear manual price and margin to return to calculated price
+                              setManualPriceMode(false);
                               setManualPrice('');
                               setManualGrossMargin('');
                             }
@@ -1473,9 +1560,6 @@ export default function VendorComparison() {
                           className="text-blue-600"
                           data-testid="checkbox-manual-price"
                         />
-                        <Label htmlFor="manual-price" className="text-sm font-medium">
-                          Manually adjust price
-                        </Label>
                       </div>
                     </div>
                   </div>

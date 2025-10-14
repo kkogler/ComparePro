@@ -57,15 +57,15 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     
-    console.log('🌟 VITE WILDCARD: Processing URL:', url);
+    // console.log('🌟 VITE WILDCARD: Processing URL:', url); // Disabled - too verbose
     
     // Skip API routes - let them be handled by the Express API routes
     if (url.startsWith('/api/') || url.startsWith('/org/')) {
-      console.log('🌟 VITE WILDCARD: Skipping API route:', url);
+      // console.log('🌟 VITE WILDCARD: Skipping API route:', url); // Disabled - too verbose
       return next();
     }
     
-    console.log('🌟 VITE WILDCARD: Serving frontend for:', url);
+    // console.log('🌟 VITE WILDCARD: Serving frontend for:', url); // Disabled - too verbose
 
     try {
       const clientTemplate = path.resolve(

@@ -80,11 +80,11 @@ export function organizationMiddleware(req: any, res: any, next: any) {
       }
     }
 
-    console.log(`ORG MIDDLEWARE: Processing URL: ${req.url}`);
+    // console.log(`ORG MIDDLEWARE: Processing URL: ${req.url}`); // Disabled - too verbose
     
     // First, check if organization was already resolved from hostname (host mode)
     if (req.hostBasedSlug && req.resolvedFromHost) {
-      console.log(`ORG MIDDLEWARE: Using host-based resolution: ${req.hostBasedSlug}`);
+      // console.log(`ORG MIDDLEWARE: Using host-based resolution: ${req.hostBasedSlug}`); // Disabled - too verbose
       req.organizationSlug = req.hostBasedSlug;
       return next();
     }
@@ -96,11 +96,11 @@ export function organizationMiddleware(req: any, res: any, next: any) {
         // Extract just the slug part (before any query parameters)
         const slugPart = urlParts[2].split('?')[0];
         req.organizationSlug = slugPart;
-        console.log(`ORG MIDDLEWARE: Using path-based resolution: ${slugPart}`);
+        // console.log(`ORG MIDDLEWARE: Using path-based resolution: ${slugPart}`); // Disabled - too verbose
       }
     }
     
-    console.log(`ORG MIDDLEWARE: Final organizationSlug: ${req.organizationSlug}`);
+    // console.log(`ORG MIDDLEWARE: Final organizationSlug: ${req.organizationSlug}`); // Disabled - too verbose
   } catch (error) {
     console.error('Error in organizationMiddleware:', error);
   }
@@ -109,16 +109,16 @@ export function organizationMiddleware(req: any, res: any, next: any) {
 
 // Middleware to get organization context
 export async function getOrganizationContext(req: any, res: any, next: any) {
-  console.log(`ORG CONTEXT: organizationSlug: ${req.organizationSlug}`);
+  // console.log(`ORG CONTEXT: organizationSlug: ${req.organizationSlug}`); // Disabled - too verbose
   
   if (req.organizationSlug) {
     try {
       const org = await storage.getCompanyBySlug(req.organizationSlug);
-      console.log(`ORG CONTEXT: Found organization:`, org);
+      // console.log(`ORG CONTEXT: Found organization:`, org); // Disabled - too verbose
       
       if (org) {
         req.organizationId = org.id;
-        console.log(`ORG CONTEXT: Set organizationId to: ${req.organizationId}`);
+        // console.log(`ORG CONTEXT: Set organizationId to: ${req.organizationId}`); // Disabled - too verbose
       } else {
         console.log(`ORG CONTEXT: Organization not found for slug: ${req.organizationSlug}`);
         return res.status(404).json({ message: "Organization not found" });
@@ -128,7 +128,7 @@ export async function getOrganizationContext(req: any, res: any, next: any) {
       return res.status(500).json({ message: "Failed to get organization context" });
     }
   } else {
-    console.log(`ORG CONTEXT: No organizationSlug found`);
+    // console.log(`ORG CONTEXT: No organizationSlug found`); // Disabled - too verbose
   }
   next();
 }

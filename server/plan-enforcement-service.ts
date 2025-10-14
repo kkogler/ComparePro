@@ -7,7 +7,6 @@ import { storage } from './storage';
 export interface PlanLimits {
   maxUsers: number;
   maxVendors: number;
-  maxOrders: number;
   features: {
     advancedAnalytics: boolean;
     apiAccess: boolean;
@@ -41,7 +40,6 @@ export async function getPlanLimits(planName: string): Promise<PlanLimits | null
     const limits: PlanLimits = {
       maxUsers: plan.maxUsers || 5,
       maxVendors: plan.maxVendors || 3,
-      maxOrders: plan.maxOrders || 100,
       features: {
         advancedAnalytics: plan.advancedAnalytics || false,
         apiAccess: plan.apiAccess || false,
@@ -67,7 +65,6 @@ function getDefaultPlanLimits(planName: string): PlanLimits {
     free: {
       maxUsers: 2,
       maxVendors: 1,
-      maxOrders: 50,
       features: {
         advancedAnalytics: false,
         apiAccess: false,
@@ -78,7 +75,6 @@ function getDefaultPlanLimits(planName: string): PlanLimits {
     standard: {
       maxUsers: 25,
       maxVendors: 6,
-      maxOrders: 1000,
       features: {
         advancedAnalytics: true,
         apiAccess: true,
@@ -89,7 +85,6 @@ function getDefaultPlanLimits(planName: string): PlanLimits {
     enterprise: {
       maxUsers: 100,
       maxVendors: 999,
-      maxOrders: 10000,
       features: {
         advancedAnalytics: true,
         apiAccess: true,
@@ -118,7 +113,6 @@ export async function isFeatureAvailable(planName: string, featureName: string):
 export async function checkUsageLimits(companyId: number): Promise<{
   users: { current: number; limit: number; available: number; atLimit: boolean };
   vendors: { current: number; limit: number; available: number; atLimit: boolean };
-  orders: { current: number; limit: number; available: number; atLimit: boolean };
 }> {
   try {
     const company = await storage.getCompany(companyId);
@@ -135,11 +129,9 @@ export async function checkUsageLimits(companyId: number): Promise<{
     const users = await storage.getCompanyUsers(companyId);
     const currentUsers = users.length;
 
-    // TODO: Implement vendor count
-    const currentVendors = 0;
-
-    // TODO: Implement monthly order count
-    const currentOrders = 0;
+    // Get vendor count (only active vendors, not archived)
+    const vendors = await storage.getVendorsByCompany(companyId, false);
+    const currentVendors = vendors.length;
 
     return {
       users: {
@@ -153,12 +145,6 @@ export async function checkUsageLimits(companyId: number): Promise<{
         limit: limits.maxVendors,
         available: Math.max(0, limits.maxVendors - currentVendors),
         atLimit: currentVendors >= limits.maxVendors
-      },
-      orders: {
-        current: currentOrders,
-        limit: limits.maxOrders,
-        available: Math.max(0, limits.maxOrders - currentOrders),
-        atLimit: currentOrders >= limits.maxOrders
       }
     };
 
@@ -173,7 +159,7 @@ export async function checkUsageLimits(companyId: number): Promise<{
  */
 export async function validatePlanAction(
   companyId: number, 
-  action: 'add_user' | 'add_vendor' | 'create_order' | 'access_feature',
+  action: 'add_user' | 'add_vendor' | 'access_feature',
   featureName?: string
 ): Promise<{ allowed: boolean; message?: string; upgradeUrl?: string }> {
   try {
@@ -214,16 +200,6 @@ export async function validatePlanAction(
           return {
             allowed: false,
             message: `Vendor limit reached (${usage.vendors.limit}). Upgrade your plan to add more vendors.`,
-            upgradeUrl: `/org/${company.slug}/billing/upgrade`
-          };
-        }
-        break;
-
-      case 'create_order':
-        if (usage.orders.atLimit) {
-          return {
-            allowed: false,
-            message: `Monthly order limit reached (${usage.orders.limit}). Upgrade your plan or wait for next month.`,
             upgradeUrl: `/org/${company.slug}/billing/upgrade`
           };
         }
@@ -288,8 +264,7 @@ export async function getCompanyPlanStatus(companyId: number) {
       warnings: {
         trialExpiring: company.status === 'trial' && trialDaysRemaining <= 3,
         userLimitClose: usage.users.available <= 2,
-        vendorLimitClose: usage.vendors.available <= 1,
-        orderLimitClose: usage.orders.available <= 50
+        vendorLimitClose: usage.vendors.available <= 1
       }
     };
 

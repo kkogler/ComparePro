@@ -74,9 +74,12 @@ export interface BillHicksStoreSyncResult {
 
 /**
  * Main function to sync store-specific Bill Hicks pricing
+ * @param companyId - The company ID to sync for
+ * @param forceFull - If true, forces a full sync regardless of changes or existing mappings
  */
-export async function syncStoreSpecificBillHicksPricing(companyId: number): Promise<BillHicksStoreSyncResult> {
+export async function syncStoreSpecificBillHicksPricing(companyId: number, forceFull: boolean = false): Promise<BillHicksStoreSyncResult> {
   console.log(`🔄 BILL HICKS STORE: Starting pricing sync for company ${companyId}...`);
+  console.log(`🔄 BILL HICKS STORE: forceFull parameter = ${forceFull} (type: ${typeof forceFull})`);
   
   const stats = {
     totalRecords: 0,
@@ -119,45 +122,49 @@ export async function syncStoreSpecificBillHicksPricing(companyId: number): Prom
     const hasExistingMappings = (mappingCountResult?.count || 0) > 0;
     console.log(`📊 Existing Bill Hicks mappings for company ${companyId}: ${mappingCountResult?.count || 0}`);
     
-    // Step 4: OPTIMIZED - Detect only changed lines instead of processing all records
-    console.log('🔍 Analyzing changes using line-by-line differential...');
-    const changeResult = await detectStoreChangedLines(companyId, pricingContent);
-    
-    if (!changeResult.hasChanges && hasExistingMappings) {
-      // No changes detected AND mappings already exist - safe to skip
-      const allRecords = parseStorePricingCSV(pricingContent);
-      stats.totalRecords = allRecords.length;
-      stats.recordsSkipped = allRecords.length; // All records were skipped due to no changes
-      stats.recordsUpdated = 0;
-      stats.recordsAdded = 0;
-      stats.recordsErrors = 0;
-      
-      await updateStoreSyncStatus(companyId, billHicksVendor, 'success', stats);
-      return {
-        success: true,
-        message: `No changes detected - skipped processing ${allRecords.length} records`,
-        stats
-      };
-    }
-    
-    // If no mappings exist, force a full sync regardless of file changes
-    if (!hasExistingMappings) {
-      console.log('⚠️ FIRST SYNC: No existing mappings found - forcing full sync to populate database');
-    }
-
-    // Step 5: OPTIMIZED - Parse only changed lines (or all if first sync)
+    // Step 4: Determine sync strategy (full vs differential)
     let pricingRecords;
     let allRecords;
     
-    if (!hasExistingMappings) {
-      // First sync - process ALL records
-      console.log('📋 FIRST SYNC: Parsing all records...');
+    console.log(`🔍 SYNC STRATEGY: forceFull=${forceFull}, hasExistingMappings=${hasExistingMappings}`);
+    
+    if (forceFull) {
+      // Force full sync - user explicitly requested
+      console.log('🔄 FORCE FULL SYNC: User requested full sync - processing all records...');
+      pricingRecords = parseStorePricingCSV(pricingContent);
+      allRecords = pricingRecords;
+      stats.totalRecords = allRecords.length;
+      console.log(`📊 Processing all ${pricingRecords.length} records (forced full sync)`);
+    } else if (!hasExistingMappings) {
+      // First sync - no mappings exist
+      console.log('⚠️ FIRST SYNC: No existing mappings found - forcing full sync to populate database');
       pricingRecords = parseStorePricingCSV(pricingContent);
       allRecords = pricingRecords;
       stats.totalRecords = allRecords.length;
       console.log(`📊 Processing all ${pricingRecords.length} records for initial population`);
     } else {
-      // Incremental sync - process only changed records
+      // Differential sync - check for changes
+      console.log('🔍 Analyzing changes using line-by-line differential...');
+      const changeResult = await detectStoreChangedLines(companyId, pricingContent);
+      
+      if (!changeResult.hasChanges) {
+        // No changes detected - skip processing
+        const allRecords = parseStorePricingCSV(pricingContent);
+        stats.totalRecords = allRecords.length;
+        stats.recordsSkipped = allRecords.length;
+        stats.recordsUpdated = 0;
+        stats.recordsAdded = 0;
+        stats.recordsErrors = 0;
+        
+        await updateStoreSyncStatus(companyId, billHicksVendor, 'success', stats);
+        return {
+          success: true,
+          message: `No changes detected - skipped processing ${allRecords.length} records`,
+          stats
+        };
+      }
+      
+      // Changes detected - process only changed records
       console.log('📋 Parsing only changed records for maximum efficiency...');
       const changedCsvContent = changeResult.changedLines.join('\n');
       pricingRecords = parseStorePricingCSV(changedCsvContent);

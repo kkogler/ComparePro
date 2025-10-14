@@ -2,7 +2,6 @@ import { storage } from './storage';
 
 export interface SubscriptionLimits {
   maxVendors: number;
-  maxOrders: number;
   features: {
     orderProcessing: boolean;
     asnProcessing: boolean;
@@ -27,7 +26,6 @@ export async function getCompanySubscriptionLimits(companyId: number): Promise<S
     
     return {
       maxVendors: planSettings.maxVendors || -1, // null = unlimited (-1)
-      maxOrders: planSettings.maxOrders || -1, // null = unlimited (-1)
       features: {
         orderProcessing: planSettings.onlineOrdering,
         asnProcessing: planSettings.asnProcessing,
@@ -40,7 +38,6 @@ export async function getCompanySubscriptionLimits(companyId: number): Promise<S
     // Default to safe fallback limits on error
     return {
       maxVendors: 3,
-      maxOrders: 100,
       features: {
         orderProcessing: true,
         asnProcessing: true,

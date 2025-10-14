@@ -329,8 +329,8 @@ export class VendorRegistry {
 
       if (!handler.testConnection) {
         return { 
-          success: true, 
-          message: 'Vendor handler loaded (connection test not implemented)' 
+          success: false, 
+          message: `Connection testing not available for ${vendorId}. Please contact support to enable this feature.` 
         };
       }
 

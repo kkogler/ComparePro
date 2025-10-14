@@ -2472,7 +2472,7 @@ export class DatabaseStorage implements IStorage {
       ftpPort: credentials.ftp_port || 21,
       ftpUsername: credentials.ftp_username,
       ftpPassword: credentials.ftp_password,
-      ftpBasePath: credentials.ftp_base_path || '/',
+      ftpBasePath: credentials.ftp_base_path !== undefined ? credentials.ftp_base_path : '',
       catalogSyncEnabled: credentials.catalog_sync_enabled,
       inventorySyncEnabled: credentials.inventory_sync_enabled
     };
@@ -2571,20 +2571,20 @@ export class DatabaseStorage implements IStorage {
     
     // BACKWARD COMPATIBILITY: Also save to old columns (will be removed in Phase 3)
     // Map common FTP fields - support both snake_case and camelCase
-    if (credentialFields.ftpServer || credentialFields.ftp_server) {
+    if (credentialFields.ftpServer !== undefined || credentialFields.ftp_server !== undefined) {
       saveData.ftpServer = credentialFields.ftpServer || credentialFields.ftp_server;
     }
-    if (credentialFields.ftpPort || credentialFields.ftp_port) {
+    if (credentialFields.ftpPort !== undefined || credentialFields.ftp_port !== undefined) {
       saveData.ftpPort = credentialFields.ftpPort || credentialFields.ftp_port;
     }
-    if (credentialFields.ftpUsername || credentialFields.ftp_username) {
+    if (credentialFields.ftpUsername !== undefined || credentialFields.ftp_username !== undefined) {
       saveData.ftpUsername = credentialFields.ftpUsername || credentialFields.ftp_username;
     }
-    if (credentialFields.ftpPassword || credentialFields.ftp_password) {
+    if (credentialFields.ftpPassword !== undefined || credentialFields.ftp_password !== undefined) {
       saveData.ftpPassword = credentialFields.ftpPassword || credentialFields.ftp_password;
     }
-    if (credentialFields.ftpBasePath || credentialFields.ftp_base_path) {
-      saveData.ftpBasePath = credentialFields.ftpBasePath || credentialFields.ftp_base_path;
+    if (credentialFields.ftpBasePath !== undefined || credentialFields.ftp_base_path !== undefined) {
+      saveData.ftpBasePath = credentialFields.ftpBasePath !== undefined ? credentialFields.ftpBasePath : credentialFields.ftp_base_path;
     }
     
     // Map API fields - accept both camelCase (new) and snake_case (old)
@@ -2608,12 +2608,45 @@ export class DatabaseStorage implements IStorage {
     console.log('💾 STORAGE (HYBRID): saveData.ftpServer (legacy column):', saveData.ftpServer);
     console.log('💾 STORAGE (HYBRID): saveData.ftpBasePath (legacy column):', saveData.ftpBasePath);
     
+    // ✅ FIX: Build update object with ONLY provided fields (not undefined)
+    // This prevents wiping out other vendors' credentials in the same row
+    const updateFields: any = {};
+    
+    // Core fields (always update)
+    updateFields.companyId = saveData.companyId;
+    updateFields.supportedVendorId = saveData.supportedVendorId;
+    updateFields.updatedAt = saveData.updatedAt;
+    
+    // Credential fields (only if provided)
+    if (saveData.credentials !== undefined) updateFields.credentials = saveData.credentials;
+    if (saveData.ftpServer !== undefined) updateFields.ftpServer = saveData.ftpServer;
+    if (saveData.ftpPort !== undefined) updateFields.ftpPort = saveData.ftpPort;
+    if (saveData.ftpUsername !== undefined) updateFields.ftpUsername = saveData.ftpUsername;
+    if (saveData.ftpPassword !== undefined) updateFields.ftpPassword = saveData.ftpPassword;
+    if (saveData.ftpBasePath !== undefined) updateFields.ftpBasePath = saveData.ftpBasePath;
+    if (saveData.userName !== undefined) updateFields.userName = saveData.userName;
+    if (saveData.password !== undefined) updateFields.password = saveData.password;
+    if (saveData.source !== undefined) updateFields.source = saveData.source;
+    if (saveData.customerNumber !== undefined) updateFields.customerNumber = saveData.customerNumber;
+    if (saveData.apiKey !== undefined) updateFields.apiKey = saveData.apiKey;
+    if (saveData.apiSecret !== undefined) updateFields.apiSecret = saveData.apiSecret;
+    if (saveData.sid !== undefined) updateFields.sid = saveData.sid;
+    if (saveData.token !== undefined) updateFields.token = saveData.token;
+    
+    // Operational fields (only if provided)
+    if (saveData.catalogSyncEnabled !== undefined) updateFields.catalogSyncEnabled = saveData.catalogSyncEnabled;
+    if (saveData.catalogSyncSchedule !== undefined) updateFields.catalogSyncSchedule = saveData.catalogSyncSchedule;
+    if (saveData.inventorySyncEnabled !== undefined) updateFields.inventorySyncEnabled = saveData.inventorySyncEnabled;
+    if (saveData.inventorySyncSchedule !== undefined) updateFields.inventorySyncSchedule = saveData.inventorySyncSchedule;
+    
+    console.log('💾 STORAGE (HYBRID): Update fields (excluding undefined):', Object.keys(updateFields));
+    
     const [result] = await db
       .insert(companyVendorCredentials)
       .values(saveData)
       .onConflictDoUpdate({
         target: [companyVendorCredentials.companyId, companyVendorCredentials.supportedVendorId],
-        set: saveData
+        set: updateFields  // ✅ Only update provided fields, not all fields
       })
       .returning();
     

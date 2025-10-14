@@ -707,26 +707,30 @@ export class CredentialVaultService {
       const { vendorRegistry } = await import('./vendor-registry');
       const handler = vendorRegistry.getHandlerByVendorName(vendorId);
 
-      if (handler && handler.testConnection) {
-        const result = await handler.testConnection(credentials);
-        
-        // Audit log
-        if (userId) {
-          await this.logCredentialAccess({
-            action: 'test_connection',
-            vendorId,
-            level,
-            companyId,
-            userId,
-            timestamp: new Date(),
-            details: { success: result.success, message: result.message }
-          });
-        }
-
-        return result;
-      } else {
-        return { success: true, message: 'Credentials stored (connection test not implemented)' };
+      if (!handler) {
+        return { success: false, message: `No handler found for vendor: ${vendorId}` };
       }
+
+      if (!handler.testConnection) {
+        return { success: false, message: `Connection testing not available for ${vendorId}. Please contact support.` };
+      }
+
+      const result = await handler.testConnection(credentials);
+      
+      // Audit log
+      if (userId) {
+        await this.logCredentialAccess({
+          action: 'test_connection',
+          vendorId,
+          level,
+          companyId,
+          userId,
+          timestamp: new Date(),
+          details: { success: result.success, message: result.message }
+        });
+      }
+
+      return result;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Connection test failed:', error);
