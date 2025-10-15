@@ -57,6 +57,35 @@ The application uses a **single database with company-scoped data** approach rat
   - Encrypted credential storage with AES-256-GCM
   - Composite indexes for optimized vertical-scoped queries
 
+### Database Configuration (Development vs Production)
+
+**⚠️ CRITICAL: Separate Databases for Dev and Prod**
+
+The system uses **separate PostgreSQL databases** for development and production:
+
+**Development Database (Workspace):**
+- Endpoint: `ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech`
+- Connection: `postgresql://neondb_owner:npg_ZrF3qMEPhK0N@ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
+- Used by: Replit workspace for development and testing
+- Set in: **Tools → Secrets → DATABASE_URL**
+
+**Production Database (Deployment):**
+- Endpoint: `ep-lingering-sea-adyjzybe.c-2.us-east-1.aws.neon.tech`
+- Connection: `postgresql://neondb_owner:npg_3U8KcQGzhMLW@ep-lingering-sea-adyjzybe.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
+- Used by: Published/deployed application (live users)
+- Set in: **Tools → Publishing → [Your Deployment] → Advanced Settings → Production app secrets → DATABASE_URL**
+- Status: **Unsynced from workspace** (yellow link icon indicates independent value)
+
+**How to Verify Configuration:**
+1. **Workspace uses Dev:** Tools → Secrets → DATABASE_URL should point to `ep-lingering-hat-adb2bp8d`
+2. **Deployment uses Prod:** Tools → Publishing → Advanced Settings → Production app secrets → DATABASE_URL should point to `ep-lingering-sea-adyjzybe` with "Syncing Disabled" status
+
+**Important Notes:**
+- The deployment DATABASE_URL must be **unsynced** from workspace to maintain separate dev/prod databases
+- Never run vendor syncs from the web server (causes memory crashes) - use manual triggers only
+- Schema changes in development require `npm run db:push` to sync to dev database
+- Production schema changes happen automatically via deployment migrations
+
 **Key Tables:**
 - `companies` - Tenant organizations with timezone and retail vertical
 - `users` - User accounts with role and company association
