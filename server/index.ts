@@ -66,6 +66,41 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // DATABASE ENVIRONMENT VERIFICATION
+  // Check if we're using the correct database for the environment
+  const dbUrl = process.env.DATABASE_URL || '';
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+  const isDevDatabase = dbUrl.includes('ep-lingering-hat-adb2bp8d'); // Dev endpoint
+  const isProdDatabase = dbUrl.includes('ep-lingering-sea-adyjzybe'); // Prod endpoint
+  
+  console.log('');
+  console.log('🔍 DATABASE ENVIRONMENT CHECK:');
+  console.log(`   Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+  console.log(`   Database: ${isDevDatabase ? 'DEVELOPMENT (ep-lingering-hat)' : isProdDatabase ? 'PRODUCTION (ep-lingering-sea)' : 'UNKNOWN'}`);
+  
+  if (isProduction && isDevDatabase) {
+    console.error('');
+    console.error('🚨🚨🚨 CRITICAL WARNING 🚨🚨🚨');
+    console.error('   PRODUCTION deployment is using DEVELOPMENT database!');
+    console.error('   This will cause data issues for live users.');
+    console.error('');
+    console.error('   Fix: Go to Tools → Publishing → Advanced Settings');
+    console.error('   Set DATABASE_URL to production endpoint (ep-lingering-sea)');
+    console.error('');
+  } else if (!isProduction && isProdDatabase) {
+    console.error('');
+    console.error('🚨🚨🚨 CRITICAL WARNING 🚨🚨🚨');
+    console.error('   WORKSPACE is using PRODUCTION database!');
+    console.error('   Development work will affect live users!');
+    console.error('');
+    console.error('   Fix: Go to Tools → Secrets');
+    console.error('   Set DATABASE_URL to development endpoint (ep-lingering-hat)');
+    console.error('');
+  } else {
+    console.log('   ✅ Database environment is correctly configured');
+  }
+  console.log('');
+  
   // Ensure vendor handlers are registered before routes
   try {
     const { vendorRegistry } = await import('./vendor-registry');
