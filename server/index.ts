@@ -210,10 +210,10 @@ app.use((req, res, next) => {
   // ENVIRONMENT DETECTION - Use NODE_ENV consistently throughout codebase
   const NODE_ENV = process.env.NODE_ENV || 'development';
   const isDevelopment = NODE_ENV === 'development';
-  const isProduction = NODE_ENV === 'production';
+  const isProductionMode = NODE_ENV === 'production';
 
   console.log(`🔧 Server mode: ${NODE_ENV}`);
-  console.log(`🔧 Environment detection: development=${isDevelopment}, production=${isProduction}`);
+  console.log(`🔧 Environment detection: development=${isDevelopment}, production=${isProductionMode}`);
 
   if (isDevelopment) {
     console.log('🔧 Using Vite development server with hot reloading');
