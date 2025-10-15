@@ -119,13 +119,13 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Chattanooga Shooting Supply credentials saved successfully",
+          description: "Chattanooga Shooting Supply credentials saved successfully. You can now test the connection.",
         });
         // Invalidate queries to refresh vendor data
         queryClient.invalidateQueries({ queryKey: [`/org/${slug}/api/vendors`] });
         queryClient.invalidateQueries({ queryKey: [`/org/${slug}/api/supported-vendors`] });
         onSuccess();
-        onClose();
+        // Modal stays open so user can test connection
       } else {
         throw new Error('Failed to save credentials');
       }
