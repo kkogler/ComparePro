@@ -12,7 +12,7 @@
 
 import { storage } from './storage';
 import { createSportsSouthAPI, SportsSouthCredentials } from './sports-south-api';
-import { isMarketplace, DATA_UPDATE_RULES } from '../shared/vendor-type-config';
+import { hasHighQualityImages, hasLowQualityImages, DATA_UPDATE_RULES } from '../shared/vendor-type-config';
 
 // Extract manufacturer part number from product name
 // For firearms, the MPN is often embedded in the product name after the brand
@@ -401,27 +401,28 @@ export async function performSportsSouthCatalogSync(
               const hiresImageUrl = VendorImageService.getImageUrl('Sports South', imageIdentifier, sportsSouthProduct.PICREF);
               
               if (hiresImageUrl) {
-                // Check if Sports South is a vendor (not marketplace) - assume vendor for now
-                const isSportsSouthVendor = sportsSouth.vendorType === 'vendor';
+                // Sports South is a high quality image vendor
+                const isSportsSouthHighQuality = hasHighQualityImages('Sports South');
+                const existingImageIsLowQuality = product.imageSource && hasLowQualityImages(product.imageSource);
                 
                 if (!product.imageUrl) {
-                  // No image exists - add image (both vendors and marketplaces can add to empty)
+                  // No image exists - add image (both high and low quality vendors can add to empty)
                   updateData.imageUrl = hiresImageUrl;
                   updateData.imageSource = 'Sports South';
                   imagesAdded++;
                   console.log(`SPORTS SOUTH SYNC: Added image for product ${product.upc}`);
-                } else if (isSportsSouthVendor && (product.imageSource === 'GunBroker' || product.imageSource?.includes('marketplace'))) {
-                  // Sports South is vendor and existing image is from marketplace - upgrade to vendor image
+                } else if (isSportsSouthHighQuality && existingImageIsLowQuality) {
+                  // Sports South is high quality and existing image is low quality - upgrade image
                   updateData.imageUrl = hiresImageUrl;
                   updateData.imageSource = 'Sports South';
                   imagesUpdated++;
-                  console.log(`SPORTS SOUTH SYNC: Upgraded marketplace image to vendor image for product ${product.upc}`);
-                } else if (!isSportsSouthVendor && !product.imageUrl) {
-                  // Sports South is marketplace and no existing image - add marketplace image as fallback
+                  console.log(`SPORTS SOUTH SYNC: Upgraded low quality image to high quality image for product ${product.upc}`);
+                } else if (!isSportsSouthHighQuality && !product.imageUrl) {
+                  // Sports South is low quality and no existing image - add as fallback
                   updateData.imageUrl = hiresImageUrl;
-                  updateData.imageSource = 'Sports South (Marketplace)';
+                  updateData.imageSource = 'Sports South';
                   imagesAdded++;
-                  console.log(`SPORTS SOUTH SYNC: Added marketplace image for product ${product.upc}`);
+                  console.log(`SPORTS SOUTH SYNC: Added low quality image for product ${product.upc}`);
                 }
                 // Otherwise, keep existing image per preservation rules
               }
@@ -467,27 +468,28 @@ export async function performSportsSouthCatalogSync(
               // Skip image processing for now - focus on model field accuracy
               const hiresImageUrl = null;
               
-              // Check if Sports South is a vendor (not marketplace)
-              const isSportsSouthVendor = sportsSouth.vendorType === 'vendor';
+              // Sports South is a high quality image vendor
+              const isSportsSouthHighQuality = hasHighQualityImages('Sports South');
+              const existingImageIsLowQuality = product.imageSource && hasLowQualityImages(product.imageSource);
               
               if (!product.imageUrl) {
-                // No image exists - add image (both vendors and marketplaces can add to empty)
+                // No image exists - add image (both high and low quality vendors can add to empty)
                 updateData.imageUrl = hiresImageUrl;
                 updateData.imageSource = 'Sports South';
                 imagesAdded++;
                 console.log(`SPORTS SOUTH SYNC: Added image for existing mapped product ${product.upc}`);
-              } else if (isSportsSouthVendor && (product.imageSource === 'GunBroker' || product.imageSource?.includes('marketplace'))) {
-                // Sports South is vendor and existing image is from marketplace - upgrade to vendor image
+              } else if (isSportsSouthHighQuality && existingImageIsLowQuality) {
+                // Sports South is high quality and existing image is low quality - upgrade image
                 updateData.imageUrl = hiresImageUrl;
                 updateData.imageSource = 'Sports South';
                 imagesUpdated++;
-                console.log(`SPORTS SOUTH SYNC: Upgraded marketplace image to vendor image for existing mapped product ${product.upc}`);
-              } else if (!isSportsSouthVendor && !product.imageUrl) {
-                // Sports South is marketplace and no existing image - add marketplace image as fallback
+                console.log(`SPORTS SOUTH SYNC: Upgraded low quality image to high quality image for existing mapped product ${product.upc}`);
+              } else if (!isSportsSouthHighQuality && !product.imageUrl) {
+                // Sports South is low quality and no existing image - add as fallback
                 updateData.imageUrl = hiresImageUrl;
-                updateData.imageSource = 'Sports South (Marketplace)';
+                updateData.imageSource = 'Sports South';
                 imagesAdded++;
-                console.log(`SPORTS SOUTH SYNC: Added marketplace image for existing mapped product ${product.upc}`);
+                console.log(`SPORTS SOUTH SYNC: Added low quality image for existing mapped product ${product.upc}`);
               }
             }
             

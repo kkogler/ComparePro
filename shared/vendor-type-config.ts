@@ -1,54 +1,54 @@
 /**
- * Vendor Type Configuration
+ * Vendor Image Quality Configuration
  * 
- * Defines which vendors are considered "vendors" vs "marketplaces"
- * for Master Product Catalog data preservation rules.
+ * Defines which vendors provide high-quality vs low-quality images
+ * for Master Product Catalog image preservation rules.
  * 
  * RULES:
- * - Vendors: High quality images and data, equal priority among vendors
- * - Marketplaces: Lower quality images, only used as fallback
+ * - High Quality Image Vendors: Professional product photography, high resolution
+ * - Low Quality Image Vendors: Variable quality, lower resolution, used as fallback only
  */
 
 export interface VendorTypeConfig {
-  vendorType: 'vendor' | 'marketplace';
   imageQuality: 'high' | 'low';
   dataQuality: 'high' | 'medium' | 'low';
   description: string;
 }
 
 export const VENDOR_TYPE_CONFIG: Record<string, VendorTypeConfig> = {
-  // High Quality Vendors
+  // High Quality Image Vendors
   'Lipsey\'s': {
-    vendorType: 'vendor',
     imageQuality: 'high',
     dataQuality: 'high',
-    description: 'Premium firearms distributor with high-quality product data and images'
-  },
-  
-  'Chattanooga Shooting Supplies': {
-    vendorType: 'vendor',
-    imageQuality: 'high',
-    dataQuality: 'high',
-    description: 'Established firearms distributor with comprehensive product catalog'
+    description: 'Premium firearms distributor with high-quality professional product photography'
   },
   
   'Sports South': {
-    vendorType: 'vendor',
     imageQuality: 'high',
     dataQuality: 'high',
     description: 'Major firearms distributor with high-resolution images and detailed specifications'
   },
   
-  'MicroBiz Product API': {
-    vendorType: 'vendor',
+  'Bill Hicks': {
     imageQuality: 'high',
-    dataQuality: 'medium',
-    description: 'POS system with quality product data integration'
+    dataQuality: 'high',
+    description: 'Established firearms distributor with professional product images'
   },
   
-  // Marketplaces (Lower Quality)
+  'Bill Hicks & Co.': {
+    imageQuality: 'high',
+    dataQuality: 'high',
+    description: 'Established firearms distributor with professional product images'
+  },
+  
+  // Low Quality Image Vendors
+  'Chattanooga Shooting Supplies': {
+    imageQuality: 'low',
+    dataQuality: 'high',
+    description: 'Firearms distributor with variable image quality'
+  },
+  
   'GunBroker API': {
-    vendorType: 'marketplace',
     imageQuality: 'low',
     dataQuality: 'medium',
     description: 'Online marketplace with user-generated content and variable image quality'
@@ -56,11 +56,11 @@ export const VENDOR_TYPE_CONFIG: Record<string, VendorTypeConfig> = {
 };
 
 /**
- * Check if a vendor is a marketplace (lower image quality)
+ * Check if a vendor has low quality images
  */
-export function isMarketplace(vendorName: string): boolean {
+export function hasLowQualityImages(vendorName: string): boolean {
   const config = VENDOR_TYPE_CONFIG[vendorName];
-  return config?.vendorType === 'marketplace';
+  return config?.imageQuality === 'low';
 }
 
 /**
@@ -69,6 +69,14 @@ export function isMarketplace(vendorName: string): boolean {
 export function hasHighQualityImages(vendorName: string): boolean {
   const config = VENDOR_TYPE_CONFIG[vendorName];
   return config?.imageQuality === 'high';
+}
+
+/**
+ * @deprecated Use hasLowQualityImages() instead
+ * Check if a vendor is a marketplace (lower image quality)
+ */
+export function isMarketplace(vendorName: string): boolean {
+  return hasLowQualityImages(vendorName);
 }
 
 /**
@@ -92,10 +100,10 @@ export function getVendorTypeConfig(vendorName: string): VendorTypeConfig | null
  * - Do not fill in subcategory if category exists but subcategory is empty
  * 
  * IMAGES:
- * - Vendors: Only update if (1) no existing image OR (2) existing image is from marketplace
- * - Marketplaces: Only update if no existing image at all
- * - Never replace vendor image with another vendor image
- * - Never replace vendor image with marketplace image
+ * - High Quality Image Vendors: Can add to empty products OR replace low quality images
+ * - Low Quality Image Vendors: Can ONLY add to empty products (never replace existing)
+ * - High quality images are never replaced by other images (high or low quality)
+ * - Low quality images can be upgraded by high quality vendors
  */
 export const DATA_UPDATE_RULES = {
   // Fields that can be filled if empty, but never replaced
@@ -119,11 +127,11 @@ export const DATA_UPDATE_RULES = {
   
   // Image update priority rules
   IMAGE_PRIORITY: {
-    VENDOR_TO_EMPTY: true,      // Vendor can add image to empty product
-    VENDOR_TO_MARKETPLACE: true, // Vendor can replace marketplace image
-    VENDOR_TO_VENDOR: false,    // Vendor cannot replace other vendor image
-    MARKETPLACE_TO_EMPTY: true, // Marketplace can add image to empty product
-    MARKETPLACE_TO_VENDOR: false, // Marketplace cannot replace vendor image
-    MARKETPLACE_TO_MARKETPLACE: false // Marketplace cannot replace other marketplace image
+    HIGH_QUALITY_TO_EMPTY: true,           // High quality vendor can add image to empty product
+    HIGH_QUALITY_TO_LOW_QUALITY: true,     // High quality vendor can replace low quality image
+    HIGH_QUALITY_TO_HIGH_QUALITY: false,   // High quality vendor cannot replace other high quality image
+    LOW_QUALITY_TO_EMPTY: true,            // Low quality vendor can add image to empty product
+    LOW_QUALITY_TO_HIGH_QUALITY: false,    // Low quality vendor cannot replace high quality image
+    LOW_QUALITY_TO_LOW_QUALITY: false      // Low quality vendor cannot replace other low quality image
   }
 } as const;
