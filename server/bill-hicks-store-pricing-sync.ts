@@ -839,5 +839,26 @@ async function updateStoreSyncStatus(companyId: number, billHicksVendorId: numbe
   };
   
   console.log(`🔍 BILL HICKS STORE: Updating credentials with company_id=${updatedCredentials.company_id}, supported_vendor_id=${updatedCredentials.supported_vendor_id}`);
+  console.log(`🔍 BILL HICKS STORE: Update data:`, {
+    catalog_sync_status: updateData.catalog_sync_status,
+    last_catalog_sync: updateData.last_catalog_sync,
+    last_catalog_records_created: updateData.last_catalog_records_created,
+    last_catalog_records_updated: updateData.last_catalog_records_updated,
+    last_catalog_records_skipped: updateData.last_catalog_records_skipped,
+    last_catalog_records_failed: updateData.last_catalog_records_failed,
+    last_catalog_records_processed: updateData.last_catalog_records_processed
+  });
+  
   await storage.upsertCompanyVendorCredentials(updatedCredentials);
+  
+  console.log(`✅ BILL HICKS STORE: Database update complete`);
+  
+  // Verify the update by reading back
+  const verifyCredentials = await storage.getCompanyVendorCredentials(companyId, billHicksVendorId);
+  console.log(`🔍 BILL HICKS STORE: Verification read:`, {
+    catalogSyncStatus: verifyCredentials?.catalogSyncStatus,
+    lastCatalogSync: verifyCredentials?.lastCatalogSync,
+    lastCatalogRecordsCreated: verifyCredentials?.lastCatalogRecordsCreated,
+    lastCatalogRecordsProcessed: verifyCredentials?.lastCatalogRecordsProcessed
+  });
 }

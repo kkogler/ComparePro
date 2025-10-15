@@ -62,21 +62,30 @@ export function BillHicksConfig({
   // Get vendor data for last sync info
   const vendorData = vendor?.credentials;
   
-  // Debug logging
+  // Enhanced debug logging
   useEffect(() => {
-    if (isOpen && vendorData) {
-      console.log('🔍 BILL HICKS SYNC DATA:', {
-        catalogSyncStatus: vendorData.catalogSyncStatus,
-        lastCatalogSync: vendorData.lastCatalogSync,
-        lastCatalogRecordsCreated: vendorData.lastCatalogRecordsCreated,
-        lastCatalogRecordsUpdated: vendorData.lastCatalogRecordsUpdated,
-        lastCatalogRecordsSkipped: vendorData.lastCatalogRecordsSkipped,
-        lastCatalogRecordsFailed: vendorData.lastCatalogRecordsFailed,
-        lastCatalogRecordsProcessed: vendorData.lastCatalogRecordsProcessed,
-        catalogSyncError: vendorData.catalogSyncError,
-      });
+    if (isOpen) {
+      console.log('🔍 BILL HICKS MODAL OPENED');
+      console.log('🔍 BILL HICKS vendor object:', vendor);
+      console.log('🔍 BILL HICKS vendor?.credentials:', vendor?.credentials);
+      console.log('🔍 BILL HICKS vendorData:', vendorData);
+      
+      if (vendorData) {
+        console.log('🔍 BILL HICKS SYNC DATA:', {
+          catalogSyncStatus: vendorData.catalogSyncStatus,
+          lastCatalogSync: vendorData.lastCatalogSync,
+          lastCatalogRecordsCreated: vendorData.lastCatalogRecordsCreated,
+          lastCatalogRecordsUpdated: vendorData.lastCatalogRecordsUpdated,
+          lastCatalogRecordsSkipped: vendorData.lastCatalogRecordsSkipped,
+          lastCatalogRecordsFailed: vendorData.lastCatalogRecordsFailed,
+          lastCatalogRecordsProcessed: vendorData.lastCatalogRecordsProcessed,
+          catalogSyncError: vendorData.catalogSyncError,
+        });
+      } else {
+        console.log('⚠️ BILL HICKS: vendorData is null/undefined!');
+      }
     }
-  }, [isOpen, vendorData]);
+  }, [isOpen, vendorData, vendor]);
 
   // Format last sync date
   const formatLastSync = (lastSync: string | null) => {
@@ -604,14 +613,14 @@ export function BillHicksConfig({
                   )}
                   
                   {/* Last Sync Section - matching format from Admin view */}
-                  <div>
-                    <h5 className="font-medium text-sm mb-2">Last Sync</h5>
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="border-t pt-4 mt-4">
+                    <h5 className="font-medium mb-3">Last Sync</h5>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="font-medium">Status:</span>
-                            <span className={`ml-2 ${
+                            <span className={`ml-2 font-semibold ${
                               vendorData?.catalogSyncStatus === 'success' ? 'text-green-700' :
                               vendorData?.catalogSyncStatus === 'error' ? 'text-red-700' :
                               vendorData?.catalogSyncStatus === 'in_progress' ? 'text-blue-700' : 'text-gray-500'
@@ -623,25 +632,36 @@ export function BillHicksConfig({
                           </div>
                           <div>
                             <span className="font-medium">Last Sync:</span>
-                            <span className="ml-2 text-gray-600">
+                            <span className="ml-2 text-gray-700">
                               {vendorData?.lastCatalogSync 
-                                ? new Date(vendorData.lastCatalogSync).toLocaleDateString('en-US') + ' at ' + new Date(vendorData.lastCatalogSync).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
+                                ? new Date(vendorData.lastCatalogSync).toLocaleDateString('en-US', { 
+                                    month: '2-digit', 
+                                    day: '2-digit', 
+                                    year: 'numeric' 
+                                  }) + ' at ' + new Date(vendorData.lastCatalogSync).toLocaleTimeString('en-US', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit', 
+                                    timeZoneName: 'short' 
+                                  })
                                 : 'Never'
                               }
                             </span>
                           </div>
                         </div>
                         
-                        {/* Display sync statistics */}
-                        {vendorData?.catalogSyncStatus === 'success' && vendorData?.lastCatalogSync && (
-                          <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+                        {/* Display sync statistics - Always show when last sync exists */}
+                        {vendorData?.lastCatalogSync && (
+                          <div className="text-xs text-gray-600 bg-white p-3 rounded border border-gray-200">
                             <div className="grid grid-cols-2 gap-2">
                               <div><span className="font-medium text-green-700">Added:</span> {(vendorData.lastCatalogRecordsCreated || 0).toLocaleString()}</div>
                               <div><span className="font-medium text-blue-700">Updated:</span> {(vendorData.lastCatalogRecordsUpdated || 0).toLocaleString()}</div>
                               <div><span className="font-medium text-gray-700">Skipped:</span> {(vendorData.lastCatalogRecordsSkipped || 0).toLocaleString()}</div>
                               <div><span className="font-medium text-red-700">Failed:</span> {(vendorData.lastCatalogRecordsFailed || 0).toLocaleString()}</div>
                             </div>
-                            <div className="mt-1 text-center"><span className="font-medium">Processed:</span> {(vendorData.lastCatalogRecordsProcessed || 0).toLocaleString()}</div>
+                            <div className="mt-2 pt-2 border-t border-gray-200 text-center">
+                              <span className="font-medium">Processed:</span> 
+                              <span className="ml-2 font-semibold text-gray-900">{(vendorData.lastCatalogRecordsProcessed || 0).toLocaleString()}</span>
+                            </div>
                           </div>
                         )}
                       </div>

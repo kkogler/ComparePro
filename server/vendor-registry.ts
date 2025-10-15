@@ -310,6 +310,7 @@ export class VendorRegistry {
 
   /**
    * Safely test connection for any vendor
+   * Uses a request queue to prevent overwhelming external APIs with concurrent requests
    */
   async testVendorConnection(
     vendorId: string, 
@@ -317,62 +318,67 @@ export class VendorRegistry {
     companyId?: number,
     userId?: number
   ): Promise<{ success: boolean; message: string }> {
-    try {
-      const handler = this.getHandlerById(vendorId) || this.getHandlerByVendorName(vendorId);
-      
-      if (!handler) {
-        return { 
-          success: false, 
-          message: `No handler found for vendor: ${vendorId}. The vendor may need to be registered.` 
-        };
-      }
-
-      if (!handler.testConnection) {
-        return { 
-          success: false, 
-          message: `Connection testing not available for ${vendorId}. Please contact support to enable this feature.` 
-        };
-      }
-
-      // Get credentials from vault
-      let credentials: Record<string, string> | null;
-      
-      // Import credential vault
-      const { credentialVault } = await import('./credential-vault-service');
-      
-      if (level === 'admin') {
-        console.log(`🔍 VENDOR REGISTRY: Fetching admin credentials for ${vendorId}`);
-        credentials = await credentialVault.getAdminCredentials(vendorId, userId || 0);
-        console.log(`🔍 VENDOR REGISTRY: Admin credentials result:`, credentials ? 'FOUND' : 'NOT FOUND');
-      } else {
-        if (!companyId) {
-          return { success: false, message: 'Company ID required for store-level testing' };
+    // Use request queue to prevent concurrent test connections from overwhelming the server
+    const { vendorTestConnectionQueue } = await import('./request-queue');
+    
+    return vendorTestConnectionQueue.enqueue(async () => {
+      try {
+        const handler = this.getHandlerById(vendorId) || this.getHandlerByVendorName(vendorId);
+        
+        if (!handler) {
+          return { 
+            success: false, 
+            message: `No handler found for vendor: ${vendorId}. The vendor may need to be registered.` 
+          };
         }
-        console.log(`🔍 VENDOR REGISTRY: Fetching store credentials for ${vendorId}, company ${companyId}`);
-        credentials = await credentialVault.getStoreCredentials(vendorId, companyId, userId || 0);
-        console.log(`🔍 VENDOR REGISTRY: Store credentials result:`, credentials ? 'FOUND' : 'NOT FOUND');
-      }
 
-      if (!credentials) {
-        console.warn(`❌ VENDOR REGISTRY: No credentials found for ${vendorId} at ${level} level`);
-        return { success: false, message: 'No credentials found' };
-      }
+        if (!handler.testConnection) {
+          return { 
+            success: false, 
+            message: `Connection testing not available for ${vendorId}. Please contact support to enable this feature.` 
+          };
+        }
 
-      console.log(`🔍 VENDOR REGISTRY: Testing connection with credentials:`, Object.keys(credentials));
-      
-      // Test the connection
-      const result = await handler.testConnection(credentials);
-      console.log(`🔍 VENDOR REGISTRY: Connection test result:`, result);
-      
-      return result;
-      
-    } catch (error) {
-      console.error(`Connection test failed for ${vendorId}:`, error);
-      return { 
-        success: false, 
-        message: `Connection test error: ${error.message}` 
-      };
-    }
+        // Get credentials from vault
+        let credentials: Record<string, string> | null;
+        
+        // Import credential vault
+        const { credentialVault } = await import('./credential-vault-service');
+        
+        if (level === 'admin') {
+          console.log(`🔍 VENDOR REGISTRY: Fetching admin credentials for ${vendorId}`);
+          credentials = await credentialVault.getAdminCredentials(vendorId, userId || 0);
+          console.log(`🔍 VENDOR REGISTRY: Admin credentials result:`, credentials ? 'FOUND' : 'NOT FOUND');
+        } else {
+          if (!companyId) {
+            return { success: false, message: 'Company ID required for store-level testing' };
+          }
+          console.log(`🔍 VENDOR REGISTRY: Fetching store credentials for ${vendorId}, company ${companyId}`);
+          credentials = await credentialVault.getStoreCredentials(vendorId, companyId, userId || 0);
+          console.log(`🔍 VENDOR REGISTRY: Store credentials result:`, credentials ? 'FOUND' : 'NOT FOUND');
+        }
+
+        if (!credentials) {
+          console.warn(`❌ VENDOR REGISTRY: No credentials found for ${vendorId} at ${level} level`);
+          return { success: false, message: 'No credentials found' };
+        }
+
+        console.log(`🔍 VENDOR REGISTRY: Testing connection with credentials:`, Object.keys(credentials));
+        
+        // Test the connection
+        const result = await handler.testConnection(credentials);
+        console.log(`🔍 VENDOR REGISTRY: Connection test result:`, result);
+        
+        return result;
+        
+      } catch (error) {
+        console.error(`Connection test failed for ${vendorId}:`, error);
+        return { 
+          success: false, 
+          message: `Connection test error: ${error.message}` 
+        };
+      }
+    });
   }
 
   /**

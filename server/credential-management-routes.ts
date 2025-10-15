@@ -112,6 +112,13 @@ export function registerCredentialManagementRoutes(app: Express): void {
       const { vendorId } = req.params;
       const userId = (req as any).user?.id || 0;
 
+      // Check queue status and warn if busy
+      const { vendorTestConnectionQueue } = await import('./request-queue');
+      const queueStatus = vendorTestConnectionQueue.getStatus();
+      if (queueStatus.queueLength > 0) {
+        console.log(`⏳ ADMIN TEST CONNECTION: Request queued (${queueStatus.queueLength} ahead in queue)`);
+      }
+
       console.log(`🔍 ADMIN TEST CONNECTION: Starting test for vendor: ${vendorId}, userId: ${userId}`);
       
       // Verify the vendor exists first

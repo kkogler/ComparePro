@@ -6159,6 +6159,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: 'Invalid vendor identifier' });
       }
       
+      // Check queue status and warn if busy
+      const { vendorTestConnectionQueue } = await import('./request-queue');
+      const queueStatus = vendorTestConnectionQueue.getStatus();
+      if (queueStatus.queueLength > 0) {
+        console.log(`⏳ TEST CONNECTION: Request queued (${queueStatus.queueLength} ahead in queue)`);
+      }
+      
       console.log('🔍 TEST CONNECTION: Vendor identifier:', vendorIdentifier, 'for company:', organizationId);
       
       // ✅ FIX: Frontend sends per-org slug like "lipseys-1", we need vendorSlug like "lipseys"

@@ -2465,7 +2465,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Map the credentials to the correct field names
-    const mappedCredentials = {
+    const mappedCredentials: any = {
       companyId: credentials.company_id,
       supportedVendorId: credentials.supported_vendor_id,
       ftpServer: credentials.ftp_server,
@@ -2477,21 +2477,88 @@ export class DatabaseStorage implements IStorage {
       inventorySyncEnabled: credentials.inventory_sync_enabled
     };
     
+    // Add sync statistics fields if provided (for Bill Hicks store sync)
+    if (credentials.catalog_sync_status !== undefined) {
+      mappedCredentials.catalogSyncStatus = credentials.catalog_sync_status;
+    }
+    if (credentials.last_catalog_sync !== undefined) {
+      mappedCredentials.lastCatalogSync = credentials.last_catalog_sync;
+    }
+    if (credentials.catalog_sync_error !== undefined) {
+      mappedCredentials.catalogSyncError = credentials.catalog_sync_error;
+    }
+    if (credentials.last_catalog_records_created !== undefined) {
+      mappedCredentials.lastCatalogRecordsCreated = credentials.last_catalog_records_created;
+    }
+    if (credentials.last_catalog_records_updated !== undefined) {
+      mappedCredentials.lastCatalogRecordsUpdated = credentials.last_catalog_records_updated;
+    }
+    if (credentials.last_catalog_records_skipped !== undefined) {
+      mappedCredentials.lastCatalogRecordsSkipped = credentials.last_catalog_records_skipped;
+    }
+    if (credentials.last_catalog_records_failed !== undefined) {
+      mappedCredentials.lastCatalogRecordsFailed = credentials.last_catalog_records_failed;
+    }
+    if (credentials.last_catalog_records_processed !== undefined) {
+      mappedCredentials.lastCatalogRecordsProcessed = credentials.last_catalog_records_processed;
+    }
+    if (credentials.catalog_sync_schedule !== undefined) {
+      mappedCredentials.catalogSyncSchedule = credentials.catalog_sync_schedule;
+    }
+    if (credentials.inventory_sync_schedule !== undefined) {
+      mappedCredentials.inventorySyncSchedule = credentials.inventory_sync_schedule;
+    }
+    
+    // Build the update set dynamically to include all provided fields
+    const updateSet: any = {
+      ftpServer: mappedCredentials.ftpServer,
+      ftpPort: mappedCredentials.ftpPort,
+      ftpUsername: mappedCredentials.ftpUsername,
+      ftpPassword: mappedCredentials.ftpPassword,
+      ftpBasePath: mappedCredentials.ftpBasePath,
+      catalogSyncEnabled: mappedCredentials.catalogSyncEnabled,
+      inventorySyncEnabled: mappedCredentials.inventorySyncEnabled,
+      updatedAt: new Date()
+    };
+    
+    // Add sync statistics to update set if they were mapped
+    if (mappedCredentials.catalogSyncStatus !== undefined) {
+      updateSet.catalogSyncStatus = mappedCredentials.catalogSyncStatus;
+    }
+    if (mappedCredentials.lastCatalogSync !== undefined) {
+      updateSet.lastCatalogSync = mappedCredentials.lastCatalogSync;
+    }
+    if (mappedCredentials.catalogSyncError !== undefined) {
+      updateSet.catalogSyncError = mappedCredentials.catalogSyncError;
+    }
+    if (mappedCredentials.lastCatalogRecordsCreated !== undefined) {
+      updateSet.lastCatalogRecordsCreated = mappedCredentials.lastCatalogRecordsCreated;
+    }
+    if (mappedCredentials.lastCatalogRecordsUpdated !== undefined) {
+      updateSet.lastCatalogRecordsUpdated = mappedCredentials.lastCatalogRecordsUpdated;
+    }
+    if (mappedCredentials.lastCatalogRecordsSkipped !== undefined) {
+      updateSet.lastCatalogRecordsSkipped = mappedCredentials.lastCatalogRecordsSkipped;
+    }
+    if (mappedCredentials.lastCatalogRecordsFailed !== undefined) {
+      updateSet.lastCatalogRecordsFailed = mappedCredentials.lastCatalogRecordsFailed;
+    }
+    if (mappedCredentials.lastCatalogRecordsProcessed !== undefined) {
+      updateSet.lastCatalogRecordsProcessed = mappedCredentials.lastCatalogRecordsProcessed;
+    }
+    if (mappedCredentials.catalogSyncSchedule !== undefined) {
+      updateSet.catalogSyncSchedule = mappedCredentials.catalogSyncSchedule;
+    }
+    if (mappedCredentials.inventorySyncSchedule !== undefined) {
+      updateSet.inventorySyncSchedule = mappedCredentials.inventorySyncSchedule;
+    }
+    
     const [result] = await db
       .insert(companyVendorCredentials)
       .values(mappedCredentials)
       .onConflictDoUpdate({
         target: [companyVendorCredentials.companyId, companyVendorCredentials.supportedVendorId],
-        set: {
-          ftpServer: mappedCredentials.ftpServer,
-          ftpPort: mappedCredentials.ftpPort,
-          ftpUsername: mappedCredentials.ftpUsername,
-          ftpPassword: mappedCredentials.ftpPassword,
-          ftpBasePath: mappedCredentials.ftpBasePath,
-          catalogSyncEnabled: mappedCredentials.catalogSyncEnabled,
-          inventorySyncEnabled: mappedCredentials.inventorySyncEnabled,
-          updatedAt: new Date()
-        }
+        set: updateSet
       })
       .returning();
     return result;
