@@ -59,7 +59,9 @@ The application uses a **single database with company-scoped data** approach rat
 
 ### Database Configuration (Development vs Production)
 
-**⚠️ CRITICAL: Separate Databases for Dev and Prod**
+**🚨🚨🚨 CRITICAL: Separate Databases for Dev and Prod 🚨🚨🚨**
+
+**⚠️ DO NOT CLICK "Sync to Workspace" ON DEPLOYMENT DATABASE_URL - THIS WILL BREAK EVERYTHING!**
 
 The system uses **separate PostgreSQL databases** for development and production:
 
@@ -85,6 +87,17 @@ The system uses **separate PostgreSQL databases** for development and production
 - Never run vendor syncs from the web server (causes memory crashes) - use manual triggers only
 - Schema changes in development require `npm run db:push` to sync to dev database
 - Production schema changes happen automatically via deployment migrations
+
+**Protection Mechanisms:**
+1. **Startup Check:** Server logs database environment on every restart - watch for 🚨 warnings
+2. **Verification Script:** Run `bash scripts/verify-database-config.sh` anytime to check configuration
+3. **Documentation:** See `docs/DATABASE_SETUP_GUIDE.md` for detailed setup instructions
+
+**If Configuration Breaks Again:**
+1. Check server logs for database environment mismatch warnings
+2. Run verification script: `bash scripts/verify-database-config.sh`
+3. Fix workspace secret: Tools → Secrets → DATABASE_URL → Set to dev endpoint
+4. Fix deployment secret: Tools → Publishing → Advanced Settings → DATABASE_URL → Set to prod endpoint (must be unsynced!)
 
 **Key Tables:**
 - `companies` - Tenant organizations with timezone and retail vertical
