@@ -125,6 +125,7 @@ interface SupportedVendor {
   chattanoogaRecordsFailed?: number;
   chattanoogaTotalRecords?: number;
   vendorType: 'vendor' | 'marketplace';
+  imageQuality?: 'high' | 'low'; // Image quality classification for Master Product Catalog
   
   retailVerticals?: Array<{
     id: number;

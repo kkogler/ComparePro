@@ -277,6 +277,10 @@ export const supportedVendors = pgTable("supported_vendors", {
   logoUrl: text("logo_url"),
   websiteUrl: text("website_url"),
   documentationUrl: text("documentation_url"),
+  
+  // Image quality classification for Master Product Catalog
+  imageQuality: text("image_quality").default("high"), // 'high' or 'low' - controls image replacement priority
+  
   credentialFields: json("credential_fields").$type<Array<{
     name: string;
     label: string;

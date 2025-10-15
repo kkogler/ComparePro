@@ -12,7 +12,7 @@
 
 import { storage } from './storage';
 import { createSportsSouthAPI, SportsSouthCredentials } from './sports-south-api';
-import { hasHighQualityImages, hasLowQualityImages, DATA_UPDATE_RULES } from '../shared/vendor-type-config';
+import { hasHighQualityImages, hasLowQualityImages, getVendorImageQualityFromDB, DATA_UPDATE_RULES } from '../shared/vendor-type-config';
 
 // Extract manufacturer part number from product name
 // For firearms, the MPN is often embedded in the product name after the brand
@@ -401,9 +401,13 @@ export async function performSportsSouthCatalogSync(
               const hiresImageUrl = VendorImageService.getImageUrl('Sports South', imageIdentifier, sportsSouthProduct.PICREF);
               
               if (hiresImageUrl) {
-                // Sports South is a high quality image vendor
-                const isSportsSouthHighQuality = hasHighQualityImages('Sports South');
-                const existingImageIsLowQuality = product.imageSource && hasLowQualityImages(product.imageSource);
+                // Check Sports South image quality from database (dynamic config)
+                const sportsSouthQuality = await getVendorImageQualityFromDB('Sports South');
+                const isSportsSouthHighQuality = sportsSouthQuality === 'high';
+                
+                // Check existing image quality from database
+                const existingImageQuality = product.imageSource ? await getVendorImageQualityFromDB(product.imageSource) : null;
+                const existingImageIsLowQuality = existingImageQuality === 'low';
                 
                 if (!product.imageUrl) {
                   // No image exists - add image (both high and low quality vendors can add to empty)
@@ -468,9 +472,13 @@ export async function performSportsSouthCatalogSync(
               // Skip image processing for now - focus on model field accuracy
               const hiresImageUrl = null;
               
-              // Sports South is a high quality image vendor
-              const isSportsSouthHighQuality = hasHighQualityImages('Sports South');
-              const existingImageIsLowQuality = product.imageSource && hasLowQualityImages(product.imageSource);
+              // Check Sports South image quality from database (dynamic config)
+              const sportsSouthQuality = await getVendorImageQualityFromDB('Sports South');
+              const isSportsSouthHighQuality = sportsSouthQuality === 'high';
+              
+              // Check existing image quality from database
+              const existingImageQuality = product.imageSource ? await getVendorImageQualityFromDB(product.imageSource) : null;
+              const existingImageIsLowQuality = existingImageQuality === 'low';
               
               if (!product.imageUrl) {
                 // No image exists - add image (both high and low quality vendors can add to empty)

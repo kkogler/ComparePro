@@ -87,6 +87,40 @@ export function getVendorTypeConfig(vendorName: string): VendorTypeConfig | null
 }
 
 /**
+ * Get vendor image quality from database (for dynamic configuration)
+ * This is now the preferred method - reads from supported_vendors.imageQuality
+ * Falls back to hardcoded config if database value not available
+ */
+export async function getVendorImageQualityFromDB(vendorName: string): Promise<'high' | 'low'> {
+  try {
+    // Lazy import to avoid circular dependencies
+    const { db } = await import('../server/db');
+    const { supportedVendors } = await import('./schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [vendor] = await db
+      .select({ imageQuality: supportedVendors.imageQuality })
+      .from(supportedVendors)
+      .where(eq(supportedVendors.name, vendorName))
+      .limit(1);
+    
+    if (vendor && vendor.imageQuality) {
+      return vendor.imageQuality as 'high' | 'low';
+    }
+    
+    // Fallback to hardcoded config
+    const config = VENDOR_TYPE_CONFIG[vendorName];
+    return config?.imageQuality || 'high'; // Default to high quality
+    
+  } catch (error) {
+    console.warn(`Failed to get image quality from DB for ${vendorName}, using fallback:`, error);
+    // Fallback to hardcoded config
+    const config = VENDOR_TYPE_CONFIG[vendorName];
+    return config?.imageQuality || 'high';
+  }
+}
+
+/**
  * Master Product Catalog Data Update Rules
  * 
  * For existing products in Master Product Catalog:
