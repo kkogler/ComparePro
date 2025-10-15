@@ -7578,52 +7578,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId: normalized.customer?.customer_id
       });
       
-      console.log('📦 IMPORTING BillingService...', { requestId });
-      
-      // Import and use BillingService for clean architecture
-      const { BillingService } = await import('./billing-service');
-      
-      console.log('✅ BillingService imported, creating instance...', { requestId });
-      const billingService = new BillingService();
-      
-      console.log('✅ BillingService instance created, calling processZohoWebhook...', { requestId });
-      
-      try {
-        await billingService.processZohoWebhook(normalized);
-        console.log('✅ WEBHOOK PROCESSING COMPLETED', { requestId, eventId: normalized.eventId });
-      } catch (processingError) {
-        console.error('❌ WEBHOOK PROCESSING FAILED', {
-          requestId,
-          eventId: normalized.eventId,
-          error: processingError instanceof Error ? processingError.message : String(processingError),
-          subscriptionId: normalized.subscription?.subscription_id,
-          customerId: normalized.customer?.customer_id
-        });
-        
-        // Log to database for monitoring
-        try {
-          await billingService.logBillingEvent({
-            eventType: 'webhook_processing_failed',
-            eventId: req.body.subscription?.subscription_id || req.body.subscription_id || 'unknown',
-            billingProvider: 'zoho',
-            data: { 
-              error: processingError instanceof Error ? processingError.message : String(processingError),
-              originalPayload: req.body 
-            }
-          });
-        } catch (loggingError) {
-          console.error('Failed to log webhook processing error:', loggingError);
-        }
-        
-        throw processingError; // Re-throw to return error to Zoho
-      }
-      
+      // **RESPOND IMMEDIATELY**: Acknowledge webhook receipt to prevent timeout
+      // Process the webhook asynchronously in the background
       res.status(200).json({ 
-        status: "success", 
-        processed: true,
+        status: "accepted", 
+        message: "Webhook received and will be processed",
         requestId,
         eventId: normalized.eventId
       });
+      
+      console.log('✅ WEBHOOK ACKNOWLEDGED - Now processing asynchronously', { requestId });
+      
+      // Process webhook asynchronously (don't await - let it run in background)
+      // This prevents Zoho from timing out while we do database operations, send emails, etc.
+      (async () => {
+        try {
+          console.log('📦 IMPORTING BillingService...', { requestId });
+          
+          // Import and use BillingService for clean architecture
+          const { BillingService } = await import('./billing-service');
+          
+          console.log('✅ BillingService imported, creating instance...', { requestId });
+          const billingService = new BillingService();
+          
+          console.log('✅ BillingService instance created, calling processZohoWebhook...', { requestId });
+          
+          await billingService.processZohoWebhook(normalized);
+          console.log('✅ WEBHOOK PROCESSING COMPLETED', { requestId, eventId: normalized.eventId });
+        } catch (processingError) {
+          console.error('❌ WEBHOOK PROCESSING FAILED (ASYNC)', {
+            requestId,
+            eventId: normalized.eventId,
+            error: processingError instanceof Error ? processingError.message : String(processingError),
+            stack: processingError instanceof Error ? processingError.stack : undefined,
+            subscriptionId: normalized.subscription?.subscription_id,
+            customerId: normalized.customer?.customer_id
+          });
+          
+          // Log to database for monitoring
+          try {
+            const { BillingService } = await import('./billing-service');
+            const billingService = new BillingService();
+            await billingService.logBillingEvent({
+              eventType: 'webhook_processing_failed',
+              eventId: normalized.eventId || 'unknown',
+              billingProvider: 'zoho',
+              data: { 
+                error: processingError instanceof Error ? processingError.message : String(processingError),
+                originalPayload: normalized.rawPayload 
+              }
+            });
+          } catch (loggingError) {
+            console.error('❌ Failed to log webhook processing error:', loggingError);
+          }
+        }
+      })();
     } catch (error: any) {
       console.error('🚨 ZOHO WEBHOOK ERROR (OUTER CATCH):', {
         message: error.message,
