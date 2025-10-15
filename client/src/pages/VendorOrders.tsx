@@ -1488,27 +1488,13 @@ export default function VendorOrders() {
                             Edit
                           </Button>
                           
-                          
-                          {order.status === 'open' && createPOInMicroBiz && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleDisplayWebhook(order.id)}
-                              disabled={generateWebhookMutation.isPending}
-                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                              title="Display Webhook"
-                              data-testid={`button-display-webhook-${order.id}`}
-                            >
-                              <Link2 className="h-4 w-4" />
-                            </Button>
-                          )}
                           {order.status === 'draft' ? (
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm" 
                               onClick={() => handleDeleteOrder(order.id)}
                               disabled={deleteOrderMutation.isPending}
-                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
                               title="Delete Draft Order"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1520,40 +1506,53 @@ export default function VendorOrders() {
                       {/* MicroBiz Export Column */}
                       <TableCell className="text-center">
                         {(order.status === 'open' || order.status === 'complete') && (
-                          <div className="flex justify-center space-x-1">
+                          <div className="flex justify-center items-center gap-1">
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm" 
                               onClick={() => handleDownloadCSV(order.id)}
                               disabled={downloadCSVMutation.isPending}
-                              className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                              className="text-green-600 hover:text-green-700 border-green-200 hover:border-green-300 hover:bg-green-50"
                               title="Download Product Import CSV"
                               data-testid={`button-download-csv-${order.id}`}
                             >
                               <Download className="h-4 w-4" />
                             </Button>
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm" 
                               onClick={() => handleDownloadQuantityExport(order.id)}
                               disabled={downloadQuantityExportMutation.isPending}
-                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300 hover:bg-blue-50"
                               title="Download Order Quantity Export CSV"
                               data-testid={`button-download-quantity-export-${order.id}`}
                             >
                               <FileSpreadsheet className="h-4 w-4" />
                             </Button>
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm" 
                               onClick={() => handleEmailCSV(order.id)}
                               disabled={emailCSVMutation.isPending}
-                              className="text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                              className="text-purple-600 hover:text-purple-700 border-purple-200 hover:border-purple-300 hover:bg-purple-50"
                               title="Email Both CSV Files"
                               data-testid={`button-email-csv-${order.id}`}
                             >
                               <Mail className="h-4 w-4" />
                             </Button>
+                            {order.status === 'open' && createPOInMicroBiz && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDisplayWebhook(order.id)}
+                                disabled={generateWebhookMutation.isPending}
+                                className="text-orange-600 hover:text-orange-700 border-orange-200 hover:border-orange-300 hover:bg-orange-50"
+                                title="Display Webhook"
+                                data-testid={`button-display-webhook-${order.id}`}
+                              >
+                                <Link2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         )}
                       </TableCell>
@@ -1563,22 +1562,22 @@ export default function VendorOrders() {
                         {(order.status === 'open' || order.status === 'complete') && (
                           <div className="flex items-center justify-center gap-1">
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm" 
                               onClick={() => handleDownloadSwipeSimpleCSV(order.id)}
                               disabled={downloadSwipeSimpleCSVMutation.isPending}
-                              className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                              className="text-green-600 hover:text-green-700 border-green-200 hover:border-green-300 hover:bg-green-50"
                               title="Download Swipe Simple CSV"
                               data-testid={`button-download-swipe-simple-csv-${order.id}`}
                             >
                               <Download className="h-4 w-4" />
                             </Button>
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm" 
                               onClick={() => handleEmailSwipeSimpleCSV(order.id)}
                               disabled={emailSwipeSimpleCSVMutation.isPending}
-                              className="text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                              className="text-purple-600 hover:text-purple-700 border-purple-200 hover:border-purple-300 hover:bg-purple-50"
                               title="Email Swipe Simple CSV"
                               data-testid={`button-email-swipe-simple-csv-${order.id}`}
                             >
