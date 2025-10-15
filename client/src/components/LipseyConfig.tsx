@@ -200,14 +200,14 @@ export function LipseyConfig({
       if (response.ok) {
         toast({
           title: "Credentials Saved",
-          description: "Lipsey's API credentials have been saved successfully.",
+          description: "Lipsey's API credentials have been saved successfully. You can now test the connection.",
         });
         
         // Mark that credentials now exist
         setHasExistingCredentials(true);
         
         onSuccess?.();
-        onOpenChange(false);
+        // Modal stays open so user can test connection
       } else {
         const error = await response.json();
         console.error('🔍 LIPSEY SAVE ERROR:', error);
