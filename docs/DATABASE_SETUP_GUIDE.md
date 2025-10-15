@@ -1,10 +1,44 @@
 # Database Setup & Environment Guide
 
-**Last Updated:** October 9, 2025
+**Last Updated:** October 15, 2025
 
 ## Overview
 
 This document clarifies the database architecture and environments. The application uses **two hosted NEON PostgreSQL databases** - one for development and one for production. **No local PostgreSQL database is required.**
+
+---
+
+## 🚨 CRITICAL: Replit Deployment Secrets Configuration
+
+**⚠️ WARNING: DO NOT CLICK "Sync to Workspace" ON DEPLOYMENT DATABASE_URL**
+
+### The Correct Setup (Do Not Change!)
+
+**Workspace Secret (Development):**
+- Location: Tools → Secrets → DATABASE_URL  
+- Value: `postgresql://neondb_owner:npg_ZrF3qMEPhK0N@ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
+- Purpose: Safe development/testing environment
+
+**Deployment Secret (Production):**
+- Location: Tools → Publishing → Advanced Settings → Production app secrets → DATABASE_URL
+- Value: `postgresql://neondb_owner:npg_3U8KcQGzhMLW@ep-lingering-sea-adyjzybe.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
+- Status: **MUST show yellow link icon (Syncing Disabled)**
+- Purpose: Live user data
+
+### 🚫 NEVER DO THIS:
+- ❌ Click "Sync to Workspace" on deployment DATABASE_URL (overwrites production with dev!)
+- ❌ Edit workspace DATABASE_URL to point to production  (makes dev work affect live users!)
+- ❌ Click "Sync from Workspace" on deployment DATABASE_URL (same problem!)
+
+### ✅ How to Verify Configuration:
+Run the verification script anytime:
+```bash
+bash scripts/verify-database-config.sh
+```
+
+Or check manually:
+1. Workspace: `echo $DATABASE_URL` should show `ep-lingering-hat-adb2bp8d`
+2. Deployment: Tools → Publishing → Advanced Settings → DATABASE_URL should show `ep-lingering-sea-adyjzybe` with yellow icon
 
 ---
 
