@@ -208,22 +208,22 @@ export const VENDOR_FIELD_MAPPINGS: Record<string, VendorFieldMapping> = {
     vendorName: 'Chattanooga Shooting Supplies',
     fields: {
       productName: {
-        primary: 'name',
-        fallbacks: ['model', 'cssi_id'],
+        primary: 'Web Item Name',
+        fallbacks: ['name', 'Item Name', 'model', 'cssi_id'],
         quality: 'high',
-        description: 'Product name from API name field with manufacturer and model fallbacks'
+        description: 'Web Item Name from CSV (highest quality, matches website), fallback to API name field'
       },
       description: {
-        primary: 'name',
-        fallbacks: [],
+        primary: 'Web Item Description',
+        fallbacks: ['name'],
         quality: 'medium',
-        description: 'Use product name as description (API has limited description fields)'
+        description: 'Use Web Item Description from CSV, fallback to product name'
       },
       brand: {
-        primary: 'manufacturer',
-        fallbacks: [],
+        primary: 'Manufacturer',
+        fallbacks: ['manufacturer'],
         quality: 'high',
-        description: 'Manufacturer name from API manufacturer field'
+        description: 'Manufacturer name from CSV Manufacturer field or API manufacturer field'
       },
       model: {
         primary: 'model',
@@ -232,40 +232,50 @@ export const VENDOR_FIELD_MAPPINGS: Record<string, VendorFieldMapping> = {
         description: 'Product model from API model field'
       },
       upc: {
-        primary: 'upc',
-        fallbacks: [],
+        primary: 'UPC',
+        fallbacks: ['upc'],
         quality: 'high',
-        description: 'UPC from API upc field'
+        description: 'UPC from CSV UPC field or API upc field'
       },
       manufacturerPartNumber: {
-        primary: 'cssi_id',
-        fallbacks: [],
+        primary: 'Manufacturer Item Number',
+        fallbacks: ['cssi_id', 'SKU'],
         quality: 'high',
-        description: 'Chattanooga part number from API cssi_id field'
+        description: 'Manufacturer part number from CSV, fallback to Chattanooga SKU'
       },
       category: {
-        primary: 'category',
-        fallbacks: [],
+        primary: 'Category',
+        fallbacks: ['category'],
         quality: 'medium',
-        description: 'Product category from API category field'
+        description: 'Product category from CSV Category field or API category field'
       },
       price: {
-        primary: 'retail_price',
-        fallbacks: ['map_price', 'msrp'],
+        primary: 'Price',
+        fallbacks: ['retail_price', 'MAP', 'Retail MAP', 'MSRP', 'map_price', 'msrp'],
         quality: 'high',
-        description: 'Product price from API retail_price with fallbacks'
+        description: 'Product price from CSV Price field with multiple fallbacks'
       }
     },
     processing: {
-      trim: ['name', 'manufacturer', 'model', 'cssi_id'],
+      trim: ['Web Item Name', 'name', 'Item Name', 'manufacturer', 'Manufacturer', 'model', 'cssi_id', 'SKU'],
       custom: {
         'productName': (product: any, brandName?: string) => {
-          // Chattanooga API provides clean product names
+          // Priority 1: Web Item Name from CSV (highest quality, matches website)
+          if (product['Web Item Name'] && product['Web Item Name'].trim()) {
+            return product['Web Item Name'].trim();
+          }
+          
+          // Priority 2: API name field (for real-time lookups)
           if (product.name && product.name.trim()) {
             return product.name.trim();
           }
           
-          // Construct from available parts if name is missing
+          // Priority 3: Item Name from CSV
+          if (product['Item Name'] && product['Item Name'].trim()) {
+            return product['Item Name'].trim();
+          }
+          
+          // Priority 4: Construct from available parts if name is missing
           const parts: string[] = [];
           if (brandName && brandName.trim()) parts.push(brandName.trim());
           if (product.model && product.model.trim()) parts.push(product.model.trim());
@@ -273,7 +283,7 @@ export const VENDOR_FIELD_MAPPINGS: Record<string, VendorFieldMapping> = {
           if (parts.length > 0) return parts.join(' ');
           
           // Last resort - use Chattanooga ID
-          return `Chattanooga Item ${product.cssi_id || 'Unknown'}`;
+          return `Chattanooga Item ${product.cssi_id || product.SKU || 'Unknown'}`;
         }
       }
     }

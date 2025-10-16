@@ -97,8 +97,23 @@ export class ChattanoogaCSVImporter {
 
       console.log(`📊 Found ${records.length} products in CSV`);
 
-      for (let index = 0; index < records.length; index++) {
-        const row = records[index];
+      // Deduplicate records by UPC (keep last occurrence for most recent data)
+      const deduplicatedRecords = new Map<string, ChattanoogaCSVRow>();
+      for (const record of records) {
+        if (record.UPC && record.UPC.trim()) {
+          deduplicatedRecords.set(record.UPC.trim(), record);
+        }
+      }
+      
+      const duplicatesRemoved = records.length - deduplicatedRecords.size;
+      if (duplicatesRemoved > 0) {
+        console.log(`🔄 Removed ${duplicatesRemoved} duplicate UPC entries (${deduplicatedRecords.size} unique products)`);
+      }
+      
+      const uniqueRecords = Array.from(deduplicatedRecords.values());
+
+      for (let index = 0; index < uniqueRecords.length; index++) {
+        const row = uniqueRecords[index];
         try {
           // Validate required fields
           if (!row.UPC || !row['Item Name'] || !row.Manufacturer) {
