@@ -89,7 +89,7 @@ export class ImageConversionService {
     if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
       return {
         imageUrl: imageData,
-        imageSource: 'Chattanooga Shooting Supplies'
+        imageSource: 'chattanooga' // Use vendor slug
       };
     }
 

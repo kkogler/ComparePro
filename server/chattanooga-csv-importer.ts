@@ -245,7 +245,7 @@ export class ChattanoogaCSVImporter {
             retailVerticalId: (await import('@shared/retail-vertical-config')).DEFAULT_RETAIL_VERTICAL.id,
             source: 'chattanooga', // Using vendor slug for consistent priority matching
             imageUrl: row['Image Location']?.trim() || null, // Initial Chattanooga image - fallback will be applied later
-            imageSource: (row['Image Location']?.trim()) ? 'Chattanooga Shooting Supplies' : null // Set imageSource when imageUrl exists
+            imageSource: (row['Image Location']?.trim()) ? 'chattanooga' : null // Use vendor slug for internal references
           };
 
           if (existingProduct) {

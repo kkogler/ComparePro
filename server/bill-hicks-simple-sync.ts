@@ -573,7 +573,7 @@ async function createNewProduct(billHicksProduct: BillHicksProduct): Promise<voi
     category: billHicksProduct.category_description,
     description: billHicksProduct.long_description || billHicksProduct.short_description,
     imageUrl: imageUrl,
-    imageSource: imageUrl ? 'Bill Hicks & Co.' : null,
+    imageSource: imageUrl ? 'bill-hicks' : null, // Use vendor slug for internal references
     source: 'bill-hicks', // Using vendor slug for consistent priority matching
     retailVerticalId: 1, // Firearms
     createdAt: new Date(),
@@ -611,7 +611,7 @@ async function updateExistingProduct(productId: number, billHicksProduct: BillHi
   // Don't replace images from higher-quality vendors (Sports South, Lipsey's)
   if (imageUrl && (!existingProduct?.imageUrl || existingProduct.imageSource?.toLowerCase().includes('bill hicks'))) {
     updateData.imageUrl = imageUrl;
-    updateData.imageSource = 'Bill Hicks & Co.';
+    updateData.imageSource = 'bill-hicks'; // Use vendor slug
   }
   
   await db.update(products)

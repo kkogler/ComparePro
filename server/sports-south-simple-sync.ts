@@ -288,7 +288,7 @@ export async function performSportsSouthCatalogSync(
             subcategory2: null, // Caliber info is vendor-specific
             description: null, // Will be fetched separately via TXTREF if needed
             imageUrl: imageUrl, // Sports South image URL for Master Catalog
-            imageSource: imageUrl ? 'Sports South' : null,
+            imageSource: imageUrl ? 'sports-south' : null, // Use vendor slug for internal references
             serialized: false, // Universal compliance field
             retailVerticalId: 1, // Universal retail vertical assignment
             source: 'sports-south', // Using vendor slug for consistent priority matching
@@ -333,7 +333,7 @@ export async function performSportsSouthCatalogSync(
                   // Generate Sports South image URL per official documentation
                   const imageUrl = `https://media.server.theshootingwarehouse.com/hires/${imageIdentifier}.png`;
                   updateData.imageUrl = imageUrl;
-                  updateData.imageSource = 'Sports South';
+                  updateData.imageSource = 'sports-south'; // Use vendor slug
                   imagesAdded++;
                   console.log(`SPORTS SOUTH SYNC: Added image for UPC collision product ${existingProduct.upc} using ${sportsSouthProduct.PICREF ? 'PICREF' : 'ITEMNO'}: ${imageIdentifier}`);
                 }
@@ -412,19 +412,19 @@ export async function performSportsSouthCatalogSync(
                 if (!product.imageUrl) {
                   // No image exists - add image (both high and low quality vendors can add to empty)
                   updateData.imageUrl = hiresImageUrl;
-                  updateData.imageSource = 'Sports South';
+                  updateData.imageSource = 'sports-south'; // Use vendor slug
                   imagesAdded++;
                   console.log(`SPORTS SOUTH SYNC: Added image for product ${product.upc}`);
                 } else if (isSportsSouthHighQuality && existingImageIsLowQuality) {
                   // Sports South is high quality and existing image is low quality - upgrade image
                   updateData.imageUrl = hiresImageUrl;
-                  updateData.imageSource = 'Sports South';
+                  updateData.imageSource = 'sports-south'; // Use vendor slug
                   imagesUpdated++;
                   console.log(`SPORTS SOUTH SYNC: Upgraded low quality image to high quality image for product ${product.upc}`);
                 } else if (!isSportsSouthHighQuality && !product.imageUrl) {
                   // Sports South is low quality and no existing image - add as fallback
                   updateData.imageUrl = hiresImageUrl;
-                  updateData.imageSource = 'Sports South';
+                  updateData.imageSource = 'sports-south'; // Use vendor slug
                   imagesAdded++;
                   console.log(`SPORTS SOUTH SYNC: Added low quality image for product ${product.upc}`);
                 }
