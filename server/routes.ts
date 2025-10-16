@@ -6240,15 +6240,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         // Test the connection using the vendor registry with store-level credentials
-        // Use slug normalization to handle legacy format conversions (sports_south -> sports-south)
-        const { getStandardizedSlug } = await import('./slug-utils');
-        const rawSlug = supportedVendor.vendorShortCode || supportedVendor.name;
-        const normalizedSlug = getStandardizedSlug(rawSlug) || rawSlug.toLowerCase().replace(/\s+/g, '-');
+        // Use vendorSlug (immutable identifier) for handler lookup, NOT vendorShortCode (user-editable display name)
+        const vendorSlug = supportedVendor.vendorSlug || supportedVendor.name.toLowerCase().replace(/\s+/g, '-');
         
-        console.log('VENDOR TEST CONNECTION: Raw slug:', rawSlug, '→ Normalized slug:', normalizedSlug);
+        console.log('VENDOR TEST CONNECTION: Using vendorSlug:', vendorSlug, 'for vendor:', supportedVendor.name);
         
         testResult = await vendorRegistry.testVendorConnection(
-          normalizedSlug,
+          vendorSlug,
           'store',
           organizationId,
           (req as any).user?.id || 0
