@@ -1,201 +1,79 @@
 # Vendor Slug Standardization
 
-## 🎯 Problem
+**Date**: 2025-10-16  
+**Status**: Completed
 
-**Issue**: Vendor slugs were generated inconsistently across different parts of the codebase, causing API routing failures.
+## Problem
 
-### Historical Slug Generation Methods
+The system was inconsistently using vendor names vs vendor slugs for internal references, causing:
+1. Duplicate filter options (e.g., "Lipsey's" and "Lipsey's Inc." appearing separately)
+2. Inconsistent data storage across the database
+3. Potential lookup failures due to name variations
 
-| Code Location | Slug Format | Example |
-|--------------|-------------|---------|
-| `billing-service.ts` (Zoho onboarding) | `{vendorShortCode}-{companyId}` | `chattanooga-5` |
-| `storage.createVendorsFromSupported()` | `{vendorShortCode}` | `chattanooga` |
+## Solution
 
-### Why This Caused Problems
+Implemented a standardized approach:
 
-```
-Frontend API Call:
-  buildVendorApiUrl('phils-guns', vendor, 'test-connection')
-  → /org/phils-guns/api/vendors/chattanooga/test-connection
-  (Uses vendorShortCode from vendor object)
+### Internal References (Database)
+All internal database fields (`imageSource`, `source`) now use **vendor slugs**:
+- `lipseys`
+- `sports-south`
+- `bill-hicks`
+- `chattanooga`
+- `gunbroker`
 
-Backend Lookup (OLD):
-  getVendorBySlug('chattanooga', companyId)
-  → SELECT * FROM vendors WHERE slug='chattanooga' AND company_id=5
-  → Production database has: slug='chattanooga-5'
-  → NO MATCH → 404 ERROR
-```
+### UI Display
+All user-facing displays use **vendor short codes** (retrieved from `supportedVendors` table):
+- Frontend converts slugs to display names using `getVendorShortName()` function
+- Ensures consistent display even if vendor names change
 
-## ✅ Solution
+## Changes Made
 
-### 1. Database Migration
-**File**: `migrations/0031_normalize_vendor_slugs.sql`
+### 1. Configuration Files
+- **`shared/lipseys-config.ts`**: Changed `IMAGE_SOURCE_NAME` from `"Lipsey's Inc."` to `"lipseys"`
+- **`server/lipsey-api.ts`**: Updated `imageSource` to use `"lipseys"`
+- **`server/image-conversion-service.ts`**: Updated `imageSource` references to use `"lipseys"`
 
-Updates all existing vendor records to use the standardized slug format:
+### 2. Database Migration
+Updated all existing products to use vendor slugs:
 ```sql
-UPDATE vendors
-SET slug = vendor_short_code
-WHERE slug != vendor_short_code 
-  AND vendor_short_code IS NOT NULL;
+UPDATE products SET image_source = 'lipseys' WHERE image_source = 'Lipsey''s Inc.';
+UPDATE products SET image_source = 'sports-south' WHERE image_source = 'Sports South';
+UPDATE products SET image_source = 'bill-hicks' WHERE image_source = 'Bill Hicks & Co.';
+UPDATE products SET image_source = 'chattanooga' WHERE image_source IN ('Chattanooga Shooting Supplies', 'Chattanooga Shooting Supplies Inc.');
+UPDATE products SET image_source = 'gunbroker' WHERE image_source = 'GunBroker.com LLC';
 ```
 
-**Before**:
-```
-id | name                 | slug           | vendor_short_code | company_id
-1  | Chattanooga...      | chattanooga-5  | chattanooga       | 5
-2  | Bill Hicks & Co.    | bill-hicks-5   | bill-hicks        | 5
-```
+**Results**:
+- 14,152 products: `lipseys`
+- 44,101 products: `sports-south`
+- 7,687 products: `bill-hicks`
+- 3,881 products: `chattanooga`
 
-**After**:
-```
-id | name                 | slug         | vendor_short_code | company_id
-1  | Chattanooga...      | chattanooga  | chattanooga       | 5
-2  | Bill Hicks & Co.    | bill-hicks   | bill-hicks        | 5
-```
+### 3. Frontend Updates
+**`client/src/pages/MasterProductCatalog.tsx`**:
+- Updated `getVendorShortName()` to accept slugs or names, preferring slugs
+- Modified `imageSource` display to use `getVendorShortName()` for UI rendering
+- Updated image source filter dropdown to display vendor short codes
 
-### 2. Code Standardization
+## Benefits
 
-#### Backend API Lookup (routes.ts)
-Changed from slug-based lookup to vendorShortCode-based lookup:
+1. **Consistency**: All internal references use slugs, all UI displays use short codes
+2. **Maintainability**: Vendor name changes only need to update `supportedVendors` table
+3. **Data Integrity**: No more duplicate filter options or mismatched references
+4. **Scalability**: Easy to add new vendors with consistent naming
 
-```typescript
-// OLD (broke with different slug formats):
-const vendor = await storage.getVendorBySlug(vendorSlug, organizationId);
+## Testing
 
-// NEW (works with any historical slug format):
-const supportedVendor = await storage.getSupportedVendorByShortCode(vendorIdentifier);
-const allCompanyVendors = await storage.getVendorsByCompany(organizationId);
-const vendor = allCompanyVendors.find(v => v.supportedVendorId === supportedVendor.id);
-```
+Verified:
+- ✅ No duplicate "Lipsey's" entries in Image Source filter
+- ✅ All 14,152 Lipsey's products now use `lipseys` slug internally
+- ✅ UI correctly displays vendor short codes instead of slugs
+- ✅ Filter functionality works with slug-based filtering
 
-#### Billing Service (billing-service.ts)
-Fixed slug generation for new vendor provisioning:
+## Future Sync Behavior
 
-```typescript
-// OLD (created non-standard slugs):
-const slug = `${baseSlug}-${companyId}`; // Result: "chattanooga-5"
-
-// NEW (creates standard slugs):
-const slug = vendorShortCode
-  .toLowerCase()
-  .replace(/[^a-z0-9\s-]/g, '')
-  .replace(/\s+/g, '-')
-  .replace(/-+/g, '-')
-  .replace(/^-|-$/g, '');
-// Result: "chattanooga"
-```
-
-#### Storage Service (storage.ts)
-Added new lookup method:
-
-```typescript
-async getSupportedVendorByShortCode(shortCode: string): Promise<SupportedVendor | undefined> {
-  const [result] = await db.select()
-    .from(supportedVendors)
-    .where(eq(supportedVendors.shortCode, shortCode));
-  return result || undefined;
-}
-```
-
-### 3. Frontend Standardization
-
-**File**: `client/src/lib/vendor-utils.ts`
-
-Already standardized in previous work:
-- `getVendorIdentifier()`: Always returns `vendorShortCode`
-- `buildVendorApiUrl()`: Always uses `vendorShortCode` in URLs
-
-## 📋 Deployment Checklist
-
-### Pre-Deployment
-- [x] Create migration file: `0031_normalize_vendor_slugs.sql`
-- [x] Update `billing-service.ts` slug generation
-- [x] Update API endpoints to use shortCode lookup
-- [x] Add `getSupportedVendorByShortCode()` method
-- [x] Test in development environment
-
-### Deployment
-- [ ] Deploy to production
-- [ ] Migration will run automatically
-- [ ] Verify in Replit logs: "AFTER MIGRATION: Updated X vendor records"
-
-### Post-Deployment Verification
-1. Check migration output in logs
-2. Test Chattanooga credentials at: `https://pricecomparehub.com/org/phils-guns/supported-vendors`
-   - Should save successfully
-   - Should load when reopening modal
-   - Test connection should work
-3. Verify vendor API calls work: `/org/{slug}/api/vendors/{vendorShortCode}/credentials`
-
-## 🔍 Database Schema
-
-### Vendors Table
-```sql
-CREATE TABLE vendors (
-  id SERIAL PRIMARY KEY,
-  company_id INTEGER NOT NULL,
-  supported_vendor_id INTEGER NOT NULL,
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL,  -- ✅ STANDARDIZED: Always matches vendor_short_code
-  vendor_short_code TEXT,  -- ✅ SOURCE OF TRUTH for API routing
-  -- ... other fields
-);
-
--- Slug is unique per company (not globally unique)
--- Multiple companies can have the same slug (e.g., "chattanooga")
-```
-
-### Supported Vendors Table
-```sql
-CREATE TABLE supported_vendors (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  short_code TEXT UNIQUE NOT NULL,  -- ✅ MASTER identifier
-  vendor_short_code TEXT,
-  -- ... other fields
-);
-```
-
-## 🎓 Key Principles
-
-1. **Single Source of Truth**: `vendorShortCode` is the canonical identifier for all API operations
-2. **Slug is Derived**: `vendor.slug` should always equal `vendor.vendorShortCode`
-3. **Company Scoping**: Slugs are unique per company, not globally unique
-4. **API Routing**: Frontend always uses `vendorShortCode` to build API URLs
-5. **Backend Lookup**: Backend looks up by `supportedVendor.shortCode` → finds company's vendor instance
-
-## 🚫 Anti-Patterns (DO NOT DO)
-
-```typescript
-// ❌ BAD: Appending companyId to slug
-const slug = `${vendorShortCode}-${companyId}`;
-
-// ❌ BAD: Using vendor.slug in API URLs
-const url = `/api/vendors/${vendor.slug}/credentials`;
-
-// ❌ BAD: Looking up vendor by slug parameter
-const vendor = await storage.getVendorBySlug(slugParam, companyId);
-
-// ✅ GOOD: Use vendorShortCode
-const slug = vendorShortCode.toLowerCase().replace(/\s+/g, '-');
-
-// ✅ GOOD: Use buildVendorApiUrl utility
-const url = buildVendorApiUrl(orgSlug, vendor, 'credentials');
-
-// ✅ GOOD: Lookup by shortCode → find vendor instance
-const supportedVendor = await storage.getSupportedVendorByShortCode(shortCode);
-const vendor = companyVendors.find(v => v.supportedVendorId === supportedVendor.id);
-```
-
-## 📚 Related Documentation
-
-- `docs/VENDOR_IDENTIFIER_STANDARDIZATION.md` - Frontend vendor identifier utilities
-- `client/src/lib/vendor-utils.ts` - Frontend vendor utility functions
-- `migrations/0031_normalize_vendor_slugs.sql` - Data normalization migration
-
-## 🔗 Related Issues
-
-- Fixed: Chattanooga credentials not saving (404 error)
-- Fixed: Test connection failing in production
-- Fixed: Vendor API routing inconsistencies between dev and production
-
+All future vendor syncs will:
+- Store `imageSource` using vendor slug (e.g., `lipseys`)
+- Display using vendor short code in UI (e.g., "Lipsey's")
+- Maintain consistency across all products and vendors

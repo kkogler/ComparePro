@@ -531,6 +531,10 @@ export const orderItems = pgTable("order_items", {
   // This category comes from Store > Settings > Product Categories and is selected by the user
   category: varchar("category", { length: 100 }), // User-selected category for this order item
   
+  // Store model field from Add to Order modal (can be edited by user, NOT saved to Master Product Catalog)
+  // Used in CSV exports and webhooks for this specific order item
+  model: varchar("model", { length: 100 }), // User-editable model field for this order item
+  
   // Chattanooga API: Customer reference for tracking individual items
   customerReference: text("customer_reference"), // Optional tracking reference per item
   vendorProductId: integer("vendor_product_id").references(() => vendorProducts.id),

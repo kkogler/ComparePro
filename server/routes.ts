@@ -619,7 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const { orderId, vendorId, productId, vendorProductId, gunBrokerItemId, quantity, unitCost, storeId, vendorSku, vendorMsrp, vendorMapPrice, priceOnPO, category } = req.body;
+      const { orderId, vendorId, productId, vendorProductId, gunBrokerItemId, quantity, unitCost, storeId, vendorSku, vendorMsrp, vendorMapPrice, priceOnPO, category, model } = req.body;
       
       // Validate required fields
       if (!vendorId || !productId || !quantity || !unitCost || !storeId) {
@@ -734,6 +734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         retailPrice: retailPrice.toString(), // Store calculated retail price
         pricingStrategy: pricingStrategy, // Store which pricing strategy was used
         category: category || null, // Store manually selected category from Add to Order modal
+        model: model || null, // Store user-editable model from Add to Order modal (NOT saved to Master Catalog)
         status: DEFAULT_ORDER_ITEM_STATUS.value
       });
       
@@ -1064,7 +1065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: (item as any).productName || '',
             upc: (item as any).productUpc || null,
             brand: (item as any).productBrand || null,
-            model: (item as any).productModel || null,
+            model: item.model || (item as any).productModel || null, // Use order item's model (user-editable) if available, fallback to product model
             manufacturerPartNumber: (item as any).productMfgPartNumber || null,
             category: (item as any).productCategory || null,
             subcategory1: (item as any).productSubcategory1 || null,
@@ -5094,13 +5095,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('=== PATCH SUPPORTED VENDOR END ===');
       res.json(vendor);
     } catch (error) {
+      console.error('=== PATCH SUPPORTED VENDOR ERROR ===');
       console.error('Error updating supported vendor:', error);
       console.error('Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         vendorId: req.params.id,
-        updateKeys: Object.keys(req.body)
+        updateKeys: Object.keys(req.body),
+        updateValues: req.body
       });
+      console.error('=== END ERROR ===');
       res.status(500).json({ 
         error: 'Failed to update supported vendor',
         details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
@@ -5414,6 +5418,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imageSourceFilter = req.query.imageSource as string;
       const sourceFilter = req.query.source as string;
       const statusFilter = req.query.status as string;
+      
+      console.log('MASTER CATALOG QUERY: imageSourceFilter =', imageSourceFilter);
+      
       let result;
       if (searchQuery) {
         // For now, apply search without filters since searchProductsWithCount doesn't support filters

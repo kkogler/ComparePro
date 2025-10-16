@@ -95,6 +95,7 @@ export default function ProductSearch(): JSX.Element {
   const handleSearch = () => {
     setSearchPerformed(true);
     setCurrentPage(1); // Reset to first page on new search
+    setIsRedirecting(false); // Reset redirecting state for new search
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -108,6 +109,7 @@ export default function ProductSearch(): JSX.Element {
     setSearchType(historyItem.searchType);
     setCurrentPage(1); // Reset to first page
     setSearchPerformed(true);
+    setIsRedirecting(false); // Reset redirecting state for new search
   };
 
   // State to track if we're redirecting to comparison
@@ -115,13 +117,19 @@ export default function ProductSearch(): JSX.Element {
 
   // Auto-redirect to comparison page if there's exactly one search result
   useEffect(() => {
-    if (searchPerformed && searchResults && searchResults.length === 1 && !isLoading && !error) {
+    if (searchPerformed && searchResults && searchResults.length === 1 && !isLoading && !error && !isRedirecting) {
       const singleProduct = searchResults[0];
+      console.log('AUTO-REDIRECT: Single product found, redirecting to comparison...', singleProduct);
       // Set redirecting state and redirect immediately
       setIsRedirecting(true);
-      setLocation(`/org/${orgSlug}/compare?productId=${singleProduct.id}`);
+      
+      // Use a small timeout to ensure state updates before navigation
+      setTimeout(() => {
+        console.log('AUTO-REDIRECT: Navigating to:', `/org/${orgSlug}/compare?productId=${singleProduct.id}`);
+        setLocation(`/org/${orgSlug}/compare?productId=${singleProduct.id}`);
+      }, 100);
     }
-  }, [searchResults, searchPerformed, isLoading, error, setLocation, orgSlug]);
+  }, [searchResults, searchPerformed, isLoading, error, isRedirecting, setLocation, orgSlug]);
 
   const clearFilters = () => {
     setCaliber('all');
@@ -134,6 +142,7 @@ export default function ProductSearch(): JSX.Element {
     setSearchQuery('');
     setSearchPerformed(false);
     setCurrentPage(1);
+    setIsRedirecting(false); // Reset redirecting state when clearing search
   };
 
   const hasActiveFilters = caliber !== 'all' || category !== 'all' || brand !== 'all' || ((filterOptions as any)?.conditions?.length > 0 && condition !== 'all');

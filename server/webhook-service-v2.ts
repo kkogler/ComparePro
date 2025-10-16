@@ -400,7 +400,7 @@ export class WebhookServiceV2 {
           name: product?.name || undefined,
           upc: product?.upc || null, // Always include UPC field
           brand: product?.brand || undefined,
-          model: product?.model || null, // Always include Model field
+          model: item.model || product?.model || null, // Use order item's model (user-editable) if available, fallback to product model
           manufacturer_part_number: product?.manufacturerPartNumber || null, // Always include MFG Part Number field
           caliber: product?.caliber || undefined,
           category: item.category ? getCategoryDisplayName(item.category) : (product?.category || undefined), // Convert slug to display name

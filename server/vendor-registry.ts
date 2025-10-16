@@ -382,6 +382,26 @@ export class VendorRegistry {
   }
 
   /**
+   * Get image priority for a vendor based on image quality
+   * Lower number = higher priority
+   * High quality vendors get priority 1, low quality vendors get priority 100
+   */
+  async getImagePriority(vendorName: string): Promise<number> {
+    try {
+      // Import the image quality check function
+      const { getVendorImageQualityFromDB } = await import('../shared/vendor-type-config');
+      const quality = await getVendorImageQualityFromDB(vendorName);
+      
+      // High quality = priority 1, Low quality = priority 100
+      return quality === 'high' ? 1 : 100;
+    } catch (error) {
+      console.error(`Error getting image priority for ${vendorName}:`, error);
+      // Default to low priority if error
+      return 100;
+    }
+  }
+
+  /**
    * Helper to capitalize vendor names
    */
   private capitalize(str: string): string {

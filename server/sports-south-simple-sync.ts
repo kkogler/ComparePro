@@ -280,7 +280,7 @@ export async function performSportsSouthCatalogSync(
             upc: normalizedUpc, // Use normalized UPC to prevent duplicates
             name: sportsSouthProduct.IDESC ? String(sportsSouthProduct.IDESC).substring(0, 255) : String(sportsSouthProduct.ITEMNO || 'Product'),
             brand: manufacturerName || '', // Now properly resolved via IMFGNO → MFGNM manufacturer lookup
-            model: sportsSouthProduct.IMODEL ? String(sportsSouthProduct.IMODEL).substring(0, 100) : null, // Use IMODEL for authoritative model data
+            model: (sportsSouthProduct.IMODEL && typeof sportsSouthProduct.IMODEL === 'string') ? String(sportsSouthProduct.IMODEL).substring(0, 100) : null, // Use IMODEL for authoritative model data, but only if it's a string
             manufacturerPartNumber: sportsSouthProduct.MFGINO || null, // Use MFGINO for actual manufacturer part number
             // Use category from Sports South CategoryUpdate API
             category: categoryName, // Now properly resolved via CATID → CATDES category lookup

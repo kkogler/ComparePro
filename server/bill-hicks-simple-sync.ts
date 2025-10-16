@@ -559,6 +559,12 @@ async function updateProductIfPriorityAllows(billHicksProduct: BillHicksProduct)
  * Create new product from Bill Hicks data
  */
 async function createNewProduct(billHicksProduct: BillHicksProduct): Promise<void> {
+  // Import Bill Hicks image utility
+  const { createBillHicksImageUrl } = await import('./bill-hicks-ftp');
+  
+  // Generate image URL from product name (which is the vendor SKU)
+  const imageUrl = createBillHicksImageUrl(billHicksProduct.product_name);
+  
   await db.insert(products).values({
     name: billHicksProduct.short_description || billHicksProduct.product_name,
     brand: extractBrand(billHicksProduct.product_name),
@@ -566,6 +572,8 @@ async function createNewProduct(billHicksProduct: BillHicksProduct): Promise<voi
     manufacturerPartNumber: extractPartNumber(billHicksProduct.product_name),
     category: billHicksProduct.category_description,
     description: billHicksProduct.long_description || billHicksProduct.short_description,
+    imageUrl: imageUrl,
+    imageSource: imageUrl ? 'Bill Hicks & Co.' : null,
     source: 'bill-hicks', // Using vendor slug for consistent priority matching
     retailVerticalId: 1, // Firearms
     createdAt: new Date(),
@@ -577,16 +585,37 @@ async function createNewProduct(billHicksProduct: BillHicksProduct): Promise<voi
  * Update existing product with Bill Hicks data
  */
 async function updateExistingProduct(productId: number, billHicksProduct: BillHicksProduct): Promise<void> {
+  // Import Bill Hicks image utility
+  const { createBillHicksImageUrl } = await import('./bill-hicks-ftp');
+  
+  // Generate image URL from product name (which is the vendor SKU)
+  const imageUrl = createBillHicksImageUrl(billHicksProduct.product_name);
+  
+  // Check if product has an existing image
+  const [existingProduct] = await db.select({ imageUrl: products.imageUrl, imageSource: products.imageSource })
+    .from(products)
+    .where(eq(products.id, productId));
+  
+  // Prepare update data
+  const updateData: any = {
+    name: billHicksProduct.short_description || billHicksProduct.product_name,
+    brand: extractBrand(billHicksProduct.product_name),
+    manufacturerPartNumber: extractPartNumber(billHicksProduct.product_name),
+    category: billHicksProduct.category_description,
+    description: billHicksProduct.long_description || billHicksProduct.short_description,
+    source: 'bill-hicks', // Using vendor slug for consistent priority matching
+    updatedAt: new Date()
+  };
+  
+  // Add image only if product doesn't have one, or if it has a Bill Hicks image (update it)
+  // Don't replace images from higher-quality vendors (Sports South, Lipsey's)
+  if (imageUrl && (!existingProduct?.imageUrl || existingProduct.imageSource?.toLowerCase().includes('bill hicks'))) {
+    updateData.imageUrl = imageUrl;
+    updateData.imageSource = 'Bill Hicks & Co.';
+  }
+  
   await db.update(products)
-    .set({
-      name: billHicksProduct.short_description || billHicksProduct.product_name,
-      brand: extractBrand(billHicksProduct.product_name),
-      manufacturerPartNumber: extractPartNumber(billHicksProduct.product_name),
-      category: billHicksProduct.category_description,
-      description: billHicksProduct.long_description || billHicksProduct.short_description,
-      source: 'bill-hicks', // Using vendor slug for consistent priority matching
-      updatedAt: new Date()
-    })
+    .set(updateData)
     .where(eq(products.id, productId));
 }
 

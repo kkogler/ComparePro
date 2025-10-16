@@ -15,9 +15,9 @@ export const LIPSEYS_CONFIG = {
   VENDOR_IDENTIFIER: 'lipseys',
   
   /**
-   * Image source identifier for product records
+   * Image source identifier for product records (uses vendor slug for consistency)
    */
-  IMAGE_SOURCE_NAME: "Lipsey's",
+  IMAGE_SOURCE_NAME: "lipseys",
   
   /**
    * Image base URL for constructing product image URLs
@@ -137,7 +137,8 @@ export function constructLipseysImageUrl(imageName?: string): string | null {
 
 /**
  * Generate descriptive product name for Lipsey's items
- * Priority: description1 > description2 > Fallback
+ * Format: manufacturer + " " + description1
+ * This provides better clarity by showing brand + detailed specs
  */
 export function generateLipseysProductName(product: {
   description1?: string;
@@ -146,22 +147,27 @@ export function generateLipseysProductName(product: {
   model?: string;
   itemNo: string;
 }): string {
-  // Priority 1: Use description1 (primary description)
+  // Priority 1: manufacturer + description1 (most informative)
+  if (product.manufacturer?.trim() && product.description1?.trim()) {
+    return `${product.manufacturer.trim()} ${product.description1.trim()}`;
+  }
+  
+  // Priority 2: Use description1 alone if no manufacturer
   if (product.description1?.trim()) {
     return product.description1.trim();
   }
   
-  // Priority 2: Use description2 (secondary description)
-  if (product.description2?.trim()) {
-    return product.description2.trim();
-  }
-  
-  // Priority 3: Construct from manufacturer + model
+  // Priority 3: manufacturer + model
   if (product.manufacturer?.trim() && product.model?.trim()) {
     return `${product.manufacturer.trim()} ${product.model.trim()}`;
   }
   
-  // Priority 4: Use manufacturer only
+  // Priority 4: Use description2 (secondary description)
+  if (product.description2?.trim()) {
+    return product.description2.trim();
+  }
+  
+  // Priority 5: Use manufacturer only
   if (product.manufacturer?.trim()) {
     return product.manufacturer.trim();
   }

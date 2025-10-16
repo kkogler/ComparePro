@@ -290,3 +290,7 @@ WHERE upc = '<upc_from_step_1>';
 
 **Next Step:** Run Lipsey's and Sports South catalog syncs to upgrade images! 🚀
 
+
+
+
+

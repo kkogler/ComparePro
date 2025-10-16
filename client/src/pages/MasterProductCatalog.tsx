@@ -333,6 +333,7 @@ export default function MasterProductCatalog() {
       category: categoryFilter,
       image: imageFilter,
       model: modelFilter,
+      imageSource: imageSourceFilter,
       source: sourceFilter,
       status: statusFilter,
       retailVertical: retailVerticalFilter,
@@ -426,12 +427,14 @@ export default function MasterProductCatalog() {
   const totalPages = Math.ceil(totalProducts / pageSize);
 
   // Get vendor short name from database - NO hardcoded mappings
-  const getVendorShortName = (source: string): string => {
-    if (!supportedVendors) return source;
+  const getVendorShortName = (slugOrName: string): string => {
+    if (!supportedVendors) return slugOrName;
     
-    // Find matching vendor by name and return their short code
-    const vendor = supportedVendors.find((v: any) => v.name === source);
-    return vendor?.vendorShortCode || source;
+    // Find matching vendor by slug (preferred) or name (fallback) and return their short code
+    const vendor = supportedVendors.find((v: any) => 
+      v.vendorSlug === slugOrName || v.name === slugOrName
+    );
+    return vendor?.vendorShortCode || slugOrName;
   };
 
 
@@ -717,24 +720,19 @@ export default function MasterProductCatalog() {
         );
       case 'imageSource':
         if (!product.imageSource) {
-          return <Badge variant="outline" className="text-gray-400">No Source</Badge>;
+          return <Badge variant="outline" className="text-gray-400">No Image</Badge>;
         }
         
-        // Check if this is a fallback image source
-        const isFallback = product.imageSource.toLowerCase().includes('fallback') || 
-                          (product.imageUrl && product.source !== product.imageSource);
+        const imageSourceDisplayName = getVendorShortName(product.imageSource);
         
         return (
           <Badge 
-            variant={isFallback ? "destructive" : "secondary"}
-            className={isFallback ? "text-amber-600 bg-amber-50 border-amber-200" : "text-blue-600 bg-blue-50 border-blue-200"}
-            title={isFallback ? `Fallback image from ${product.imageSource}` : `Primary image from ${product.imageSource}`}
+            variant="secondary"
+            className="text-blue-600 bg-blue-50 border-blue-200"
+            title={`Image provided by ${imageSourceDisplayName}`}
             data-testid={`image-source-${product.id}`}
           >
-            {product.imageSource}
-            {isFallback && (
-              <span className="ml-1 text-xs opacity-75">(fallback)</span>
-            )}
+            {imageSourceDisplayName}
           </Badge>
         );
       case 'retailVertical':
@@ -946,7 +944,7 @@ export default function MasterProductCatalog() {
                   <SelectItem value="__all_image_sources__">All Image Sources</SelectItem>
                   {filterOptions?.imageSources?.map(imageSource => (
                     <SelectItem key={imageSource} value={imageSource} data-testid={`filter-image-source-${imageSource.toLowerCase().replace(/\s+/g, '-')}`}>
-                      {imageSource}
+                      {getVendorShortName(imageSource)}
                     </SelectItem>
                   ))}
                 </SelectContent>

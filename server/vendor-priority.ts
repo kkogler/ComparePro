@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { supportedVendors } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 
 /**
  * Vendor Priority Cache System
@@ -22,6 +22,9 @@ const MIN_PRIORITY = 1; // Highest priority
  * Lower numbers indicate higher priority (1 = highest, N = lowest where N is total vendors)
  * Each vendor has a unique priority - no ties or tie-breaking needed
  * 
+ * Uses retail vertical priority for Firearms (retail_vertical_id = 1) as the authoritative priority
+ * Falls back to productRecordPriority if no retail vertical mapping exists
+ * 
  * @param vendorSlug - The vendor slug/short code to lookup priority for (e.g., "lipseys", "sports-south")
  * @returns Promise<number> - The priority value (1-N) or 999 for unknown vendors
  */
@@ -42,15 +45,27 @@ export async function getVendorRecordPriority(vendorSlug: string): Promise<numbe
   }
 
   try {
-    // Query database for vendor priority using vendorShortCode (slug) OR name
-    // This handles both "sports-south" and "Sports South" lookups
+    // Import supportedVendorRetailVerticals for junction table query
+    const { supportedVendorRetailVerticals } = await import('../shared/schema');
+    
+    // Query database for vendor and their Firearms retail vertical priority
+    // Firearms has retail_vertical_id = 1
     const [result] = await db
       .select({ 
-        productRecordPriority: supportedVendors.productRecordPriority,
+        vendorId: supportedVendors.id,
         vendorShortCode: supportedVendors.vendorShortCode,
-        name: supportedVendors.name 
+        name: supportedVendors.name,
+        productRecordPriority: supportedVendors.productRecordPriority,
+        retailVerticalPriority: supportedVendorRetailVerticals.priority
       })
       .from(supportedVendors)
+      .leftJoin(
+        supportedVendorRetailVerticals,
+        and(
+          eq(supportedVendorRetailVerticals.supportedVendorId, supportedVendors.id),
+          eq(supportedVendorRetailVerticals.retailVerticalId, 1) // Firearms vertical
+        )
+      )
       .where(
         sql`lower(trim(${supportedVendors.vendorShortCode})) = lower(trim(${vendorSlug})) 
             OR lower(trim(${supportedVendors.name})) = lower(trim(${vendorSlug}))`
@@ -62,21 +77,30 @@ export async function getVendorRecordPriority(vendorSlug: string): Promise<numbe
       // Vendor not found in supportedVendors table
       console.log(`VENDOR PRIORITY: Vendor "${vendorSlug}" not found in supportedVendors table (searched by short code and name), using default priority ${DEFAULT_PRIORITY}`);
       priority = DEFAULT_PRIORITY;
-    } else if (result.productRecordPriority === null || result.productRecordPriority === undefined) {
-      // Vendor found but priority not set
-      console.log(`VENDOR PRIORITY: Vendor "${result.name}" (slug: ${vendorSlug}) found but productRecordPriority is null, using default priority ${DEFAULT_PRIORITY}`);
-      priority = DEFAULT_PRIORITY;
-    } else {
-      // Validate priority is a positive integer
+    } else if (result.retailVerticalPriority !== null && result.retailVerticalPriority !== undefined) {
+      // Use retail vertical priority (Firearms) if available - this is what the UI shows
+      const rawPriority = result.retailVerticalPriority;
+      if (rawPriority < MIN_PRIORITY || !Number.isInteger(rawPriority)) {
+        console.warn(`VENDOR PRIORITY: Invalid retail vertical priority value ${rawPriority} for vendor "${result.name}" (slug: ${vendorSlug}), falling back to productRecordPriority`);
+        priority = result.productRecordPriority || DEFAULT_PRIORITY;
+      } else {
+        priority = rawPriority;
+        console.log(`VENDOR PRIORITY: Using retail vertical (Firearms) priority ${priority} for vendor "${result.name}" (slug: ${vendorSlug})`);
+      }
+    } else if (result.productRecordPriority !== null && result.productRecordPriority !== undefined) {
+      // Fall back to global productRecordPriority if no retail vertical mapping
       const rawPriority = result.productRecordPriority;
       if (rawPriority < MIN_PRIORITY || !Number.isInteger(rawPriority)) {
-        console.warn(`VENDOR PRIORITY: Invalid priority value ${rawPriority} for vendor "${result.name}" (slug: ${vendorSlug}), using default priority ${DEFAULT_PRIORITY}`);
+        console.warn(`VENDOR PRIORITY: Invalid productRecordPriority value ${rawPriority} for vendor "${result.name}" (slug: ${vendorSlug}), using default priority ${DEFAULT_PRIORITY}`);
         priority = DEFAULT_PRIORITY;
       } else {
-        // Valid priority found (no upper limit since priorities are now unique and sequential)
         priority = rawPriority;
-        console.log(`VENDOR PRIORITY: Found valid priority ${priority} for vendor "${result.name}" (slug: ${vendorSlug})`);
+        console.log(`VENDOR PRIORITY: Using fallback productRecordPriority ${priority} for vendor "${result.name}" (slug: ${vendorSlug}) - no retail vertical mapping found`);
       }
+    } else {
+      // No priority found at all
+      console.log(`VENDOR PRIORITY: Vendor "${result.name}" (slug: ${vendorSlug}) found but no priority set, using default priority ${DEFAULT_PRIORITY}`);
+      priority = DEFAULT_PRIORITY;
     }
 
     // Cache the result

@@ -451,19 +451,29 @@ export class LipseyAPI {
         product = await this.getCatalogItem(params.itemNumber);
       }
       
-      // If we have a UPC, use the official CatalogFeed/Item endpoint directly
+      // If we have a UPC, search the cached catalog to find the item number
+      // This is more reliable than direct UPC lookup, which has inconsistent behavior
       if (!product && params.upc) {
-        console.log('LIPSEY API: Using official CatalogFeed/Item endpoint for UPC:', params.upc);
-        product = await this.getCatalogItem(params.upc);
+        console.log('LIPSEY API: Searching catalog for UPC:', params.upc);
         
-        if (!product) {
+        // Get the full catalog (cached for 30 minutes)
+        const catalog = await this.getCatalogFeed();
+        
+        // Search for product by UPC
+        const catalogProduct = catalog.find(p => p.upc === params.upc);
+        
+        if (!catalogProduct) {
+          console.log('LIPSEY API: UPC not found in catalog');
           return {
             success: false,
             message: 'Product not found in Lipsey catalog'
           };
         }
         
-        console.log('LIPSEY API: Found product:', product.itemNo, '-', product.description1);
+        console.log('LIPSEY API: Found in catalog - Item:', catalogProduct.itemNo, 'UPC:', catalogProduct.upc);
+        
+        // Use the catalog product directly (it has all the data we need)
+        product = catalogProduct;
       }
       
       if (!product) {
@@ -478,11 +488,21 @@ export class LipseyAPI {
       const currentPrice = validation?.price || product.price;
       const currentStock = validation?.qty || product.quantity;
 
+      // Generate name using manufacturer + description1 format for consistency
+      let productName = product.description1 || '';
+      if (product.manufacturer && product.description1) {
+        productName = `${product.manufacturer} ${product.description1}`;
+      } else if (product.description1) {
+        productName = product.description1;
+      } else if (product.description2) {
+        productName = product.description2;
+      }
+
       return {
         success: true,
         message: 'Product found in Lipsey catalog',
         product: {
-          name: product.description1 + (product.description2 ? ' ' + product.description2 : ''),
+          name: productName,
           sku: product.itemNo,
           price: currentPrice,
           stock: currentStock,
@@ -512,9 +532,19 @@ export class LipseyAPI {
 
   // Transform Lipsey product to our standard product format
   static transformProduct(lipseyProduct: LipseyProduct): any {
+    // Generate name using manufacturer + description1 format for consistency
+    let name = lipseyProduct.description1 || '';
+    if (lipseyProduct.manufacturer && lipseyProduct.description1) {
+      name = `${lipseyProduct.manufacturer} ${lipseyProduct.description1}`;
+    } else if (lipseyProduct.description1) {
+      name = lipseyProduct.description1;
+    } else if (lipseyProduct.description2) {
+      name = lipseyProduct.description2;
+    }
+    
     return {
       upc: lipseyProduct.upc,
-      name: lipseyProduct.description1 + (lipseyProduct.description2 ? ' ' + lipseyProduct.description2 : ''),
+      name: name,
       brand: lipseyProduct.manufacturer,
       model: lipseyProduct.model,
       partNumber: lipseyProduct.manufacturerModelNo,
@@ -524,7 +554,7 @@ export class LipseyAPI {
       msrp: lipseyProduct.msrp || null,
       map: lipseyProduct.retailMap || null,
       imageUrl: lipseyProduct.imageName ? `https://www.lipseyscloud.com/images/${lipseyProduct.imageName}` : null,
-      imageSource: 'Lipsey\'s',
+      imageSource: 'lipseys', // Use vendor slug for internal consistency
       specifications: {
         action: lipseyProduct.action,
         barrelLength: lipseyProduct.barrelLength,

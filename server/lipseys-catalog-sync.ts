@@ -5,8 +5,8 @@ import { LipseysSyncSettings, DEFAULT_LIPSEYS_SYNC_SETTINGS } from '../shared/li
 import { LIPSEYS_CONFIG, getLipseysVendorId, constructLipseysImageUrl, generateLipseysProductName, buildLipseysSpecifications } from '../shared/lipseys-config';
 import { shouldReplaceProduct } from './simple-quality-priority';
 import { db } from './db';
-import { products, vendorProductMappings } from '../shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { products } from '../shared/schema';
+import { eq } from 'drizzle-orm';
 
 interface CatalogSyncResult {
   success: boolean;
@@ -297,16 +297,87 @@ export class LipseysCatalogSyncService {
   private async updateExistingProduct(productId: number, lipseyProduct: LipseyProduct): Promise<void> {
     const productData = this.mapLipseyProductToMasterCatalog(lipseyProduct);
     
-    // Update Master Catalog
+    // Check if we should update the image based on quality
+    // Lipsey's is HIGH quality and should replace LOW quality images only
+    const shouldUpdateImage = await this.shouldUpdateProductImage(productId, productData.imageUrl, productData.imageSource);
+    
+    // Create update object without image fields
+    const { imageUrl, imageSource, ...updateDataWithoutImages } = productData;
+    
+    // Update Master Catalog (without image fields first)
     await db
       .update(products)
       .set({
-        ...productData,
+        ...updateDataWithoutImages,
         updatedAt: new Date()
       })
       .where(eq(products.id, productId));
     
-    console.log(`LIPSEYS CATALOG SYNC: Updated product - UPC: ${lipseyProduct.upc}, Name: ${productData.name}`);
+    // Update image separately using ImageService if appropriate
+    if (shouldUpdateImage && imageUrl) {
+      const { ImageService } = await import('./image-service');
+      await ImageService.updateProductImage(lipseyProduct.upc, imageUrl, imageSource);
+    }
+    
+    console.log(`LIPSEYS CATALOG SYNC: Updated product - UPC: ${lipseyProduct.upc}, Name: ${productData.name}${shouldUpdateImage ? ' (image updated)' : ''}`);
+  }
+
+  /**
+   * Check if we should update the product image based on quality priority
+   * Lipsey's (HIGH quality) should replace LOW quality images only
+   */
+  private async shouldUpdateProductImage(productId: number, newImageUrl: string | null, newImageSource: string): Promise<boolean> {
+    if (!newImageUrl) {
+      return false; // No new image to update
+    }
+    
+    try {
+      // Get the existing product
+      const [existingProduct] = await db
+        .select({ imageUrl: products.imageUrl, imageSource: products.imageSource })
+        .from(products)
+        .where(eq(products.id, productId));
+      
+      if (!existingProduct) {
+        return false;
+      }
+      
+      // If no existing image, always add
+      if (!existingProduct.imageUrl) {
+        console.log(`LIPSEYS IMAGE: No existing image, adding Lipsey's image`);
+        return true;
+      }
+      
+      // Get image quality for both sources
+      const { getVendorImageQualityFromDB } = await import('../shared/vendor-type-config');
+      const existingQuality = await getVendorImageQualityFromDB(existingProduct.imageSource || '');
+      const newQuality = await getVendorImageQualityFromDB(newImageSource);
+      
+      console.log(`LIPSEYS IMAGE: Comparing qualities - Existing: ${existingProduct.imageSource} (${existingQuality}) vs New: ${newImageSource} (${newQuality})`);
+      
+      // HIGH quality can replace LOW quality
+      if (newQuality === 'high' && existingQuality === 'low') {
+        console.log(`LIPSEYS IMAGE: Upgrading from LOW to HIGH quality image`);
+        return true;
+      }
+      
+      // Don't replace HIGH quality with HIGH quality
+      if (newQuality === 'high' && existingQuality === 'high') {
+        console.log(`LIPSEYS IMAGE: Keeping existing HIGH quality image`);
+        return false;
+      }
+      
+      // LOW quality never replaces anything
+      if (newQuality === 'low') {
+        console.log(`LIPSEYS IMAGE: Not replacing with LOW quality image`);
+        return false;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('LIPSEYS IMAGE: Error checking image quality:', error);
+      return false;
+    }
   }
 
   /**

@@ -11,8 +11,8 @@ export class ImageService {
   /**
    * Get image priority for a vendor (lower number = higher priority)
    */
-  private static getVendorImagePriority(vendorName: string): number {
-    return vendorRegistry.getImagePriority(vendorName);
+  private static async getVendorImagePriority(vendorName: string): Promise<number> {
+    return await vendorRegistry.getImagePriority(vendorName);
   }
 
   /**
@@ -119,8 +119,8 @@ export class ImageService {
       }
 
       // Get priorities using vendor registry
-      const existingPriority = this.getVendorImagePriority(existingProduct.imageSource || '');
-      const newPriority = this.getVendorImagePriority(newVendorName);
+      const existingPriority = await this.getVendorImagePriority(existingProduct.imageSource || '');
+      const newPriority = await this.getVendorImagePriority(newVendorName);
 
       // Update if new source has higher priority (lower number)
       return newPriority < existingPriority;

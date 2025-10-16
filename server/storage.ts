@@ -1585,16 +1585,45 @@ export class DatabaseStorage implements IStorage {
     if ('retailVerticalIds' in updates && Array.isArray(updates.retailVerticalIds)) {
       const retailVerticalIds = updates.retailVerticalIds as number[];
       
+      // Get existing retail vertical assignments to preserve priorities
+      const existingAssignments = await db
+        .select()
+        .from(supportedVendorRetailVerticals)
+        .where(eq(supportedVendorRetailVerticals.supportedVendorId, id));
+      
+      // Create a map of existing priorities by retail vertical ID
+      const existingPriorities = new Map(
+        existingAssignments.map(a => [a.retailVerticalId, a.priority])
+      );
+      
       // Remove existing retail vertical assignments for this vendor
       await db.delete(supportedVendorRetailVerticals)
         .where(eq(supportedVendorRetailVerticals.supportedVendorId, id));
       
       // Add new retail vertical assignments
       if (retailVerticalIds.length > 0) {
-        const assignments = retailVerticalIds.map(retailVerticalId => ({
-          supportedVendorId: id,
-          retailVerticalId,
-        }));
+        // Get the next available priority for any new retail verticals
+        const allVendorsForVerticals = await db
+          .select()
+          .from(supportedVendorRetailVerticals)
+          .where(eq(supportedVendorRetailVerticals.retailVerticalId, retailVerticalIds[0]));
+        
+        const maxExistingPriority = allVendorsForVerticals.length > 0
+          ? Math.max(...allVendorsForVerticals.map(a => a.priority))
+          : 0;
+        
+        let nextPriority = maxExistingPriority + 1;
+        
+        const assignments = retailVerticalIds.map(retailVerticalId => {
+          // Use existing priority if available, otherwise assign next available
+          const priority = existingPriorities.get(retailVerticalId) || nextPriority++;
+          
+          return {
+            supportedVendorId: id,
+            retailVerticalId,
+            priority
+          };
+        });
         
         await db.insert(supportedVendorRetailVerticals).values(assignments);
       }

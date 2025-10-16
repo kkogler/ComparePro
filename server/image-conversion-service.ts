@@ -66,7 +66,7 @@ export class ImageConversionService {
     if (imageName.startsWith('http://') || imageName.startsWith('https://')) {
       return {
         imageUrl: imageName,
-        imageSource: 'Lipsey\'s'
+        imageSource: 'lipseys' // Use vendor slug for internal consistency
       };
     }
 

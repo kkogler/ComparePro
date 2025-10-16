@@ -44,6 +44,7 @@ export default function VendorComparison() {
   const [manualPrice, setManualPrice] = useState('');
   const [manualGrossMargin, setManualGrossMargin] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [orderModel, setOrderModel] = useState<string>(''); // Editable model field for order
 
   // Get current user to set default store
   const { data: currentUser } = useQuery({
@@ -389,6 +390,9 @@ export default function VendorComparison() {
     setSelectedCategory('');
     console.log('🔍 MODAL OPENING: Category cleared, user must select. requireCategory:', requireCategory);
     
+    // Initialize model field with product's model (user can edit)
+    setOrderModel(vendorComparison.product.model || '');
+    
     setSelectedOrderId("new"); // Reset to new order
     setSelectedStoreId(getDefaultStoreId()); // Set smart default for store selection
     setManualPriceMode(false); // Reset to automatic pricing
@@ -576,7 +580,8 @@ export default function VendorComparison() {
       vendorMsrp: orderDetails.vendorProduct.msrp, // Add MSRP from vendor API response
       vendorMapPrice: orderDetails.vendorProduct.map, // Add MAP from vendor API response
       priceOnPO: calculatedRetailPrice, // Use the actual calculated price from pricing rules
-      category: effectiveCategory // Include selected category for webhook and CSV export
+      category: effectiveCategory, // Include selected category for webhook and CSV export
+      model: orderModel // Include editable model field for order (not saved to Master Catalog)
     };
     
     addItemToOrderMutation.mutate(orderData);
@@ -1021,7 +1026,7 @@ export default function VendorComparison() {
               </div>
               
               <div className="grid grid-cols-3 gap-6">
-                {/* Left Column - Product Image & Details Only */}
+                {/* Left Column - Product Image, Details & Vendor */}
                 <div className="space-y-4">
                   {/* Product Image */}
                   <div className="border rounded-lg p-4 bg-gray-50">
@@ -1066,27 +1071,28 @@ export default function VendorComparison() {
                       )}
                     </div>
                   </div>
-              </div>
-
-              {/* Center Column - Vendor, Category, Price and Cost */}
-              <div className="space-y-4">
-                {/* Vendor Tile */}
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Vendor</Label>
-                      <div className="text-lg font-semibold text-gray-900" data-testid="text-vendor-name">
-                        {orderDetails.vendor.vendorShortCode || orderDetails.vendor.name}
+                  
+                  {/* Vendor Tile */}
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Vendor</Label>
+                        <div className="text-lg font-semibold text-gray-900" data-testid="text-vendor-name">
+                          {orderDetails.vendor.vendorShortCode || orderDetails.vendor.name}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <Label className="text-sm font-medium text-gray-700">Vendor Stock</Label>
-                      <div className="text-lg font-semibold" data-testid="text-vendor-stock">
-                        {orderDetails.vendorProduct.stock?.toLocaleString() || 0}
+                      <div className="text-right">
+                        <Label className="text-sm font-medium text-gray-700">Vendor Stock</Label>
+                        <div className="text-lg font-semibold" data-testid="text-vendor-stock">
+                          {orderDetails.vendorProduct.stock?.toLocaleString() || 0}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+              </div>
+
+              {/* Center Column - Category, Price and Cost */}
+              <div className="space-y-4">
 
                 {/* Category Tile */}
                 <div className="border rounded-lg p-4 bg-gray-50">
@@ -1124,6 +1130,22 @@ export default function VendorComparison() {
                       Vendor Category: <span className="font-medium">{orderDetails.product.category}</span>
                     </p>
                   )}
+                  
+                  {/* Model Field - Editable for this order only */}
+                  <div className="mt-4">
+                    <Label htmlFor="order-model" className="text-sm font-medium text-gray-700 mb-2 block">
+                      Model
+                    </Label>
+                    <Input
+                      id="order-model"
+                      type="text"
+                      value={orderModel}
+                      onChange={(e) => setOrderModel(e.target.value)}
+                      placeholder="Enter model number..."
+                      className="w-full"
+                      data-testid="input-order-model"
+                    />
+                  </div>
                 </div>
                 
                 {/* Price Section */}

@@ -913,6 +913,7 @@ function VendorFormModal({
     description: vendor?.description || '',
     apiType: vendor?.apiType || 'rest_api',
     vendorType: vendor?.vendorType || 'vendor' as 'vendor' | 'marketplace',
+    imageQuality: vendor?.imageQuality || 'high' as 'high' | 'low',
     websiteUrl: vendor?.websiteUrl || '',
     documentationUrl: vendor?.documentationUrl || '',
     logoUrl: vendor?.logoUrl || '',
