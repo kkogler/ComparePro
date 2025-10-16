@@ -2911,7 +2911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // ✅ USE SLUG-BASED HANDLER LOOKUP: More reliable than name matching
         const supportedVendor = supportedVendors.find(sv => sv.id === vendor.supportedVendorId);
         const handler = supportedVendor 
-          ? vendorRegistry.getHandlerBySlug(supportedVendor.vendorShortCode)
+          ? vendorRegistry.getHandlerBySlug(supportedVendor.vendorSlug) // Use vendorSlug (immutable) not vendorShortCode (user-editable)
           : vendorRegistry.getHandlerByVendorName(vendor.name); // Fallback
         
         const supportsOrdering = getSupportsOrdering(handler as any);
@@ -2977,11 +2977,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ✅ SLUG-BASED HANDLER LOOKUP: Use vendor slug for reliable handler lookup
       const supportedVendor = supportedVendors.find(sv => sv.id === vendor.supportedVendorId);
       const handler = supportedVendor 
-        ? vendorRegistry.getHandlerBySlug(supportedVendor.vendorShortCode)
+        ? vendorRegistry.getHandlerBySlug(supportedVendor.vendorSlug) // Use vendorSlug (immutable) not vendorShortCode (user-editable)
         : vendorRegistry.getHandlerByVendorName(vendor.name); // Fallback
         
       if (!handler) {
-        console.log(`❌ HANDLER LOOKUP FAILED: vendor.name="${vendor.name}", supportedVendor.vendorShortCode="${supportedVendor?.vendorShortCode}"`);
+        console.log(`❌ HANDLER LOOKUP FAILED: vendor.name="${vendor.name}", supportedVendor.vendorSlug="${supportedVendor?.vendorSlug}"`);
         return res.json({
           vendor: { id: vendor.id, name: vendor.name, vendorShortCode: vendor.vendorShortCode },
           sku: null,
