@@ -783,19 +783,32 @@ export class ChattanoogaAPI {
               console.log(`  retail_price (VENDOR COST - NOT MSRP): ${product.retail_price} (${typeof product.retail_price})`);  
               console.log(`  map_price (old field): ${product.map_price} (${typeof product.map_price})`);
               console.log(`  retail_map_price (CORRECT MAP field): ${product.retail_map_price} (${typeof product.retail_map_price})`);
+              console.log(`Inventory fields:`, {
+                inventory: product.inventory,
+                in_stock_flag: product.in_stock_flag,
+                allocated: product.allocated,
+                drop_ship_flag: product.drop_ship_flag
+              });
               console.log(`Other available pricing fields:`, {
                 msrp: product.msrp,
                 drop_ship_price: product.drop_ship_price
               });
               console.log(`=== END CHATTANOOGA DEBUG ===\n`);
 
+              // Determine stock status: use inventory count if available, otherwise fall back to in_stock_flag
+              const hasInventory = product.inventory !== undefined && product.inventory !== null && product.inventory > 0;
+              const inStockFlag = product.in_stock_flag === 1;
+              const isInStock = hasInventory || inStockFlag;
+              
+              console.log(`CHATTANOOGA STOCK LOGIC: inventory=${product.inventory}, in_stock_flag=${product.in_stock_flag}, hasInventory=${hasInventory}, inStockFlag=${inStockFlag}, final isInStock=${isInStock}`);
+
               const transformedProduct = {
                 sku: product.cssi_id,                    // cssi_id → Vendor SKU
                 name: product.name,
                 price: product.custom_price,             // custom_price → Vendor Cost
                 msrp: null,     // Chattanooga doesn't provide authentic MSRP data - retail_price is vendor cost
-                stock: product.inventory,
-                inStock: product.in_stock_flag === 1,
+                stock: product.inventory || 0,
+                inStock: isInStock,
                 dropShip: product.drop_ship_flag === 1,
                 dropShipPrice: product.drop_ship_price,
                 mapPrice: product.retail_map_price,      // retail_map_price → MAP (CORRECTED)
