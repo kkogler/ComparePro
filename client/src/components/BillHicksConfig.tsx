@@ -281,12 +281,6 @@ export function BillHicksConfig({
         inventory_sync_enabled: credentials.enableAutomaticSync
       });
       
-      // After saving credentials, update vendor short code if changed
-      if (shortCode !== vendor?.vendorShortCode) {
-        const vendorUpdateUrl = `/org/${organizationSlug}/api/vendors/${vendor?.id}`;
-        await apiRequest(vendorUpdateUrl, 'PATCH', { vendorShortCode: shortCode });
-      }
-      
       console.log('🔄 BILL HICKS CONFIG: API response:', response);
       return response.json();
     },
@@ -475,20 +469,6 @@ export function BillHicksConfig({
                     </FormItem>
                   )}
                 />
-
-                <div>
-                  <Label htmlFor="vendorShortCode">Vendor Short Code</Label>
-                  <Input
-                    id="vendorShortCode"
-                    type="text"
-                    placeholder="e.g., Bill Hicks"
-                    value={shortCode}
-                    onChange={(e) => setShortCode(e.target.value)}
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    This value will be used in CSV exports and webhooks for MicroBiz integration.
-                  </p>
-                </div>
 
                 <div className="flex gap-3 justify-between">
                   <Button

@@ -109,14 +109,14 @@ export class CSVExportService {
         // Style > Model
         this.escapeCSVField(item.product.model || ''),
         
-        // Vendor Name > Use store-specific vendor short code for MicroBiz integration
+        // Vendor Name > Use vendor display name instead of short code
         (() => {
           console.log('CSV EXPORT SERVICE DEBUG: Vendor data:', {
             vendorShortCode: order.vendor.vendorShortCode,
             vendorName: order.vendor.name,
-            using: order.vendor.vendorShortCode || order.vendor.name || ''
+            fallback: order.vendor.name || order.vendor.vendorShortCode || ''
           });
-          return this.escapeCSVField(order.vendor.vendorShortCode || order.vendor.name || '');
+          return this.escapeCSVField(order.vendor.name || order.vendor.vendorShortCode || '');
         })(),
         
         // Brand > Manufacturer (decode HTML entities)

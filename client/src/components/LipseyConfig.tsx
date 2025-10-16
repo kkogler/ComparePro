@@ -27,19 +27,11 @@ export function LipseyConfig({
 }: LipseyConfigProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [vendorShortCode, setVendorShortCode] = useState(vendor?.vendorShortCode || '');
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; dealerInfo?: any } | null>(null);
   const [hasExistingCredentials, setHasExistingCredentials] = useState(false);
   const { toast } = useToast();
-
-  // Update vendor short code when vendor changes or modal opens
-  useEffect(() => {
-    if (open && vendor?.vendorShortCode !== undefined) {
-      setVendorShortCode(vendor.vendorShortCode || '');
-    }
-  }, [open, vendor?.vendorShortCode]);
 
   // Load existing credentials when modal opens
   useEffect(() => {
@@ -206,12 +198,6 @@ export function LipseyConfig({
       const response = await apiRequest(apiUrl, 'POST', credentials);
 
       if (response.ok) {
-        // After saving credentials, update vendor short code if changed
-        if (vendorShortCode !== vendor?.vendorShortCode) {
-          const vendorUpdateUrl = `/org/${organizationSlug}/api/vendors/${vendor?.id || vendorId}`;
-          await apiRequest(vendorUpdateUrl, 'PATCH', { vendorShortCode });
-        }
-        
         toast({
           title: "Credentials Saved",
           description: "Lipsey's API credentials have been saved successfully. You can now test the connection.",
@@ -299,21 +285,6 @@ export function LipseyConfig({
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vendorShortCode">Vendor Short Code</Label>
-              <Input
-                id="vendorShortCode"
-                type="text"
-                placeholder="e.g., Lipsey's"
-                value={vendorShortCode}
-                onChange={(e) => setVendorShortCode(e.target.value)}
-                className="w-full"
-              />
-              <p className="text-sm text-gray-500">
-                This value will be used in CSV exports and webhooks for MicroBiz integration.
-              </p>
             </div>
           </div>
 

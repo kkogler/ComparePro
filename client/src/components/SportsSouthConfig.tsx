@@ -25,7 +25,6 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
     source: vendor?.credentials?.source || '',
     customerNumber: vendor?.credentials?.customer_number || vendor?.credentials?.customerNumber || ''
   });
-  const [vendorShortCode, setVendorShortCode] = useState(vendor?.vendorShortCode || '');
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -34,20 +33,13 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
     setOpen(isOpen);
   }, [isOpen]);
 
-  // Update vendor short code when vendor changes or modal opens
-  useEffect(() => {
-    if (isOpen && vendor?.vendorShortCode !== undefined) {
-      setVendorShortCode(vendor.vendorShortCode || '');
-    }
-  }, [isOpen, vendor?.vendorShortCode]);
-
   const saveCredentials = useMutation({
     mutationFn: async (creds: any) => {
       console.log('🔍 SPORTS SOUTH SAVE DEBUG:', {
         originalCreds: creds,
         vendorId: vendor?.id,
         vendorName: vendor?.name,
-        vendorShortCode: creds.vendorShortCode
+        vendorShortCode: vendor?.vendorShortCode
       });
 
       // ✅ KEEP CAMELCASE: Schema expects camelCase field names
@@ -76,21 +68,6 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
           mappedCreds: Object.keys(mappedCreds)
         });
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      // After saving credentials, update vendor short code if changed
-      console.log('🔍 SPORTS SOUTH VENDOR SHORT CODE CHECK:', {
-        newValue: creds.vendorShortCode,
-        oldValue: vendor?.vendorShortCode,
-        vendorId: vendor?.id,
-        willUpdate: creds.vendorShortCode !== vendor?.vendorShortCode
-      });
-      
-      if (creds.vendorShortCode !== vendor?.vendorShortCode) {
-        const vendorUpdateUrl = `/org/${organizationSlug}/api/vendors/${vendor?.id}`;
-        console.log('🔍 SPORTS SOUTH: Updating vendor short code to:', creds.vendorShortCode);
-        const updateResponse = await apiRequest(vendorUpdateUrl, 'PATCH', { vendorShortCode: creds.vendorShortCode });
-        console.log('✅ SPORTS SOUTH: Vendor short code update response:', updateResponse.ok);
       }
 
       return response;
@@ -149,7 +126,7 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
 
 
   const handleSave = () => {
-    saveCredentials.mutate({ ...credentials, vendorShortCode });
+    saveCredentials.mutate(credentials);
   };
 
   const handleTestConnection = () => {
@@ -267,21 +244,6 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
               placeholder="Enter your own short name or code for your store"
               autoComplete="off"
             />
-          </div>
-          
-          <div>
-            <Label htmlFor="vendorShortCode">Vendor Short Code</Label>
-            <Input
-              id="vendorShortCode"
-              type="text"
-              value={vendorShortCode}
-              onChange={(e) => setVendorShortCode(e.target.value)}
-              placeholder="e.g., Sports South"
-              autoComplete="off"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              This value will be used in CSV exports and webhooks for MicroBiz integration.
-            </p>
           </div>
           
           <div className="flex gap-3 justify-between">

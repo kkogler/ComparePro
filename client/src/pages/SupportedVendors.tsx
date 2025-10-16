@@ -153,11 +153,11 @@ export default function SupportedVendors() {
   };
 
   const handleConfigureVendor = (vendor: any) => {
-    console.log('handleConfigureVendor called for:', vendor.name, vendor.id, 'slug:', vendor.slug, 'vendorSlug:', vendor.vendorSlug);
+    console.log('handleConfigureVendor called for:', vendor.name, vendor.id, 'slug:', vendor.slug);
     setSelectedVendor(vendor);
     
-    // Open the appropriate configuration modal based on vendor slug (immutable identifier)
-    const vendorConfig = getVendorConfig(vendor.vendorSlug || vendor.vendorShortCode || '');
+    // Open the appropriate configuration modal based on vendor short code
+    const vendorConfig = getVendorConfig(vendor.vendorShortCode || '');
     if (vendorConfig) {
       switch (vendorConfig.id) {
         case 'chattanooga':
