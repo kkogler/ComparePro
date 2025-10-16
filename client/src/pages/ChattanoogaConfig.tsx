@@ -87,6 +87,13 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
     }
   }, [vendor, slug, form]);
 
+  // Update vendor short code when vendor or modal state changes
+  useEffect(() => {
+    if (isOpen && vendor?.vendorShortCode !== undefined) {
+      setVendorShortCode(vendor.vendorShortCode || '');
+    }
+  }, [isOpen, vendor?.vendorShortCode]);
+
   // Load existing credentials when modal opens
   useEffect(() => {
     if (isOpen && vendor && slug) {

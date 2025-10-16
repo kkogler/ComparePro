@@ -35,6 +35,13 @@ export function GunBrokerConfig({ vendor, isOpen = false, onClose, onSuccess, or
     setOpen(isOpen);
   }, [isOpen]);
 
+  // Update vendor short code when vendor changes or modal opens
+  useEffect(() => {
+    if (isOpen && vendor?.vendorShortCode !== undefined) {
+      setVendorShortCode(vendor.vendorShortCode || '');
+    }
+  }, [isOpen, vendor?.vendorShortCode]);
+
   // GunBroker credentials are admin-only - no saving from store level
   const handleAdminRedirect = () => {
     toast({

@@ -34,6 +34,13 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
     setOpen(isOpen);
   }, [isOpen]);
 
+  // Update vendor short code when vendor changes or modal opens
+  useEffect(() => {
+    if (isOpen && vendor?.vendorShortCode !== undefined) {
+      setVendorShortCode(vendor.vendorShortCode || '');
+    }
+  }, [isOpen, vendor?.vendorShortCode]);
+
   const saveCredentials = useMutation({
     mutationFn: async (creds: any) => {
       console.log('🔍 SPORTS SOUTH SAVE DEBUG:', {

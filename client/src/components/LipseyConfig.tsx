@@ -34,6 +34,13 @@ export function LipseyConfig({
   const [hasExistingCredentials, setHasExistingCredentials] = useState(false);
   const { toast } = useToast();
 
+  // Update vendor short code when vendor changes or modal opens
+  useEffect(() => {
+    if (open && vendor?.vendorShortCode !== undefined) {
+      setVendorShortCode(vendor.vendorShortCode || '');
+    }
+  }, [open, vendor?.vendorShortCode]);
+
   // Load existing credentials when modal opens
   useEffect(() => {
     console.log('🔍 LIPSEY MODAL: useEffect triggered', { open, vendorSlug: vendor?.slug, vendorId });
