@@ -79,9 +79,18 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
       }
 
       // After saving credentials, update vendor short code if changed
+      console.log('🔍 SPORTS SOUTH VENDOR SHORT CODE CHECK:', {
+        newValue: creds.vendorShortCode,
+        oldValue: vendor?.vendorShortCode,
+        vendorId: vendor?.id,
+        willUpdate: creds.vendorShortCode !== vendor?.vendorShortCode
+      });
+      
       if (creds.vendorShortCode !== vendor?.vendorShortCode) {
         const vendorUpdateUrl = `/org/${organizationSlug}/api/vendors/${vendor?.id}`;
-        await apiRequest(vendorUpdateUrl, 'PATCH', { vendorShortCode: creds.vendorShortCode });
+        console.log('🔍 SPORTS SOUTH: Updating vendor short code to:', creds.vendorShortCode);
+        const updateResponse = await apiRequest(vendorUpdateUrl, 'PATCH', { vendorShortCode: creds.vendorShortCode });
+        console.log('✅ SPORTS SOUTH: Vendor short code update response:', updateResponse.ok);
       }
 
       return response;
