@@ -216,8 +216,9 @@ export class WebhookServiceV2 {
           // Vendor information
           vendor: {
             id: vendorData?.id || orderData.vendorId,
-            name: vendorData?.name || 'Unknown Vendor',
+            name: vendorData?.vendorShortCode || vendorData?.name || 'Unknown Vendor', // Use short code from Admin > Supported Vendors
             short_code: vendorData?.vendorShortCode || undefined,
+            full_name: vendorData?.name || undefined, // Keep full name for reference
             type: vendorData?.type || undefined,
           },
           
