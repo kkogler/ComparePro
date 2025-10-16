@@ -36,6 +36,7 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
+  const [vendorShortCode, setVendorShortCode] = useState(vendor?.vendorShortCode || '');
 
   // Debug logging for slug
   console.log('🔍 CHATTANOOGA CONFIG: Component loaded with slug:', slug);
@@ -117,6 +118,12 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
       });
       
       if (response.ok) {
+        // After saving credentials, update vendor short code if changed
+        if (vendorShortCode !== vendor?.vendorShortCode) {
+          const vendorUpdateUrl = `/org/${slug}/api/vendors/${vendor?.id}`;
+          await apiRequest(vendorUpdateUrl, 'PATCH', { vendorShortCode });
+        }
+        
         toast({
           title: "Success",
           description: "Chattanooga Shooting Supply credentials saved successfully. You can now test the connection.",
@@ -243,6 +250,21 @@ export default function ChattanoogaConfig({ vendor, isOpen, onClose, onSuccess }
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="vendorShortCode">Vendor Short Code</Label>
+              <Input
+                id="vendorShortCode"
+                type="text"
+                placeholder="e.g., Chattanooga"
+                value={vendorShortCode}
+                onChange={(e) => setVendorShortCode(e.target.value)}
+                autoComplete="off"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                This value will be used in CSV exports and webhooks for MicroBiz integration.
+              </p>
             </div>
 
             <div className="flex gap-3 pt-4">

@@ -21,6 +21,8 @@ interface GunBrokerConfigProps {
 export function GunBrokerConfig({ vendor, isOpen = false, onClose, onSuccess, organizationSlug }: GunBrokerConfigProps) {
   const [open, setOpen] = useState(isOpen);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [vendorShortCode, setVendorShortCode] = useState(vendor?.vendorShortCode || '');
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -78,6 +80,34 @@ export function GunBrokerConfig({ vendor, isOpen = false, onClose, onSuccess, or
     testConnection.mutate();
   };
 
+  const handleSaveShortCode = async () => {
+    if (!vendor?.id || !organizationSlug) return;
+    
+    setIsSaving(true);
+    try {
+      const vendorUpdateUrl = `/org/${organizationSlug}/api/vendors/${vendor.id}`;
+      await apiRequest(vendorUpdateUrl, 'PATCH', { vendorShortCode });
+      
+      toast({
+        title: "Success",
+        description: "Vendor short code saved successfully.",
+      });
+      
+      // Invalidate queries to refresh vendor data
+      queryClient.invalidateQueries({ queryKey: [`/org/${organizationSlug}/api/vendors`] });
+      queryClient.invalidateQueries({ queryKey: [`/org/${organizationSlug}/api/supported-vendors`] });
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save vendor short code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen) {
@@ -127,10 +157,24 @@ export function GunBrokerConfig({ vendor, isOpen = false, onClose, onSuccess, or
             </div>
           </div>
 
+          {/* Vendor Short Code */}
+          <div>
+            <Label htmlFor="vendorShortCode">Vendor Short Code</Label>
+            <Input
+              id="vendorShortCode"
+              type="text"
+              placeholder="e.g., GunBroker"
+              value={vendorShortCode}
+              onChange={(e) => setVendorShortCode(e.target.value)}
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              This value will be used in CSV exports and webhooks for MicroBiz integration.
+            </p>
+          </div>
 
           {/* Action Buttons */}
           <div className="flex gap-2">
-            {hasAdminCredentials ? (
+            {hasAdminCredentials && (
               <Button
                 type="button"
                 variant="outline"
@@ -141,7 +185,18 @@ export function GunBrokerConfig({ vendor, isOpen = false, onClose, onSuccess, or
                 <TestTube className="h-4 w-4 mr-2" />
                 {isTestingConnection ? "Testing..." : "Test Connection"}
               </Button>
-            ) : (
+            )}
+            
+            <Button
+              type="button"
+              onClick={handleSaveShortCode}
+              disabled={isSaving}
+              className="flex-1 btn-orange-action"
+            >
+              {isSaving ? "Saving..." : "Save Vendor Code"}
+            </Button>
+            
+            {!hasAdminCredentials && (
               <Button
                 type="button"
                 variant="outline"
@@ -149,7 +204,7 @@ export function GunBrokerConfig({ vendor, isOpen = false, onClose, onSuccess, or
                 className="flex-1"
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Contact Admin for Setup
+                Contact Admin
               </Button>
             )}
           </div>

@@ -25,6 +25,7 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
     source: vendor?.credentials?.source || '',
     customerNumber: vendor?.credentials?.customer_number || vendor?.credentials?.customerNumber || ''
   });
+  const [vendorShortCode, setVendorShortCode] = useState(vendor?.vendorShortCode || '');
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -39,7 +40,7 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
         originalCreds: creds,
         vendorId: vendor?.id,
         vendorName: vendor?.name,
-        vendorShortCode: vendor?.vendorShortCode
+        vendorShortCode: creds.vendorShortCode
       });
 
       // ✅ KEEP CAMELCASE: Schema expects camelCase field names
@@ -68,6 +69,12 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
           mappedCreds: Object.keys(mappedCreds)
         });
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // After saving credentials, update vendor short code if changed
+      if (creds.vendorShortCode !== vendor?.vendorShortCode) {
+        const vendorUpdateUrl = `/org/${organizationSlug}/api/vendors/${vendor?.id}`;
+        await apiRequest(vendorUpdateUrl, 'PATCH', { vendorShortCode: creds.vendorShortCode });
       }
 
       return response;
@@ -126,7 +133,7 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
 
 
   const handleSave = () => {
-    saveCredentials.mutate(credentials);
+    saveCredentials.mutate({ ...credentials, vendorShortCode });
   };
 
   const handleTestConnection = () => {
@@ -244,6 +251,21 @@ export function SportsSouthConfig({ vendor, isOpen = false, onClose, onSuccess, 
               placeholder="Enter your own short name or code for your store"
               autoComplete="off"
             />
+          </div>
+          
+          <div>
+            <Label htmlFor="vendorShortCode">Vendor Short Code</Label>
+            <Input
+              id="vendorShortCode"
+              type="text"
+              value={vendorShortCode}
+              onChange={(e) => setVendorShortCode(e.target.value)}
+              placeholder="e.g., Sports South"
+              autoComplete="off"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              This value will be used in CSV exports and webhooks for MicroBiz integration.
+            </p>
           </div>
           
           <div className="flex gap-3 justify-between">
