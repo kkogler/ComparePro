@@ -53,6 +53,7 @@ export async function getVendorRecordPriority(vendorSlug: string): Promise<numbe
     const [result] = await db
       .select({ 
         vendorId: supportedVendors.id,
+        vendorSlug: supportedVendors.vendorSlug,
         vendorShortCode: supportedVendors.vendorShortCode,
         name: supportedVendors.name,
         productRecordPriority: supportedVendors.productRecordPriority,
@@ -67,7 +68,7 @@ export async function getVendorRecordPriority(vendorSlug: string): Promise<numbe
         )
       )
       .where(
-        sql`lower(trim(${supportedVendors.vendorShortCode})) = lower(trim(${vendorSlug})) 
+        sql`lower(trim(${supportedVendors.vendorSlug})) = lower(trim(${vendorSlug})) 
             OR lower(trim(${supportedVendors.name})) = lower(trim(${vendorSlug}))`
       );
 
@@ -75,7 +76,7 @@ export async function getVendorRecordPriority(vendorSlug: string): Promise<numbe
 
     if (!result) {
       // Vendor not found in supportedVendors table
-      console.log(`VENDOR PRIORITY: Vendor "${vendorSlug}" not found in supportedVendors table (searched by short code and name), using default priority ${DEFAULT_PRIORITY}`);
+      console.log(`VENDOR PRIORITY: Vendor "${vendorSlug}" not found in supportedVendors table (searched by vendorSlug and name), using default priority ${DEFAULT_PRIORITY}`);
       priority = DEFAULT_PRIORITY;
     } else if (result.retailVerticalPriority !== null && result.retailVerticalPriority !== undefined) {
       // Use retail vertical priority (Firearms) if available - this is what the UI shows
