@@ -3346,7 +3346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               logoUrl: supportedVendor?.logoUrl || null,
               electronicOrders: handler?.capabilities?.supportsOrdering || false
             },
-            sku: itemNo,
+            sku: null, // Don't show UPC as SKU when item not found
             cost: null,
             stock: 0,
             availability: 'not_available',
