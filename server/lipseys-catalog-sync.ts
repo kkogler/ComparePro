@@ -112,17 +112,37 @@ export class LipseysCatalogSyncService {
         return result;
       }
 
-      console.log(`LIPSEYS CATALOG SYNC: Processing ${products.length} products...`);
+      console.log(`LIPSEYS CATALOG SYNC: Processing ${products.length} products in batches...`);
 
-      // Step 3: Process each product
-      for (const lipseyProduct of products) {
-        try {
-          await this.processProduct(lipseyProduct, result);
-        } catch (error: any) {
-          console.error(`LIPSEYS CATALOG SYNC: Error processing product ${lipseyProduct.itemNo}:`, error);
-          result.errors.push(`Product ${lipseyProduct.itemNo}: ${error.message}`);
+      // Step 3: Process products in batches to prevent memory crashes
+      const BATCH_SIZE = 500; // Process 500 products at a time
+      const totalBatches = Math.ceil(products.length / BATCH_SIZE);
+      
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, products.length);
+        const batch = products.slice(start, end);
+        
+        console.log(`LIPSEYS CATALOG SYNC: Processing batch ${batchIndex + 1}/${totalBatches} (${batch.length} products, ${start}-${end} of ${products.length})`);
+        
+        for (const lipseyProduct of batch) {
+          try {
+            await this.processProduct(lipseyProduct, result);
+          } catch (error: any) {
+            console.error(`LIPSEYS CATALOG SYNC: Error processing product ${lipseyProduct.itemNo}:`, error);
+            result.errors.push(`Product ${lipseyProduct.itemNo}: ${error.message}`);
+          }
         }
+        
+        // Log batch progress
+        console.log(`LIPSEYS CATALOG SYNC: Batch ${batchIndex + 1}/${totalBatches} complete - Total: ${result.newProducts} added, ${result.updatedProducts} updated, ${result.skippedProducts} skipped`);
+        
+        // Clear batch from memory after processing
+        batch.length = 0;
       }
+      
+      // Clear products array to free memory
+      products.length = 0;
 
       // Step 4: Update sync status
       await this.updateSyncStatus(true, undefined, result);
