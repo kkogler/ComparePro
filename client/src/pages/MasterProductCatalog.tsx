@@ -437,17 +437,6 @@ export default function MasterProductCatalog() {
     return vendor?.vendorShortCode || slugOrName;
   };
 
-  // Get vendor slug from short code - for filter queries
-  const getVendorSlugFromShortCode = (shortCode: string): string => {
-    if (!supportedVendors) return shortCode;
-    
-    // Find matching vendor by short code and return their slug
-    const vendor = supportedVendors.find((v: any) => 
-      v.vendorShortCode === shortCode
-    );
-    return vendor?.vendorSlug || shortCode;
-  };
-
 
 
   // Bulk archive mutation
@@ -984,14 +973,7 @@ export default function MasterProductCatalog() {
               <label className="text-sm font-medium text-gray-700 mb-2 block">
                 Source
               </label>
-              <Select value={sourceFilter} onValueChange={(value) => {
-                console.log('SOURCE FILTER CHANGED:', { 
-                  newValue: value, 
-                  isSlug: value.includes('-'),
-                  sources: filterOptions?.sources 
-                });
-                setSourceFilter(value);
-              }}>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Sources" />
                 </SelectTrigger>
