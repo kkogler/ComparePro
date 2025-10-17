@@ -62,3 +62,4 @@ chattanooga-cache/
 # Data files
 data/
 *.backup
+backup-*.json
