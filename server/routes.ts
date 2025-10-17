@@ -9214,7 +9214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [lipseyVendor] = await db
         .select()
         .from(supportedVendors)
-        .where(eq(supportedVendors.vendorShortCode, "lipseys"));
+        .where(eq(supportedVendors.vendorSlug, "lipseys")); // Use vendorSlug (immutable) not vendorShortCode (user-editable)
 
       if (!lipseyVendor || !lipseyVendor.adminCredentials) {
         return res.status(404).json({
@@ -9484,7 +9484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [lipseyVendor] = await db
         .select()
         .from(supportedVendors)
-        .where(eq(supportedVendors.vendorShortCode, "lipseys"));
+        .where(eq(supportedVendors.vendorSlug, "lipseys")); // Use vendorSlug (immutable) not vendorShortCode (user-editable)
 
       if (!lipseyVendor || !lipseyVendor.adminCredentials) {
         return res.status(404).json({
@@ -9565,7 +9565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [lipseyVendor] = await db
           .select()
           .from(supportedVendors)
-          .where(eq(supportedVendors.vendorShortCode, "lipseys"));
+          .where(eq(supportedVendors.vendorSlug, "lipseys")); // Use vendorSlug (immutable) not vendorShortCode (user-editable)
         
         if (lipseyVendor) {
           await db.update(supportedVendors)

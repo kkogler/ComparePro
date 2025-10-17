@@ -2029,16 +2029,6 @@ function SportsSouthSyncSettings({ onSync, isLoading, catalogInfo, onScheduleCha
   };
   
 
-  const [duplicateHandling, setDuplicateHandling] = useState('smart_merge');
-  const [imageSettings, setImageSettings] = useState({
-    updateMissing: true,
-    replaceHigherQuality: true
-  });
-  const [descriptionSettings, setDescriptionSettings] = useState({
-    addIfMissing: true,
-    overwriteExisting: false
-  });
-
   // catalogInfo is now passed as a prop
 
   return (
@@ -2055,9 +2045,9 @@ function SportsSouthSyncSettings({ onSync, isLoading, catalogInfo, onScheduleCha
               <div className="text-sm text-blue-700 space-y-1">
                 <p><strong>Full Catalog Sync:</strong> Processes entire Sports South catalog (may take 10-15 minutes)</p>
                 <p><strong>Incremental Sync:</strong> Only syncs products updated since last sync using DailyItemUpdate API</p>
-                <p><strong>Vendor Ranking:</strong> Priority #3 (Medium) - Products are only added if no higher-ranked vendor data exists</p>
                 <p><strong>Vendor Priority:</strong> Medium priority (#3) - Products are only added if no higher-priority vendor data exists</p>
                 <p><strong>Smart Merge:</strong> Updates missing data without overwriting existing information</p>
+                <p><strong>Image Handling:</strong> Controlled by global Image Quality setting (Admin &gt; Edit Vendor)</p>
                 <p className="text-blue-600 mt-2">
                   <AlertCircle className="h-3 w-3 inline mr-1" />
                   Scheduled Deployments run incremental updates for reliable, efficient catalog maintenance
@@ -2067,67 +2057,6 @@ function SportsSouthSyncSettings({ onSync, isLoading, catalogInfo, onScheduleCha
           </div>
         </CardContent>
       </Card>
-
-      {/* Sync Settings */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-medium mb-3">Duplicate Handling Strategy</h4>
-        <Select value={duplicateHandling} onValueChange={setDuplicateHandling}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ignore">Ignore (Skip existing products)</SelectItem>
-            <SelectItem value="smart_merge">Smart Merge (Recommended)</SelectItem>
-            <SelectItem value="overwrite">Overwrite (Replace all data)</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-gray-500 mt-1">
-          Smart Merge updates missing data without overwriting existing information
-        </p>
-      </div>
-
-      {/* Advanced Settings */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Image Handling</Label>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-2 text-sm">
-              <Checkbox 
-                checked={imageSettings.updateMissing} 
-                onCheckedChange={(checked) => setImageSettings(prev => ({ ...prev, updateMissing: !!checked }))}
-              />
-              <span>Update missing images</span>
-            </label>
-            <label className="flex items-center space-x-2 text-sm">
-              <Checkbox 
-                checked={imageSettings.replaceHigherQuality}
-                onCheckedChange={(checked) => setImageSettings(prev => ({ ...prev, replaceHigherQuality: !!checked }))}
-              />
-              <span>Replace with higher quality</span>
-            </label>
-          </div>
-        </div>
-        
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Description Handling</Label>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-2 text-sm">
-              <Checkbox 
-                checked={descriptionSettings.addIfMissing}
-                onCheckedChange={(checked) => setDescriptionSettings(prev => ({ ...prev, addIfMissing: !!checked }))}
-              />
-              <span>Add if missing</span>
-            </label>
-            <label className="flex items-center space-x-2 text-sm">
-              <Checkbox 
-                checked={descriptionSettings.overwriteExisting}
-                onCheckedChange={(checked) => setDescriptionSettings(prev => ({ ...prev, overwriteExisting: !!checked }))}
-              />
-              <span>Overwrite existing</span>
-            </label>
-          </div>
-        </div>
-      </div>
 
       {/* Catalog Status */}
       {catalogInfo && (

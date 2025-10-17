@@ -45,7 +45,7 @@ export class LipseysCatalogSyncService {
     const supportedVendors = await storage.getAllSupportedVendors();
     
     const lipseys = supportedVendors.find(vendor => 
-      vendor.vendorShortCode === getLipseysVendorId() || 
+      vendor.vendorSlug === getLipseysVendorId() || // Use vendorSlug (immutable) not vendorShortCode (user-editable)
       vendor.name?.toLowerCase().includes('lipsey')
     );
     
@@ -166,7 +166,7 @@ export class LipseysCatalogSyncService {
       const supportedVendors = await storage.getAllSupportedVendors();
       
       const lipseysVendor = supportedVendors.find(vendor =>
-        vendor.vendorShortCode === getLipseysVendorId() || 
+        vendor.vendorSlug === getLipseysVendorId() || // Use vendorSlug (immutable) not vendorShortCode (user-editable)
         vendor.name?.toLowerCase().includes('lipsey')
       );
       
