@@ -1920,6 +1920,8 @@ function SyncSettingsModal({ vendor, onClose }: { vendor: SupportedVendor; onClo
       return <ChattanoogaSyncSettings onSync={handleSyncCatalog} isLoading={isLoading} onScheduleChange={setScheduleChanges} />;
     } else if (vendor.name.toLowerCase().includes('lipsey')) {
       return <LipseysSyncSettings onSync={handleSyncCatalog} isLoading={isLoading} onScheduleChange={setScheduleChanges} />;
+    } else if (vendor.name.toLowerCase().includes('bill hicks')) {
+      return <BillHicksSyncSettings vendor={vendor} onSync={handleSyncCatalog} isLoading={isLoading} onScheduleChange={setScheduleChanges} />;
     } else {
       return <GenericVendorSyncSettings vendor={vendor} onSync={handleSyncCatalog} isLoading={isLoading} onScheduleChange={setScheduleChanges} />;
     }
