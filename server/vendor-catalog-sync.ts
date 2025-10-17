@@ -203,7 +203,7 @@ export class VendorCatalogSyncService {
             partNumber: partNum || itemId?.toString() || 'N/A',
             description: item.Description || item.description || title,
             imageUrl: imageUrl || null,
-            imageSource: imageUrl ? 'GunBroker' : null,
+            imageSource: imageUrl ? 'gunbroker' : null, // Use vendor slug
             fflRequired: true, // GunBroker firearms require FFL
             serialized: true
           };

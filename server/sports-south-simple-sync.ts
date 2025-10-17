@@ -483,19 +483,19 @@ export async function performSportsSouthCatalogSync(
               if (!product.imageUrl) {
                 // No image exists - add image (both high and low quality vendors can add to empty)
                 updateData.imageUrl = hiresImageUrl;
-                updateData.imageSource = 'Sports South';
+                updateData.imageSource = 'sports-south'; // Use vendor slug
                 imagesAdded++;
                 console.log(`SPORTS SOUTH SYNC: Added image for existing mapped product ${product.upc}`);
               } else if (isSportsSouthHighQuality && existingImageIsLowQuality) {
                 // Sports South is high quality and existing image is low quality - upgrade image
                 updateData.imageUrl = hiresImageUrl;
-                updateData.imageSource = 'Sports South';
+                updateData.imageSource = 'sports-south'; // Use vendor slug
                 imagesUpdated++;
                 console.log(`SPORTS SOUTH SYNC: Upgraded low quality image to high quality image for existing mapped product ${product.upc}`);
               } else if (!isSportsSouthHighQuality && !product.imageUrl) {
                 // Sports South is low quality and no existing image - add as fallback
                 updateData.imageUrl = hiresImageUrl;
-                updateData.imageSource = 'Sports South';
+                updateData.imageSource = 'sports-south'; // Use vendor slug
                 imagesAdded++;
                 console.log(`SPORTS SOUTH SYNC: Added low quality image for existing mapped product ${product.upc}`);
               }

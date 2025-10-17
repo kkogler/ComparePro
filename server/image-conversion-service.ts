@@ -76,7 +76,7 @@ export class ImageConversionService {
     
     return {
       imageUrl,
-      imageSource: 'Lipsey\'s'
+      imageSource: 'lipseys' // Use vendor slug
     };
   }
 
@@ -97,7 +97,7 @@ export class ImageConversionService {
     // For now, return as-is and mark as needing conversion
     return {
       imageUrl: imageData,
-      imageSource: 'Chattanooga Shooting Supplies',
+      imageSource: 'chattanooga', // Use vendor slug
       error: 'Chattanooga image conversion pattern not yet implemented'
     };
   }
@@ -111,7 +111,7 @@ export class ImageConversionService {
     if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
       return {
         imageUrl: imageData,
-        imageSource: 'GunBroker'
+        imageSource: 'gunbroker' // Use vendor slug
       };
     }
 
@@ -119,7 +119,7 @@ export class ImageConversionService {
     // For now, return as-is and mark as needing conversion
     return {
       imageUrl: imageData,
-      imageSource: 'GunBroker',
+      imageSource: 'gunbroker', // Use vendor slug
       error: 'GunBroker image conversion pattern not yet implemented'
     };
   }
