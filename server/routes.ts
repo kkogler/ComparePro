@@ -3905,13 +3905,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const company = await storage.getCompany(updatedOrder.companyId);
         const store = updatedOrder.storeId ? await storage.getStore(updatedOrder.storeId) : undefined;
         
+        // Get admin-level supported vendor data for accurate name/shortCode
+        const supportedVendor = vendor?.supportedVendorId 
+          ? await storage.getSupportedVendor(vendor.supportedVendorId)
+          : null;
+        
+        // Merge store vendor with admin vendor data (prefer admin-level name/shortCode)
+        const vendorData = vendor && supportedVendor ? {
+          ...vendor,
+          name: supportedVendor.name, // Use admin-level full name
+          vendorShortCode: supportedVendor.vendorShortCode // Use admin-level short code
+        } : vendor;
+        
         // Create proper webhook payload using WebhookServiceV2
         const webhookPayload = await WebhookServiceV2.generateOrderWebhook(
           updatedOrder,
           orderItems,
           store,
           company,
-          vendor,
+          vendorData,
           undefined, // user data not needed for this webhook
           'order.submitted'
         );
@@ -3951,13 +3963,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const company = await storage.getCompany(order.companyId);
       const store = order.storeId ? await storage.getStore(order.storeId) : undefined;
       
+      // Get admin-level supported vendor data for accurate name/shortCode
+      const supportedVendor = vendor?.supportedVendorId 
+        ? await storage.getSupportedVendor(vendor.supportedVendorId)
+        : null;
+      
+      // Merge store vendor with admin vendor data (prefer admin-level name/shortCode)
+      const vendorData = vendor && supportedVendor ? {
+        ...vendor,
+        name: supportedVendor.name, // Use admin-level full name
+        vendorShortCode: supportedVendor.vendorShortCode // Use admin-level short code
+      } : vendor;
+      
       // Use the SAME comprehensive webhook generation as actual order submissions
       const webhookPayload = await WebhookServiceV2.generateOrderWebhook(
         order,
         orderItems,
         store,
         company,
-        vendor,
+        vendorData,
         undefined, // user data not needed for preview
         'order.submitted'
       );
