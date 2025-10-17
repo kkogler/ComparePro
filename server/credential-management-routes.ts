@@ -119,7 +119,7 @@ export function registerCredentialManagementRoutes(app: Express): void {
         console.log(`⏳ ADMIN TEST CONNECTION: Request queued (${queueStatus.queueLength} ahead in queue)`);
       }
 
-      console.log(`🔍 ADMIN TEST CONNECTION: Starting test for vendor: ${vendorId}, userId: ${userId}`);
+      console.log(`🔍 ADMIN TEST CONNECTION: Starting test for vendor shortCode/name: ${vendorId}, userId: ${userId}`);
       
       // Verify the vendor exists first
       const supportedVendor = await storage.getSupportedVendorByName(vendorId);
@@ -132,7 +132,11 @@ export function registerCredentialManagementRoutes(app: Express): void {
         });
       }
       
-      const result = await vendorRegistry.testVendorConnection(vendorId, 'admin', undefined, userId);
+      console.log(`🔍 ADMIN TEST CONNECTION: Found vendor, using vendorSlug: ${supportedVendor.vendorSlug}`);
+      
+      // CRITICAL: Use vendorSlug for handler lookup, NOT vendorShortCode
+      // Handler registry uses slugs ('bill-hicks'), not short codes ('Bill HicksX')
+      const result = await vendorRegistry.testVendorConnection(supportedVendor.vendorSlug, 'admin', undefined, userId);
       
       console.log(`🔍 ADMIN TEST CONNECTION: Result for ${vendorId}:`, {
         success: result.success,

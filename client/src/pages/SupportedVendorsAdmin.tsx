@@ -729,14 +729,25 @@ export default function SupportedVendorsAdmin() {
                           <Badge 
                             variant="outline"
                             className={
-                              vendor.catalogSyncStatus === 'success' ? '!border-blue-500 !text-blue-700 !bg-transparent' :
-                              vendor.catalogSyncStatus === 'error' ? '!border-red-500 !text-red-700 !bg-transparent hover:!bg-red-50' :
-                              vendor.catalogSyncStatus === 'in_progress' ? '!border-gray-500 !text-gray-700 !bg-transparent' : '!border-gray-300 !text-gray-500 !bg-transparent'
+                              // Use vendor-specific status field (Chattanooga uses chattanoogaCsvSyncStatus)
+                              (() => {
+                                const syncStatus = vendor.name.toLowerCase().includes('chattanooga') 
+                                  ? vendor.chattanoogaCsvSyncStatus 
+                                  : vendor.catalogSyncStatus;
+                                return syncStatus === 'success' ? '!border-blue-500 !text-blue-700 !bg-transparent' :
+                                  syncStatus === 'error' ? '!border-red-500 !text-red-700 !bg-transparent hover:!bg-red-50' :
+                                  syncStatus === 'in_progress' ? '!border-gray-500 !text-gray-700 !bg-transparent' : '!border-gray-300 !text-gray-500 !bg-transparent';
+                              })()
                             }
                           >
-                            {vendor.catalogSyncStatus === 'never_synced' || !vendor.catalogSyncStatus ? 'Never Synced' : 
-                             vendor.catalogSyncStatus === 'success' ? 'Success' :
-                             vendor.catalogSyncStatus === 'in_progress' ? 'Syncing...' : 'Error'}
+                            {(() => {
+                              const syncStatus = vendor.name.toLowerCase().includes('chattanooga') 
+                                ? vendor.chattanoogaCsvSyncStatus 
+                                : vendor.catalogSyncStatus;
+                              return syncStatus === 'never_synced' || !syncStatus ? 'Never Synced' : 
+                                syncStatus === 'success' ? 'Success' :
+                                syncStatus === 'in_progress' ? 'Syncing...' : 'Error';
+                            })()}
                           </Badge>
                           {vendor.lastCatalogSync && (
                             <div className="text-xs text-gray-500">
