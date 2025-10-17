@@ -980,7 +980,9 @@ export default function MasterProductCatalog() {
                 <SelectContent>
                   <SelectItem value="__all_sources__">All Sources</SelectItem>
                   {filterOptions?.sources?.map(source => (
-                    <SelectItem key={source} value={source}>{source}</SelectItem>
+                    <SelectItem key={source} value={source}>
+                      {getVendorShortName(source)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
