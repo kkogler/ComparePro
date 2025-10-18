@@ -2918,8 +2918,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           id: vendor.id,
           name: vendor.name,
-          slug: vendor.vendorSlug, // ✅ CRITICAL: Use vendorSlug for routing and handler lookups
-          vendorShortCode: vendor.vendorShortCode, // Include short code as fallback
+          vendorSlug: vendor.vendorSlug, // ✅ CRITICAL: Use vendorSlug for routing and handler lookups
+          vendorShortCode: vendor.vendorShortCode, // Include short code for display
           logoUrl: supportedVendor?.logoUrl || null,
           electronicOrders: supportsOrdering,
           handlerAvailable: !!handler
