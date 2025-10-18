@@ -3620,7 +3620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           id: orgVendor.id,
           name: orgVendor.name,
-          slug: orgVendor.slug, // Include slug for API routing
+          vendorSlug: orgVendor.vendorSlug, // ✅ Use vendorSlug (immutable) for API routing and handler lookups
           // Always use admin-level short code if available; fallback to org-level
           vendorShortCode: supportedVendor?.vendorShortCode || orgVendor.vendorShortCode,
           status: orgVendor.status,

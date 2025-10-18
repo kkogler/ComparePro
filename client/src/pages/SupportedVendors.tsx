@@ -387,7 +387,7 @@ export default function SupportedVendors() {
         }}
       />
       
-      {selectedVendor && selectedVendor.name.toLowerCase().includes('gunbroker') && slug && (
+      {selectedVendor && selectedVendor.vendorSlug === 'gunbroker' && slug && (
         <GunBrokerConfig 
           vendor={selectedVendor} 
           isOpen={gunBrokerConfigOpen}
@@ -406,7 +406,7 @@ export default function SupportedVendors() {
         />
       )}
       
-      {selectedVendor && (selectedVendor.name === "Lipsey's" || selectedVendor.name.toLowerCase().includes('lipsey')) && (
+      {selectedVendor && selectedVendor.vendorSlug === 'lipseys' && (
         <LipseyConfig 
           open={lipseyConfigOpen}
           onOpenChange={(open) => {
@@ -426,7 +426,7 @@ export default function SupportedVendors() {
         />
       )}
       
-      {selectedVendor && selectedVendor.name === 'Sports South' && slug && (
+      {selectedVendor && selectedVendor.vendorSlug === 'sports-south' && slug && (
         <SportsSouthConfig 
           vendor={selectedVendor} 
           isOpen={sportsSouthConfigOpen}
@@ -445,9 +445,9 @@ export default function SupportedVendors() {
         />
       )}
       
-      {billHicksConfigOpen && slug && (
+      {selectedVendor && selectedVendor.vendorSlug === 'bill-hicks' && slug && (
         <BillHicksConfig 
-          vendor={organizationVendors?.find(v => v.name === 'Bill Hicks & Co.')} 
+          vendor={selectedVendor} 
           isOpen={billHicksConfigOpen}
           organizationSlug={slug}
           onClose={() => {
