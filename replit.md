@@ -102,6 +102,31 @@ The system uses **separate PostgreSQL databases** for development and production
 2. **Verification Script:** Run `bash scripts/verify-database-config.sh` anytime to check configuration
 3. **Documentation:** See `docs/DATABASE_SETUP_GUIDE.md` for detailed setup instructions
 
+**Why Manual Migrations (Replit-Verified Approach):**
+
+Replit's deployment platform **auto-detects `drizzle.config.ts`** and tries to run migrations regardless of `.drizzle-kit-skip`. After consultation with Replit support, we've implemented the **industry-standard approach** used by production SaaS companies:
+
+✅ **Manual SQL Migrations:**
+- Full control over data transformations
+- Can test on dev before production  
+- Clear audit trail in `/migrations/` directory
+- No surprise truncations
+- Proper handling of backfills and constraints
+
+❌ **Auto-Migrations (Why We Disabled):**
+- Can truncate tables unexpectedly (we lost 200 vendors twice)
+- Snapshot conflicts cause schema issues
+- No control over migration order
+- Difficult to rollback
+- Platform detection triggers unwanted migrations
+
+**Replit Platform Limitation:**
+- `.drizzle-kit-skip` file exists but Replit ignores it
+- **Solution:** Remove ALL DB commands from build process
+- Build command: `npm ci && npm run build` ONLY (no `db:validate`)
+- Prevents Replit from detecting database operations
+- Manual validation: Run `npm run db:validate` separately when needed
+
 **If Configuration Breaks Again:**
 1. Check server logs for database environment mismatch warnings
 2. Run verification script: `bash scripts/verify-database-config.sh`
