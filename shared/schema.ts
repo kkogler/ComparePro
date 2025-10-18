@@ -184,7 +184,21 @@ export const userStores = pgTable("user_stores", {
   };
 });
 
-
+// User preferences for storing UI preferences (column visibility, filters, etc.)
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  preferenceType: text("preference_type").notNull(), // e.g., 'order-details-columns', 'dashboard-layout'
+  preferences: json("preferences").$type<Record<string, any>>().notNull(), // Flexible JSON storage for any preference data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    userPreferenceTypeUnique: unique("user_preference_type_unique").on(table.userId, table.preferenceType),
+    userIdIndex: index("user_preferences_user_id_idx").on(table.userId),
+    preferenceTypeIndex: index("user_preferences_preference_type_idx").on(table.preferenceType),
+  };
+});
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),

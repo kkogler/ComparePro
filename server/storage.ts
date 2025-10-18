@@ -1,5 +1,5 @@
 import { 
-  users, products, supportedVendors, vendors, vendorProducts, orders, orderItems, asns, asnItems, settings, integrationSettings, companies, orgDomains, billingEvents, adminSettings, searchHistory, retailVerticals, stores, userStores, poSequences, pricingConfigurations, vendorProductMappings, categories, categoryTemplates, supportedVendorRetailVerticals, subscriptions, subscriptionPayments, subscriptionPlanChanges, subscriptionWebhookEvents, subscriptionUsage, planSettings, vendorFieldMappings, organizationStatusAuditLog,
+  users, products, supportedVendors, vendors, vendorProducts, orders, orderItems, asns, asnItems, settings, integrationSettings, companies, orgDomains, billingEvents, adminSettings, searchHistory, retailVerticals, stores, userStores, poSequences, pricingConfigurations, vendorProductMappings, categories, categoryTemplates, supportedVendorRetailVerticals, subscriptions, subscriptionPayments, subscriptionPlanChanges, subscriptionWebhookEvents, subscriptionUsage, planSettings, vendorFieldMappings, organizationStatusAuditLog, userPreferences,
   type User, type InsertUser, type Product, type InsertProduct, type SupportedVendor, type InsertSupportedVendor,
   type Vendor, type InsertVendor, type VendorProduct, type InsertVendorProduct, type Order, type InsertOrder, type OrderItem, type InsertOrderItem,
   type ASN, type InsertASN, type ASNItem, type InsertASNItem, type Settings, type InsertSettings, type IntegrationSettings, type InsertIntegrationSettings,
@@ -562,19 +562,20 @@ export class DatabaseStorage implements IStorage {
   async getUserPreference(userId: number, preferenceType: string): Promise<any | undefined> {
     console.log('*** STORAGE: getUserPreference called with userId:', userId, 'preferenceType:', preferenceType);
     
-    const result = await db.execute(sql`
-      SELECT preferences FROM user_preferences 
-      WHERE user_id = ${userId} AND preference_type = ${preferenceType}
-    `);
+    const [result] = await db.select()
+      .from(userPreferences)
+      .where(
+        and(
+          eq(userPreferences.userId, userId),
+          eq(userPreferences.preferenceType, preferenceType)
+        )
+      );
     
     console.log('*** STORAGE: Query result:', result);
     
-    if (result.rows && result.rows.length > 0) {
-      const preferences = result.rows[0].preferences;
-      console.log('*** STORAGE: Raw preferences:', preferences);
-      const parsed = typeof preferences === 'string' ? JSON.parse(preferences) : preferences;
-      console.log('*** STORAGE: Parsed preferences:', parsed);
-      return parsed;
+    if (result) {
+      console.log('*** STORAGE: Preferences found:', result.preferences);
+      return result.preferences;
     }
     
     console.log('*** STORAGE: No preferences found, returning undefined');
@@ -582,12 +583,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setUserPreference(userId: number, preferenceType: string, preferences: any): Promise<void> {
-    await db.execute(sql`
-      INSERT INTO user_preferences (user_id, preference_type, preferences, updated_at)
-      VALUES (${userId}, ${preferenceType}, ${JSON.stringify(preferences)}, NOW())
-      ON CONFLICT (user_id, preference_type)
-      DO UPDATE SET preferences = ${JSON.stringify(preferences)}, updated_at = NOW()
-    `);
+    await db.insert(userPreferences)
+      .values({
+        userId,
+        preferenceType,
+        preferences,
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: [userPreferences.userId, userPreferences.preferenceType],
+        set: {
+          preferences,
+          updatedAt: new Date()
+        }
+      });
   }
 
   // Product methods
