@@ -264,8 +264,8 @@ export class ZohoBillingService {
         body: JSON.stringify({
           plan: { plan_code: planCode },
           customer_id: customerId,
-          redirect_url: returnUrl || `${process.env.REPLIT_DEV_DOMAIN || 'https://workspace--kevinkogler.replit.app'}/subscription/success`,
-          cancel_url: cancelUrl || `${process.env.REPLIT_DEV_DOMAIN || 'https://workspace--kevinkogler.replit.app'}/subscription/cancelled`
+          redirect_url: returnUrl || `${process.env.APP_URL || 'http://localhost:3000'}/subscription/success`,
+          cancel_url: cancelUrl || `${process.env.APP_URL || 'http://localhost:3000'}/subscription/cancelled`
         })
       });
 
@@ -335,7 +335,7 @@ export class ZohoBillingService {
         },
         body: JSON.stringify({
           customer_id: customerId,
-          redirect_url: returnUrl || `${process.env.REPLIT_DEV_DOMAIN || 'https://workspace--kevinkogler.replit.app'}/subscription/portal`
+          redirect_url: returnUrl || `${process.env.APP_URL || 'http://localhost:3000'}/subscription/portal`
         })
       });
 

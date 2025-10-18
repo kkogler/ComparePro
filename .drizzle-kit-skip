@@ -1,6 +1,0 @@
-# Skip automatic Drizzle migrations during Replit deployment
-# We manage schema changes manually via SQL migrations in /migrations/
-# 
-# This prevents Replit from auto-running drizzle-kit push which causes
-# schema conflicts and data loss.
-

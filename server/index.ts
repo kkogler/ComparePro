@@ -73,17 +73,36 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // ENVIRONMENT VALIDATION
+  // Validate required environment variables
+  const requiredEnvVars = ['DATABASE_URL', 'NODE_ENV'];
+  const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+  if (missingEnvVars.length > 0) {
+    console.error('🚨 ENVIRONMENT ERROR: Missing required environment variables:');
+    missingEnvVars.forEach(varName => console.error(`   - ${varName}`));
+    console.error('');
+    console.error('Please set these environment variables before starting the server.');
+    process.exit(1);
+  }
+
   // DATABASE ENVIRONMENT VERIFICATION
   // Check if we're using the correct database for the environment
   const dbUrl = process.env.DATABASE_URL || '';
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+  const isProduction = process.env.NODE_ENV === 'production';
   const isDevDatabase = dbUrl.includes('ep-lingering-hat-adb2bp8d'); // Dev endpoint
   const isProdDatabase = dbUrl.includes('ep-lingering-sea-adyjzybe'); // Prod endpoint
-  
+
   console.log('');
   console.log('🔍 DATABASE ENVIRONMENT CHECK:');
   console.log(`   Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
   console.log(`   Database: ${isDevDatabase ? 'DEVELOPMENT (ep-lingering-hat)' : isProdDatabase ? 'PRODUCTION (ep-lingering-sea)' : 'UNKNOWN'}`);
+
+  // Validate database URL format
+  if (!dbUrl.includes('neon.tech') && !dbUrl.includes('localhost')) {
+    console.warn('   ⚠️  Database URL does not appear to be a NEON database');
+    console.warn('   Make sure you are using the correct database for your environment');
+  }
   
   if (isProduction && isDevDatabase) {
     console.error('');

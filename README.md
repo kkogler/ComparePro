@@ -1,23 +1,59 @@
 # BestPrice – Quickstart
 
-## Database Architecture
+## 🏗️ Environment Architecture
 
-This application uses **two hosted NEON PostgreSQL databases**:
-- **Development Database**: Used for local development and testing
-- **Production Database**: Used for the live production application
+This application uses **separate environments** for safe development and production:
 
-**No local PostgreSQL database is required.** All database operations use hosted NEON databases.
+### Development Environment
+- **Database**: `ep-lingering-hat-adb2bp8d` (NEON PostgreSQL)
+- **Purpose**: Development, testing, and staging
+- **URL**: `postgresql://neondb_owner:npg_ZrF3qMEPhK0N@ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
 
-## Dev Start
+### Production Environment
+- **Database**: `ep-lingering-sea-adyjzybe` (NEON PostgreSQL)
+- **Purpose**: Live customers and production data
+- **URL**: `postgresql://neondb_owner:npg_3U8KcQGzhMLW@ep-lingering-sea-adyjzybe.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
 
+**⚠️ SAFETY**: Two separate databases ensure development work never affects live customers.
+
+## 🚀 Development to Production Workflow
+
+### Quick Development Start
 ```bash
 npm install
-PORT=5000 NODE_ENV=development npm run dev
+npm run dev  # Uses development database (ep-lingering-hat-adb2bp8d)
 ```
 
-- Replit `.replit` sets `PORT=5000` so only one process listens on 5000.
-- Do not run PM2 in Replit dev.
-- Uses `DATABASE_URL` environment variable pointing to the development NEON database
+### Safe Deployment Process
+```bash
+# 1. Develop and test in development
+npm run dev
+
+# 2. Pre-deployment checks
+npm run deploy:safe
+
+# 3. Deploy to production
+npm run deploy
+
+# 4. Monitor production deployment
+# Check Runway dashboard for deployment status
+```
+
+**📖 Complete Guides**:
+- [DEV_PROD_WORKFLOW.md](./DEV_PROD_WORKFLOW.md) - Development workflow
+- [ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md) - Environment configuration
+
+## Environment Variables
+
+### Development
+- `DATABASE_URL`: Development NEON database (`ep-lingering-hat-adb2bp8d`)
+- `NODE_ENV=development`
+- `PORT=3000`
+
+### Production
+- `DATABASE_URL`: Production NEON database (`ep-lingering-sea-adyjzybe`)
+- `NODE_ENV=production`
+- `PORT=3000`
 
 ## Clean Restart (Dev)
 
@@ -72,13 +108,21 @@ Set `DATABASE_URL` to your production NEON database:
 DATABASE_URL=postgresql://neondb_owner:***@ep-prod-xxxxx.us-east-1.aws.neon.tech/neondb?sslmode=require
 ```
 
-## Deployment (Replit Hosting)
+## Deployment (Runway/Production Hosting)
 
 - Build: `npm ci && npm run build`
 - Run: `NODE_ENV=production PORT=$PORT node dist/index.js`
 - Health check: `/api/health`
-- Required Secrets: `DATABASE_URL` (production NEON), `SESSION_SECRET`, `CREDENTIAL_ENCRYPTION_KEY`, `BASE_URL`, `SENDGRID_API_KEY` (if emails), Zoho Billing vars if used (`ZOHO_BILLING_*`, `ZOHO_WEBHOOK_SECRET`)
-- Filesystem is ephemeral in Deployments. Store uploads in object storage; log to stdout, not files.
+- Required Environment Variables:
+  - `DATABASE_URL` (production NEON database)
+  - `SESSION_SECRET` (for session management)
+  - `CREDENTIAL_ENCRYPTION_KEY` (for encrypting stored credentials)
+  - `BASE_URL` (your production domain URL)
+  - `SENDGRID_API_KEY` (if using email features)
+  - `GOOGLE_CLOUD_PROJECT_ID` (for object storage)
+  - `GOOGLE_APPLICATION_CREDENTIALS` or `GOOGLE_APPLICATION_CREDENTIALS_JSON` (for GCS access)
+  - Zoho Billing variables if used (`ZOHO_BILLING_*`, `ZOHO_WEBHOOK_SECRET`)
+- Filesystem may be ephemeral. Store uploads in object storage; log to stdout, not files.
 
 ## Vendor Sync Methods Overview
 

@@ -4,9 +4,10 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev": "NODE_ENV=development DATABASE_URL='postgresql://neondb_owner:npg_ZrF3qMEPhK0N@ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require' tsx server/index.ts",
     "dev:cursor": "NODE_ENV=development PORT=3001 tsx server/index.ts",
     "dev:clean": "bash ./scripts/clean-start.sh",
+    "dev:prod-db": "NODE_ENV=development DATABASE_URL='postgresql://neondb_owner:npg_3U8KcQGzhMLW@ep-lingering-sea-adyjzybe.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require' tsx server/index.ts",
     "kill": "pm2 delete all || true; pkill -f 'tsx server/index.ts' || true; pkill -f 'node .*dist/index.js' || true; pkill -f 'vite' || true; pkill -f 'npm run dev' || true",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
@@ -34,7 +35,11 @@
     "db:sync:prod": "tsx scripts/sync-databases.ts production",
     "db:fastsync": "tsx scripts/copy-sync.ts",
     "db:schema-diff": "tsx scripts/check-schema-diff.ts",
-    "force:bill-hicks": "tsx scripts/force-bill-hicks-sync.ts"
+    "force:bill-hicks": "tsx scripts/force-bill-hicks-sync.ts",
+    "deploy": "bash scripts/deploy-to-production.sh",
+    "deploy:safe": "echo '🔍 Pre-deployment checks...' && npm run build && echo '✅ Build OK' && echo '🚀 Ready for deployment. Run: npm run deploy'",
+    "backup:prod": "pg_dump 'postgresql://neondb_owner:npg_3U8KcQGzhMLW@ep-lingering-sea-adyjzybe.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require' > backup_$(date +%Y%m%d_%H%M%S).sql",
+    "migrate:prod": "echo '⚠️  Apply migrations to production database' && echo 'Set DATABASE_URL to production and run: psql $DATABASE_URL -f migrations/XXXX.sql'"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -137,8 +142,6 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@replit/vite-plugin-cartographer": "^0.2.7",
-    "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.1.3",
     "@types/connect-pg-simple": "^7.0.3",
