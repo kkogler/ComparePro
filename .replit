@@ -54,5 +54,8 @@ args = "npm run prod:test"
 
 [deployment]
 deploymentTarget = "cloudrun"
+# ⚠️ IMPORTANT: db:validate only checks schema, does NOT auto-migrate
+# See migrations/MANUAL_MIGRATIONS_ONLY.md for migration process
+# The .drizzle-kit-skip file prevents auto-migrations
 build = "npm ci && npm run build && npm run db:validate"
 run = "NODE_ENV=production PORT=$PORT node dist/index.js"

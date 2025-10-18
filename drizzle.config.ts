@@ -11,7 +11,15 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
-  // Disable automatic schema pushing during deployment
-  // We use manual SQL migrations instead
+  // ⚠️ CRITICAL: Disable automatic schema pushing during deployment
+  // We use manual SQL migrations instead (see /migrations/)
+  // Auto-migrations cause schema conflicts and data loss
   schemaFilter: ["public"],
+  // Explicitly disable push during deployment
+  strict: true,
+  verbose: true,
+  // Migration mode: manual only
+  migrations: {
+    schema: 'public',
+  }
 });
