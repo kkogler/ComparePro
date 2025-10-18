@@ -2918,7 +2918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           id: vendor.id,
           name: vendor.name,
-          slug: vendor.slug, // ✅ CRITICAL: Include slug for frontend
+          slug: vendor.vendorSlug, // ✅ CRITICAL: Use vendorSlug for routing and handler lookups
           vendorShortCode: vendor.vendorShortCode, // Include short code as fallback
           logoUrl: supportedVendor?.logoUrl || null,
           electronicOrders: supportsOrdering,
@@ -6228,7 +6228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log('🔍 TEST CONNECTION: Found company vendor instance:', vendor.slug, 'ID:', vendor.id);
+      console.log('🔍 TEST CONNECTION: Found company vendor instance:', vendor.vendorSlug, 'ID:', vendor.id);
       
       // For vendors using company_vendor_credentials table (Bill Hicks, Lipsey's, etc.)
       let testCredentials = vendor.credentials;

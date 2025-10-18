@@ -428,9 +428,8 @@ export const vendors = pgTable("vendors", {
   companyId: integer("company_id").references(() => companies.id).notNull(),
   supportedVendorId: integer("supported_vendor_id").references(() => supportedVendors.id),
   name: text("name").notNull(), // Full vendor name (e.g., "Lipsey's Inc.")
-  vendorSlug: text("vendor_slug"), // Immutable vendor type identifier (e.g., "lipseys") - copied from supported_vendors
+  vendorSlug: text("vendor_slug").notNull(), // Immutable vendor type identifier (e.g., "lipseys") - used for routing, handler lookups, and API calls
   vendorShortCode: text("vendor_short_code"), // Editable short name for display/reports (e.g., "Lipsey's", "LSY")
-  slug: text("slug").notNull(), // Per-organization instance identifier (e.g., "lipseys-1", "lipseys-2"), immutable, used for URL routing
   status: text("status").notNull().default('offline'), // 'online', 'offline', 'syncing', 'error'
   isArchived: boolean("is_archived").default(false), // Organization can archive vendors
   integrationType: text("integration_type").notNull(), // 'api', 'excel'

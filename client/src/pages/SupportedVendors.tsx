@@ -145,15 +145,15 @@ export default function SupportedVendors() {
   const handleToggleVendorEnabled = (vendor: any, enabled: boolean) => {
     console.log('🔄 VENDOR TOGGLE: Frontend - vendor:', vendor);
     console.log('🔄 VENDOR TOGGLE: Frontend - vendor.id:', vendor.id);
-    console.log('🔄 VENDOR TOGGLE: Frontend - vendor.slug:', vendor.slug);
+    console.log('🔄 VENDOR TOGGLE: Frontend - vendor.vendorSlug:', vendor.vendorSlug);
     console.log('🔄 VENDOR TOGGLE: Frontend - vendor.enabledForPriceComparison:', vendor.enabledForPriceComparison);
     console.log('🔄 VENDOR TOGGLE: Frontend - enabled:', enabled);
     console.log('🔄 VENDOR TOGGLE: Frontend - Switch checked value:', vendor.enabledForPriceComparison !== false);
-    toggleVendorEnabledMutation.mutate({ vendorSlug: vendor.slug, vendorId: vendor.id, enabled });
+    toggleVendorEnabledMutation.mutate({ vendorSlug: vendor.vendorSlug, vendorId: vendor.id, enabled });
   };
 
   const handleConfigureVendor = (vendor: any) => {
-    console.log('handleConfigureVendor called for:', vendor.name, vendor.id, 'slug:', vendor.slug);
+    console.log('handleConfigureVendor called for:', vendor.name, vendor.id, 'vendorSlug:', vendor.vendorSlug);
     setSelectedVendor(vendor);
     
     // Open the appropriate configuration modal based on vendor short code

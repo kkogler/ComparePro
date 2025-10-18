@@ -9,7 +9,7 @@
 
 export interface VendorReference {
   id?: number;
-  slug?: string;
+  vendorSlug?: string;
   vendorShortCode?: string;
   name?: string;
 }
@@ -28,30 +28,31 @@ export function getVendorIdentifier(vendor: VendorReference | null | undefined):
     throw new Error('Vendor object is required');
   }
 
-  // ✅ FIX: For store-level vendors, slug is MORE specific than vendorShortCode
-  // slug = "sports-south-1" (company-specific instance)
-  // vendorShortCode = "sports-south" (generic identifier)
-  // We need the specific slug for company vendor lookups!
-  if (vendor.slug) {
-    return vendor.slug;
+  // ✅ Primary: Use vendorSlug (immutable system identifier)
+  if (vendor.vendorSlug) {
+    return vendor.vendorSlug;
   }
 
-  // Fallback: Use vendorShortCode if no slug (admin-level vendors)
+  // Fallback: Use vendorShortCode (should match vendorSlug)
   if (vendor.vendorShortCode) {
+    console.warn(
+      `⚠️ VENDOR IDENTIFIER: Using vendorShortCode as fallback. vendorSlug should be set.`,
+      { vendor: vendor.name }
+    );
     return vendor.vendorShortCode;
   }
 
-  // Last resort: Normalize name to short code format
+  // Last resort: Normalize name to slug format
   if (vendor.name) {
     console.warn(
-      `⚠️ VENDOR IDENTIFIER: Using name as fallback for vendor. This indicates missing slug and vendorShortCode.`,
+      `⚠️ VENDOR IDENTIFIER: Using name as fallback for vendor. This indicates missing vendorSlug and vendorShortCode.`,
       { vendor: vendor.name }
     );
     return vendor.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
   }
 
   throw new Error(
-    `Cannot determine vendor identifier. Vendor must have slug, vendorShortCode, or name. Got: ${JSON.stringify(vendor)}`
+    `Cannot determine vendor identifier. Vendor must have vendorSlug, vendorShortCode, or name. Got: ${JSON.stringify(vendor)}`
   );
 }
 
@@ -63,9 +64,9 @@ export function validateVendorReference(vendor: VendorReference | null | undefin
     throw new Error('Vendor is required');
   }
 
-  if (!vendor.vendorShortCode && !vendor.name && !vendor.slug) {
+  if (!vendor.vendorSlug && !vendor.vendorShortCode && !vendor.name) {
     throw new Error(
-      'Vendor must have at least one of: vendorShortCode (preferred), name, or slug'
+      'Vendor must have at least one of: vendorSlug (preferred), vendorShortCode, or name'
     );
   }
 }

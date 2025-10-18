@@ -931,9 +931,9 @@ export class DatabaseStorage implements IStorage {
     return result || undefined;
   }
 
-  async getVendorBySlug(slug: string, companyId: number): Promise<Vendor | undefined> {
+  async getVendorBySlug(vendorSlug: string, companyId: number): Promise<Vendor | undefined> {
     const [result] = await db.select().from(vendors).where(
-      and(eq(vendors.slug, slug), eq(vendors.companyId, companyId))
+      and(eq(vendors.vendorSlug, vendorSlug), eq(vendors.companyId, companyId))
     );
     return result || undefined;
   }
@@ -963,15 +963,15 @@ export class DatabaseStorage implements IStorage {
     return result || undefined;
   }
 
-  async updateVendorBySlug(slug: string, companyId: number, updates: Partial<Vendor>): Promise<Vendor | undefined> {
-    // Prevent slug updates to maintain immutability
+  async updateVendorBySlug(vendorSlug: string, companyId: number, updates: Partial<Vendor>): Promise<Vendor | undefined> {
+    // Prevent vendorSlug updates to maintain immutability
     const safeUpdates = { ...updates };
-    delete safeUpdates.slug;
+    delete safeUpdates.vendorSlug;
     
     const [result] = await db
       .update(vendors)
       .set(safeUpdates)
-      .where(and(eq(vendors.slug, slug), eq(vendors.companyId, companyId)))
+      .where(and(eq(vendors.vendorSlug, vendorSlug), eq(vendors.companyId, companyId)))
       .returning();
     return result || undefined;
   }
@@ -983,7 +983,7 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(and(
-        eq(vendors.slug, vendorSlug),
+        eq(vendors.vendorSlug, vendorSlug),
         eq(vendors.companyId, companyId)
       ));
   }
@@ -1843,16 +1843,15 @@ export class DatabaseStorage implements IStorage {
         break; // Stop adding vendors once limit is reached
       }
       
-      // Generate slug from vendorSlug (or fallback to name)
-      const { generateVendorSlug, generateVendorSlugFromName } = await import('./slug-utils');
-      const slug = supported.vendorSlug 
-        ? generateVendorSlug(supported.vendorSlug)
-        : generateVendorSlugFromName(supported.name);
+      // Use vendorSlug directly (no need to generate anything)
+      if (!supported.vendorSlug) {
+        console.error(`VENDOR CREATION: Skipping vendor ${supported.name} - missing vendorSlug`);
+        continue;
+      }
       
       await this.createVendor({
         name: supported.name,
-        slug, // ✅ Required field for vendor identification (per-org instance)
-        vendorSlug: supported.vendorSlug || null, // ✅ Immutable vendor type identifier
+        vendorSlug: supported.vendorSlug, // ✅ Immutable vendor type identifier used for routing and handler lookups
         vendorShortCode: supported.vendorShortCode || null, // ✅ Editable display name
         companyId,
         supportedVendorId: supported.id,

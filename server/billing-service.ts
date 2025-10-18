@@ -1868,32 +1868,30 @@ export class BillingService {
             .map(sv => {
               const vendorShortCode = sv.vendorShortCode || sv.name;
               
-              // ✅ CRITICAL: Use vendorSlug (immutable) NOT vendorShortCode (user-editable)
-              // vendorShortCode can be changed by users, but vendorSlug is immutable and used for handler lookups
-              // This ensures store vendors always match their handler registration
-              const slug = sv.vendorSlug || vendorShortCode.toLowerCase()
-                .replace(/[^a-z0-9\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-')
-                .replace(/^-|-$/g, '');
+              // ✅ CRITICAL: vendorSlug is immutable and used for routing, handler lookups, and API calls
+              // Skip vendors without vendorSlug (should never happen but defensive coding)
+              if (!sv.vendorSlug) {
+                console.error(`BillingService: Skipping vendor ${sv.name} - missing vendorSlug`);
+                return null;
+              }
               
               return {
                 companyId,
                 supportedVendorId: sv.id,
                 name: sv.name,
-                vendorSlug: sv.vendorSlug, // Store immutable vendor slug
+                vendorSlug: sv.vendorSlug, // Immutable vendor identifier
                 vendorShortCode,
-                slug: slug || `vendor-${sv.id}`, // Fallback only if normalization produces empty string
                 integrationType: sv.apiType || 'api',
                 status: 'offline',
                 enabledForPriceComparison: true,
                 createdAt: new Date(),
                 updatedAt: new Date()
               };
-            });
+            })
+            .filter(v => v !== null); // Remove null entries from skipped vendors
           
           console.log(`🔍 BillingService: Will create ${vendorsToCreate.length} new vendors:`, 
-            vendorsToCreate.map(v => ({ name: v.name, slug: v.slug })));
+            vendorsToCreate.map(v => ({ name: v.name, vendorSlug: v.vendorSlug })));
           
           if (vendorsToCreate.length > 0) {
             await tx.insert(vendors).values(vendorsToCreate);
