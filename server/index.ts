@@ -8,6 +8,13 @@ import { execSync } from "child_process";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Verify migration protections on startup
+try {
+  execSync('tsx scripts/verify-migrations-disabled.ts', { stdio: 'inherit' });
+} catch (error) {
+  console.warn('⚠️  Migration protection check failed, but continuing startup');
+}
+
 // Global error handlers to prevent server crashes
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   console.error('🚨 UNHANDLED REJECTION:', reason);

@@ -63,7 +63,9 @@ The application uses a **single database with company-scoped data** approach rat
 
 **⚠️ DO NOT CLICK "Sync to Workspace" ON DEPLOYMENT DATABASE_URL - THIS WILL BREAK EVERYTHING!**
 
-The system uses **separate PostgreSQL databases** for development and production:
+**🛡️ AUTOMATIC MIGRATIONS DISABLED - MANUAL ONLY 🛡️**
+
+The system uses **separate PostgreSQL databases** for development and production, with **manual SQL migrations only**:
 
 **Development Database (Workspace):**
 - Endpoint: `ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech`
@@ -85,8 +87,15 @@ The system uses **separate PostgreSQL databases** for development and production
 **Important Notes:**
 - The deployment DATABASE_URL must be **unsynced** from workspace to maintain separate dev/prod databases
 - Never run vendor syncs from the web server (causes memory crashes) - use manual triggers only
-- Schema changes in development require `npm run db:push` to sync to dev database
-- Production schema changes happen automatically via deployment migrations
+- ❌ **NEVER run `npm run db:push`** - This can truncate production data!
+- ❌ **NEVER run `npm run db:generate`** - Use manual SQL migrations only!
+- ❌ **NEVER run `npm run db:migrate`** - Can cause schema conflicts!
+- ✅ **Schema changes require manual SQL migrations** in `/migrations/` directory
+- ✅ **See `migrations/MANUAL_MIGRATIONS_ONLY.md`** for safe migration process
+- 🛡️ **Safety protections enabled:**
+  - `.drizzle-kit-skip` prevents automatic migrations during deployment
+  - Dangerous npm scripts renamed to `DANGEROUS_db:*` with error messages
+  - `db:validate` only checks columns exist, never migrates
 
 **Protection Mechanisms:**
 1. **Startup Check:** Server logs database environment on every restart - watch for 🚨 warnings
