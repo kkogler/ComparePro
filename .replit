@@ -54,8 +54,8 @@ args = "npm run prod:test"
 
 [deployment]
 deploymentTarget = "cloudrun"
-# ⚠️ IMPORTANT: db:validate only checks schema, does NOT auto-migrate
-# See migrations/MANUAL_MIGRATIONS_ONLY.md for migration process
-# The .drizzle-kit-skip file prevents auto-migrations
-build = "npm ci && npm run build && npm run db:validate"
+# ⚠️ CRITICAL: Removed db:validate from build to prevent Replit's auto-migration detection
+# Replit auto-detects Drizzle and runs migrations regardless of .drizzle-kit-skip
+# See migrations/MANUAL_MIGRATIONS_ONLY.md for manual migration process
+build = "npm ci && npm run build"
 run = "NODE_ENV=production PORT=$PORT node dist/index.js"
