@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci --no-optional"]
 
 [phases.build]
 cmds = ["npm run build"]
 
 [start]
-cmd = "NODE_ENV=production npm start"
+cmd = "NODE_ENV=production node dist/index.js"
