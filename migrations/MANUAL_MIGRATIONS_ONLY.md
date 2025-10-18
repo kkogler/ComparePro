@@ -26,9 +26,22 @@
 
 ### Production Deployment
 
-The `.replit` file is configured to **skip automatic migrations**:
-- `.drizzle-kit-skip` file tells Replit to skip Drizzle migrations
+**CRITICAL: `drizzle.config.ts` has been renamed to `drizzle.config.disabled.ts`**
+
+Replit's deployment platform **scans the repository root for `drizzle.config.ts`** and auto-runs migrations regardless of:
+- `.drizzle-kit-skip` file (ignored by Replit)
+- Build command configuration (Replit scans independently)
+
+**Nuclear Option Implemented:**
+- Config file renamed: `drizzle.config.disabled.ts`
+- Replit can't detect it → No auto-migrations
+- Manual operations reference: `--config=drizzle.config.disabled.ts`
+- **DO NOT rename back to `drizzle.config.ts`!**
+
+**Safety Protections:**
+- Build command: `npm ci && npm run build` (no DB operations)
 - `db:validate` script only validates critical columns exist (does not migrate)
+- Manual introspection: `npm run db:introspect` (uses disabled config)
 
 ### Current Schema State
 

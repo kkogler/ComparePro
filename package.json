@@ -25,6 +25,7 @@
     "DANGEROUS_db:generate": "echo '⚠️  STOP! Use manual SQL migrations only!' && echo '📖 See migrations/MANUAL_MIGRATIONS_ONLY.md' && exit 1",
     "DANGEROUS_db:migrate": "echo '⚠️  STOP! This can cause schema conflicts!' && echo '📖 See migrations/MANUAL_MIGRATIONS_ONLY.md' && exit 1",
     "db:validate": "tsx scripts/validate-schema.ts",
+    "db:introspect": "drizzle-kit introspect --config=drizzle.config.disabled.ts",
     "db:check": "tsx scripts/check-all-databases.ts",
     "db:export": "tsx scripts/export-database.ts",
     "db:import:prod": "tsx scripts/import-database.ts production",
