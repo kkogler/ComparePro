@@ -2,9 +2,7 @@
 
 ## Overview
 
-BestPrice is a multi-tenant retail inventory management platform designed for the firearms retail industry. The system enables retail stores to manage product catalogs, integrate with multiple wholesale vendors, implement dynamic pricing strategies, and synchronize inventory across multiple channels.
-
-The platform operates as a SaaS application with subscription-based billing through Zoho, serving multiple retail companies, each with their own stores, users, and vendor integrations. The core value proposition is automated vendor catalog synchronization, competitive pricing analysis, and streamlined inventory management.
+BestPrice is a multi-tenant retail inventory management platform for the firearms retail industry. It offers product catalog management, integration with multiple wholesale vendors, dynamic pricing strategies, and inventory synchronization across channels. The platform is a SaaS application with subscription-based billing, serving multiple retail companies with their own stores, users, and vendor integrations. Its core value is automated vendor catalog synchronization, competitive pricing analysis, and streamlined inventory management.
 
 ## User Preferences
 
@@ -13,306 +11,68 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Multi-Tenant Architecture
-The application uses a **single database with company-scoped data** approach rather than database-per-tenant isolation. Every major table includes `companyId` for tenant isolation, with retail vertical scoping (`retailVerticalId`) to support future expansion beyond firearms into other retail categories (appliances, sporting goods, etc.).
-
-**Key Design Decisions:**
-- **Single database approach** chosen for operational simplicity and cost efficiency
-- **Vertical scoping** added to support multi-industry expansion while maintaining data integrity
-- **Company isolation** enforced at application layer with middleware-based organization slug resolution
-- Organization slug middleware (`req.organizationSlug`) determines tenant context for all requests
+The application uses a single PostgreSQL database with `companyId` for tenant isolation and `retailVerticalId` for future expansion. Tenant context is resolved via an organization slug middleware.
 
 ### Authentication & Session Management
-- **Session-based authentication** using Express sessions with PostgreSQL session store
-- **Password hashing** with bcrypt
-- **Role-based access control** (Admin, Store Manager, Staff) enforced at route level
-- Sessions stored in database for persistence across server restarts
-- Cookie-based session management with secure flags in production
+Session-based authentication with Express sessions and PostgreSQL store is used. Passwords are hashed with bcrypt, and role-based access control (Admin, Store Manager, Staff) is enforced.
 
 ### Frontend Architecture
-- **React SPA** with TypeScript
-- **Vite** for development (HMR) and production builds
-- **TanStack Query** for server state management and caching
-- **Shadcn UI** components with Tailwind CSS styling
-- **React Hook Form** with Zod validation for form handling
-- Client-side routing with protected routes based on user roles
+A React SPA with TypeScript, Vite, TanStack Query for state management, Shadcn UI (Tailwind CSS), and React Hook Form with Zod validation. Client-side routing includes protected routes based on user roles.
 
 ### Backend Architecture
-- **Express.js** REST API with TypeScript
-- **Single process model** in development (Replit) - no PM2
-- **Production-ready PM2 configuration** available for multi-process deployment
-- **Health check endpoints** (`/api/health`, `/api/ready`) for monitoring
-- **Middleware stack:**
-  - Organization slug resolution from URL paths
-  - Raw body capture for webhook signature verification
-  - Session authentication
-  - Role-based authorization
+An Express.js REST API with TypeScript. It includes health check endpoints and a middleware stack for organization slug resolution, raw body capture (webhooks), session authentication, and role-based authorization. PM2 configuration is available for production.
 
 ### Database Architecture
-- **PostgreSQL** via Neon (serverless)
-- **Drizzle ORM** for type-safe database operations
-- **Schema design:**
-  - Multi-tenant with `companyId` on all major tables
-  - Retail vertical scoping with `retailVerticalId` for future expansion
-  - Junction tables for many-to-many relationships (vendor-vertical mapping, user-store access)
-  - Encrypted credential storage with AES-256-GCM
-  - Composite indexes for optimized vertical-scoped queries
-
-### Database Configuration (Development vs Production)
-
-**🚨🚨🚨 CRITICAL: Separate Databases for Dev and Prod 🚨🚨🚨**
-
-**⚠️ DO NOT CLICK "Sync to Workspace" ON DEPLOYMENT DATABASE_URL - THIS WILL BREAK EVERYTHING!**
-
-**🛡️ AUTOMATIC MIGRATIONS DISABLED - MANUAL ONLY 🛡️**
-
-The system uses **separate PostgreSQL databases** for development and production, with **manual SQL migrations only**:
-
-**Development Database (Workspace):**
-- Endpoint: `ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech`
-- Connection: `postgresql://neondb_owner:npg_ZrF3qMEPhK0N@ep-lingering-hat-adb2bp8d.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
-- Used by: Replit workspace for development and testing
-- Set in: **Tools → Secrets → DATABASE_URL**
-
-**Production Database (Deployment):**
-- Endpoint: `ep-lingering-sea-adyjzybe.c-2.us-east-1.aws.neon.tech`
-- Connection: `postgresql://neondb_owner:npg_3U8KcQGzhMLW@ep-lingering-sea-adyjzybe.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`
-- Used by: Published/deployed application (live users)
-- Set in: **Tools → Publishing → [Your Deployment] → Advanced Settings → Production app secrets → DATABASE_URL**
-- Status: **Unsynced from workspace** (yellow link icon indicates independent value)
-
-**How to Verify Configuration:**
-1. **Workspace uses Dev:** Tools → Secrets → DATABASE_URL should point to `ep-lingering-hat-adb2bp8d`
-2. **Deployment uses Prod:** Tools → Publishing → Advanced Settings → Production app secrets → DATABASE_URL should point to `ep-lingering-sea-adyjzybe` with "Syncing Disabled" status
-
-**Important Notes:**
-- The deployment DATABASE_URL must be **unsynced** from workspace to maintain separate dev/prod databases
-- Never run vendor syncs from the web server (causes memory crashes) - use manual triggers only
-- ❌ **NEVER run `npm run db:push`** - This can truncate production data!
-- ❌ **NEVER run `npm run db:generate`** - Use manual SQL migrations only!
-- ❌ **NEVER run `npm run db:migrate`** - Can cause schema conflicts!
-- ✅ **Schema changes require manual SQL migrations** in `/migrations/` directory
-- ✅ **See `migrations/MANUAL_MIGRATIONS_ONLY.md`** for safe migration process
-- 🛡️ **Safety protections enabled:**
-  - `.drizzle-kit-skip` prevents automatic migrations during deployment
-  - Dangerous npm scripts renamed to `DANGEROUS_db:*` with error messages
-  - `db:validate` only checks columns exist, never migrates
-
-**Protection Mechanisms:**
-1. **Startup Check:** Server logs database environment on every restart - watch for 🚨 warnings
-2. **Verification Script:** Run `bash scripts/verify-database-config.sh` anytime to check configuration
-3. **Documentation:** See `docs/DATABASE_SETUP_GUIDE.md` for detailed setup instructions
-
-**Why Manual Migrations (Replit-Verified Approach):**
-
-Replit's deployment platform **auto-detects `drizzle.config.ts`** and tries to run migrations regardless of `.drizzle-kit-skip`. After consultation with Replit support, we've implemented the **industry-standard approach** used by production SaaS companies:
-
-✅ **Manual SQL Migrations:**
-- Full control over data transformations
-- Can test on dev before production  
-- Clear audit trail in `/migrations/` directory
-- No surprise truncations
-- Proper handling of backfills and constraints
-
-❌ **Auto-Migrations (Why We Disabled):**
-- Can truncate tables unexpectedly (we lost 200 vendors twice)
-- Snapshot conflicts cause schema issues
-- No control over migration order
-- Difficult to rollback
-- Platform detection triggers unwanted migrations
-
-**Replit Platform Limitation:**
-- `.drizzle-kit-skip` file exists but Replit ignores it
-- **Solution:** Remove ALL DB commands from build process
-- Build command: `npm ci && npm run build` ONLY (no `db:validate`)
-- Prevents Replit from detecting database operations
-- Manual validation: Run `npm run db:validate` separately when needed
-
-**If Configuration Breaks Again:**
-1. Check server logs for database environment mismatch warnings
-2. Run verification script: `bash scripts/verify-database-config.sh`
-3. Fix workspace secret: Tools → Secrets → DATABASE_URL → Set to dev endpoint
-4. Fix deployment secret: Tools → Publishing → Advanced Settings → DATABASE_URL → Set to prod endpoint (must be unsynced!)
-
-**Key Tables:**
-- `companies` - Tenant organizations with timezone and retail vertical
-- `users` - User accounts with role and company association
-- `stores` - Physical/online store locations per company
-- `products` - Central product catalog with vendor mappings
-- `supported_vendors` - Available vendor integrations per vertical
-- `company_vendor_credentials` - Encrypted API credentials per company
-- `pricing_rules` - Dynamic pricing strategy configuration
-- `vendor_product_mappings` - Links products to vendor catalogs
-- `vendor_inventory` - Real-time vendor stock levels
+PostgreSQL (Neon serverless) with Drizzle ORM for type-safe operations. The schema is multi-tenant with `companyId` and `retailVerticalId`. Manual SQL migrations are exclusively used for schema changes, with safeguards to prevent automatic migrations. **Separate databases for development and production are critical, and automatic synchronization is disabled to prevent data loss.**
 
 ### Vendor Integration System
-
-**Supported Vendors:**
-1. **Bill Hicks & Co** - FTP-based catalog and inventory sync
-2. **Sports South** - REST API with incremental updates
-3. **Chattanooga Shooting Supplies** - SOAP API integration
-4. **Lipsey's** - REST API with fixed IP proxy requirement
-5. **GunBroker** - Marketplace product imports
-
-**Integration Architecture:**
-- **Vendor Registry Pattern** - Centralized handler registration for all vendors
-- **Credential Vault Service** - Secure storage/retrieval with field-level encryption
-- **Sync Services** - Vendor-specific import logic in dedicated files
-- **Schedule Management** - Database-driven sync settings with external Replit Scheduled Deployments
-
-**Sync Strategy:**
-- **Catalog Sync** - Daily full or incremental product catalog updates
-- **Inventory Sync** - Hourly stock level updates (Bill Hicks, Sports South)
-- **Store-Specific Pricing** - Per-store vendor pricing where available
-- **Status Tracking** - Database fields for last sync time, record counts, and status badges
+The system supports multiple vendors (Bill Hicks, Sports South, Chattanooga Shooting Supplies, Lipsey's, GunBroker) via a Vendor Registry Pattern. It uses a Credential Vault Service for secure storage and dedicated sync services. Syncs are primarily manual, with previous automated scheduling disabled due to memory constraints.
 
 ### Pricing Engine
-- **Multi-strategy pricing rules** per company with priority ordering
-- **Fallback chain:** Vendor Cost → MAP → MSRP → Cost + Markup
-- **Store-level overrides** for custom pricing per location
-- **MAP enforcement** with configurable thresholds
-- **Promotional pricing** with date-based activation
-- **Bulk pricing updates** via vendor sync or manual override
+Supports multi-strategy pricing rules per company with priority ordering, including fallback chains (Vendor Cost → MAP → MSRP → Cost + Markup) and store-level overrides.
 
 ### Image Management
-- **Google Cloud Storage** integration for product images
-- **Automatic image processing** with resizing and optimization
-- **CDN delivery** via GCS public URLs
-- **Fallback handling** for missing images
-- **Vendor image imports** during catalog sync
+Google Cloud Storage handles product images, including automatic processing, CDN delivery, and vendor image imports during catalog sync.
 
 ### Email System
-- **SendGrid** integration for transactional emails
-- **Template-based emails:**
-  - Welcome emails with initial credentials
-  - Subscription confirmations
-  - Password resets
-  - Order notifications (webhook-triggered)
-- **Rate limiting** to prevent duplicate sends
+SendGrid is integrated for transactional emails like welcome, subscription, and password resets, using templates and rate limiting.
 
 ### Billing & Subscription Management
-- **Zoho Billing** integration via webhooks
-- **Webhook event handling:**
-  - `subscription_created` / `subscription_activated` - Auto-provision company
-  - `subscription_cancelled` - Suspend access
-  - `subscription_renewed` - Reactivate access
-- **Event deduplication** to prevent duplicate provisioning
-- **Signature verification** for webhook security
-- **Company provisioning** includes:
-  - Admin user creation with random password
-  - Default store setup
-  - Default pricing rule creation
-  - Vendor enablement based on retail vertical
+Zoho Billing integration via webhooks handles subscription lifecycle events (created, cancelled, renewed) for company provisioning and access suspension. Webhooks include signature verification and event deduplication.
 
 ### Background Jobs & Scheduling
-**ALL AUTOMATIC SYNCS DISABLED (User Request - October 2025):**
-- ❌ **No cron jobs running** - all automatic scheduling disabled
-- ❌ **No subscription cron jobs** - trial expiration checks disabled
-- ❌ **No vendor auto-syncs** - all syncs must be triggered manually
-- ✅ **Manual sync triggers** available via Admin UI API endpoints
-- ⚠️ **Vendor syncs crash production** due to memory limits - never run from web server
-
-**Previous Automatic Sync Architecture (DISABLED):**
-- Replit Scheduled Deployments for automated vendor syncs (not configured)
-- Optional PM2 worker process for background tasks (not used)
-- Database-driven schedules stored in `supported_vendors` table (ignored)
-- Subscription cron jobs for trial expiration (disabled in code)
+All automatic syncs and cron jobs are disabled. Vendor syncs and other tasks must be triggered manually via Admin UI API endpoints.
 
 ### File Storage & Processing
-- **Google Cloud Storage** for product images and vendor files
-- **FTP client** for Bill Hicks catalog/inventory downloads
-- **CSV parsing** for Chattanooga and Bill Hicks imports
-- **XML parsing** for Sports South SOAP responses
-- **Temporary file handling** with cleanup after processing
+Google Cloud Storage is used for files. FTP client for downloads, CSV/XML parsing for imports, and temporary file handling are in place.
 
 ## External Dependencies
 
 ### Third-Party Services
-1. **Zoho Billing** - Subscription management and billing
-   - Webhook endpoints for subscription lifecycle events
-   - Signature-based authentication
-   - Event deduplication to prevent double-provisioning
-
-2. **SendGrid** - Email delivery service
-   - API key authentication
-   - Template-based transactional emails
-   - Rate limiting and duplicate prevention
-
-3. **Google Cloud Storage** - Image and file storage
-   - Service account authentication via JSON key
-   - Public bucket for CDN delivery
-   - Automatic image optimization
-
-4. **Neon Database** - Serverless PostgreSQL
-   - WebSocket-based connection pooling
-   - Connection string authentication
-   - Automatic scaling
+1.  **Zoho Billing**: Subscription management, webhook-based.
+2.  **SendGrid**: Email delivery.
+3.  **Google Cloud Storage**: Image and file storage.
+4.  **Neon Database**: Serverless PostgreSQL.
 
 ### Vendor APIs & Integrations
-
-1. **Bill Hicks & Co**
-   - FTP server access for catalog/inventory files
-   - CSV format for catalog data
-   - Store-specific pricing feeds
-   - Hourly inventory updates
-
-2. **Sports South**
-   - REST API with authentication token
-   - Incremental sync via last-update timestamps
-   - JSON response format
-   - Real-time inventory lookups
-
-3. **Chattanooga Shooting Supplies**
-   - SOAP API with XML responses
-   - Customer number + credentials authentication
-   - Category and item update endpoints
-   - Paged result sets (1000 records per page)
-
-4. **Lipsey's**
-   - REST API requiring IP whitelisting
-   - **Fixed IP proxy required** (DigitalOcean/Squid setup documented)
-   - JSON response format
-   - Catalog and inventory endpoints
-
-5. **GunBroker**
-   - Marketplace API integration
-   - OAuth-based authentication
-   - Product import functionality
-   - Uses admin-level credentials for all stores
+1.  **Bill Hicks & Co**: FTP for catalog/inventory (CSV).
+2.  **Sports South**: REST API (JSON).
+3.  **Chattanooga Shooting Supplies**: SOAP API (XML).
+4.  **Lipsey's**: REST API requiring fixed IP proxy.
+5.  **GunBroker**: Marketplace API.
 
 ### Infrastructure Dependencies
-
-1. **Replit Deployment Platform**
-   - Hosted application runtime
-   - Scheduled Deployments for automated tasks
-   - Environment variable management via Secrets
-   - Single static IP per deployment
-
-2. **Fixed IP Proxy** (for Lipsey's)
-   - DigitalOcean droplet with Squid proxy
-   - Username/password authentication
-   - Pass-through proxy for API requests
-   - Documented setup in DEVOPS_QUICKSTART.md
-
-3. **DNS & Domain Management**
-   - Custom domain configuration (via Hostinger or similar)
-   - SSL/TLS certificate management
-   - Multi-tenant subdomain routing via organization slugs
+1.  **Replit Deployment Platform**: Hosting and scheduling.
+2.  **Fixed IP Proxy**: DigitalOcean/Squid for Lipsey's.
+3.  **DNS & Domain Management**: Custom domain, SSL/TLS, multi-tenant subdomain routing.
 
 ### Required Environment Variables
-- `DATABASE_URL` - Neon PostgreSQL connection string
-- `SESSION_SECRET` - Express session encryption key
-- `CREDENTIAL_ENCRYPTION_KEY` - 64-char hex key for credential vault
-- `SENDGRID_API_KEY` - Email service authentication
-- `GOOGLE_APPLICATION_CREDENTIALS` - GCS service account JSON
-- `GCS_BUCKET_NAME` - Cloud storage bucket name
-- `ZOHO_WEBHOOK_SECRET` - Webhook signature verification
-- `NODE_ENV` - Environment mode (development/production)
-- `PORT` - Server port (defaults to 5000)
-
-### Development Dependencies
-- **Vite** - Frontend build tool with HMR
-- **esbuild** - Backend TypeScript bundling
-- **Drizzle Kit** - Database migration management
-- **PM2** (optional) - Process management for production
-- **TypeScript** - Type safety across stack
-- **Tailwind CSS** - Utility-first styling
+-   `DATABASE_URL`
+-   `SESSION_SECRET`
+-   `CREDENTIAL_ENCRYPTION_KEY`
+-   `SENDGRID_API_KEY`
+-   `GOOGLE_APPLICATION_CREDENTIALS`
+-   `GCS_BUCKET_NAME`
+-   `ZOHO_WEBHOOK_SECRET`
+-   `NODE_ENV`
+-   `PORT`
